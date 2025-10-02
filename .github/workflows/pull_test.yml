@@ -27,5 +27,6 @@ jobs:
           done
           
       - name: Build the Docker image
-        run: docker build --file build/ci/docker/cli.Dockerfile --tag advent2024.cli:$(date +%s) .
-        run: docker build --file build/ci/docker/web.Dockerfile --tag advent2024.web:$(date +%s) .
+        run: |
+          docker build --file build/ci/docker/cli.Dockerfile --tag advent2024.cli:$(date +%s) .
+          docker build --file build/ci/docker/web.Dockerfile --tag advent2024.web:$(date +%s) .
