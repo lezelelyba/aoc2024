@@ -52,17 +52,17 @@ jobs:
       - name: Push Docker images
         if: github.event_name == 'push' && github.ref == 'refs/heads/feature/git-actions'
         run: |
-          docker tag advent2024.cli:${BRANCH_NAME}-${TIMESTAMP} advent2024/advent2024.cli:latest
-          docker tag advent2024.web:${BRANCH_NAME}-${TIMESTAMP} advent2024/advent2024.web:latest
+          docker tag advent2024.cli:${BRANCH_NAME}-${TIMESTAMP} jsafar/advent2024.cli:latest
+          docker tag advent2024.web:${BRANCH_NAME}-${TIMESTAMP} jsafar/advent2024.web:latest
 
-          docker push advent2024/advent2024.cli:latest
-          docker push advent2024/advent2024.web:latest
+          docker push jsafar/advent2024.cli:latest
+          docker push jsafar/advent2024.web:latest
 
       - name: Push Docker images
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
-          docker tag advent2024.cli:${BRANCH_NAME}-${TIMESTAMP} advent2024/advent2024.cli:latest
-          docker tag advent2024.web:${BRANCH_NAME}-${TIMESTAMP} advent2024/advent2024.web:latest
+          docker tag advent2024.cli:${BRANCH_NAME}-${TIMESTAMP} jsafar/advent2024.cli:latest
+          docker tag advent2024.web:${BRANCH_NAME}-${TIMESTAMP} jsafar/advent2024.web:latest
 
-          docker push advent2024/advent2024.cli:latest
-          docker push advent2024/advent2024.web:latest
+          docker push jsafar/advent2024.cli:latest
+          docker push jsafar/advent2024.web:latest
