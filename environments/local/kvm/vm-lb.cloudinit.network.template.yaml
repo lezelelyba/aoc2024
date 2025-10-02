@@ -1,0 +1,8 @@
+network:
+  version: 2
+  ethernets:
+    eth0:
+      match:
+        macaddress: "${ eth0_mac }"
+      set-name: eth0
+      dhcp4: true

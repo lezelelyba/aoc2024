@@ -1,0 +1,26 @@
+---
+- name: Run Caddy LB
+  hosts: loadbalancers
+  become: true
+  tasks:
+    - name: Deploy Caddyfile configuration
+      template:
+        src: ../templates/Caddyfile.j2
+        dest: /etc/caddy/Caddyfile
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Caddy
+
+    - name: Ensure Caddy service is enabled and started
+      systemd:
+        name: caddy
+        enabled: yes
+        state: started
+
+    # Handler to restart Caddy on config changes
+  handlers:
+    - name: Restart Caddy
+      systemd:
+        name: caddy
+        state: restarted

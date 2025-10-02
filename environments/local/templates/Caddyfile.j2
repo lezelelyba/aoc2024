@@ -1,0 +1,8 @@
+:80
+
+reverse_proxy {
+{% for host in groups['webservers'] %}
+  to http://{{ hostvars[host].ansible_host }}:8080
+{% endfor %}
+  lb_policy round_robin
+}

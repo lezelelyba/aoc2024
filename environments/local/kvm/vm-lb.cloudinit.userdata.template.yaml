@@ -1,0 +1,14 @@
+#cloud-config
+hostname: ${ hostname }
+users:
+  - name: ${ username }
+    plain_text_passwd: ${ password }
+    lock_passwd: false
+    ssh_authorized_keys:
+      - ${ sshkey }
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/sh
+ssh_pwauth: true
+
+packages:
+  - caddy
