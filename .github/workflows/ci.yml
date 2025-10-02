@@ -25,6 +25,9 @@ jobs:
           BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}" | tr '/' '-')
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
+          TIMESTAMP=$(date +%s)
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+
       - name: Run unit tests
         run: |
           for mod in ./pkg/*/; do
@@ -36,7 +39,6 @@ jobs:
 
       - name: Build Docker images
         run: |
-          TIMESTAMP=$(date +%s)
           docker build -f build/ci/docker/cli.Dockerfile -t advent2024.cli:${BRANCH_NAME}-${TIMESTAMP} .
           docker build -f build/ci/docker/web.Dockerfile -t advent2024.web:${BRANCH_NAME}-${TIMESTAMP} .
 
@@ -50,7 +52,6 @@ jobs:
       - name: Push Docker images
         if: github.event_name == 'push' && github.ref == 'refs/heads/feature/git-actions'
         run: |
-          TIMESTAMP=$(date +%s)
           docker tag advent2024.cli:${BRANCH_NAME}-${TIMESTAMP} advent2024/advent2024.cli:latest
           docker tag advent2024.web:${BRANCH_NAME}-${TIMESTAMP} advent2024/advent2024.web:latest
 
@@ -60,7 +61,6 @@ jobs:
       - name: Push Docker images
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
-          TIMESTAMP=$(date +%s)
           docker tag advent2024.cli:${BRANCH_NAME}-${TIMESTAMP} advent2024/advent2024.cli:latest
           docker tag advent2024.web:${BRANCH_NAME}-${TIMESTAMP} advent2024/advent2024.web:latest
 
