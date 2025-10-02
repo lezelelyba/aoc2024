@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -27,4 +27,5 @@ jobs:
           done
           
       - name: Build the Docker image
-        run: docker build --file build/ci/docker/cli.Dockerfile --tag advent2024:$(date +%s) .
+        run: docker build --file build/ci/docker/cli.Dockerfile --tag advent2024.cli:$(date +%s) .
+        run: docker build --file build/ci/docker/web.Dockerfile --tag advent2024.web:$(date +%s) .
