@@ -3,6 +3,7 @@ go 1.22.2
 use (
 	./cmd/cli
 	./cmd/web
+	./pkg/d0
 	./pkg/d1
 	./pkg/d2
 	./pkg/d3
