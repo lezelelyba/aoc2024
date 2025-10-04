@@ -7,7 +7,7 @@ local: localci localcd
 
 localci:
 	@echo "Building Docker images"
-	./build/ci/build_docker_images.sh
+	./environments/local/build_docker_images.sh
 	@echo "Completed"
 
 # Run the CD pipeline (e.g. deploy with ansible, terraform, etc.)
