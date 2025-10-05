@@ -43,8 +43,8 @@ jobs:
 
       - name: Build Docker images
         run: |
-          docker build -f build/ci/docker/cli.Dockerfile -t jsafar/advent2024/cli:${BRANCH_NAME} .
-          docker build -f build/ci/docker/web.Dockerfile -t jsafar/advent2024/web:${BRANCH_NAME} .
+          docker build -f build/ci/docker/cli.Dockerfile -t jsafar/advent2024.cli:${BRANCH_NAME} .
+          docker build -f build/ci/docker/web.Dockerfile -t jsafar/advent2024.web:${BRANCH_NAME} .
 
       - name: Log in to Docker Hub
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
@@ -56,8 +56,8 @@ jobs:
       - name: Push Docker images
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         run: |
-          docker push jsafar/advent2024/cli:${BRANCH_NAME}
-          docker push jsafar/advent2024/web:${BRANCH_NAME}
+          docker push jsafar/advent2024.cli:${BRANCH_NAME}
+          docker push jsafar/advent2024.web:${BRANCH_NAME}
 
       - name: Log in to Docker Hub
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -69,8 +69,8 @@ jobs:
       - name: Push Docker images
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
-          docker tag jsafar/advent2024/cli:${BRANCH_NAME}-latest jsafar/advent2024/cli:latest
-          docker tag jsafar/advent2024/web:${BRANCH_NAME}-latest jsafar/advent2024/web:latest
+          docker tag jsafar/advent2024.cli:${BRANCH_NAME}-latest jsafar/advent2024.cli:latest
+          docker tag jsafar/advent2024.web:${BRANCH_NAME}-latest jsafar/advent2024.web:latest
 
-          docker push jsafar/advent2024/cli:latest
-          docker push jsafar/advent2024/web:latest
+          docker push jsafar/advent2024.cli:latest
+          docker push jsafar/advent2024.web:latest
