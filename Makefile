@@ -1,4 +1,4 @@
-.PHONY: localci localcd localdestroy localclean test
+.PHONY: localci localcd localdestroy localclean devbootstrap devbootstrapdestroy test
 
 # Run the CI pipeline (e.g. build docker images, run tests)
 # TODO: testing is missing, requirements are missing
@@ -29,7 +29,15 @@ localclean:
 	go clean
 	docker rmi advent2024.web || true
 	docker rmi advent2024.cli || true
-	
+
+TF_DIR ?= environments/aws_bootstrap/terraform
+
+awsbootstrap:
+	(cd $(TF_DIR); terraform init; terraform plan; terraform apply)
+
+awsbootstrapdestroy:
+	(cd $(TF_DIR); terraform destroy)
+
 # Run tests (unit, integration)
 test:
 	@echo "Running unit tests..."
