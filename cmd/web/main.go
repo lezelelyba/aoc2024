@@ -20,6 +20,7 @@ import (
 	_ "advent2024/pkg/d4"
 	_ "advent2024/pkg/d5"
 	_ "advent2024/pkg/d6"
+	_ "advent2024/pkg/d7"
 
 	"advent2024/pkg/solver"
 

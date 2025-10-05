@@ -38,7 +38,7 @@ func TestPart2(t *testing.T) {
 21037: 9 7 18 13
 292: 11 6 16 20`
 
-	want := "3749"
+	want := "11387"
 
 	puzzle := NewSolver()
 	_ = puzzle.Init(strings.NewReader(input))
