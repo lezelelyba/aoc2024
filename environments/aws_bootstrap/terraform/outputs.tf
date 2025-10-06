@@ -17,6 +17,14 @@ resource "local_file" "backend_info" {
         environment = each.value.prefix
     })
 }
+resource "local_file" "bootstrap_variables" {
+  for_each = var.envs  
+
+    filename = "${path.module}/../../aws/${each.value.prefix}/terraform/boostrap-variables.tf"
+    content = templatefile("${path.module}/templates/bootstrap-variables.tf.tmpl", {
+        region = var.region
+    })
+}
 
 output "gh_oidc_provider_arn" {
   value = aws_iam_openid_connect_provider.gh_oidc_provider.arn
