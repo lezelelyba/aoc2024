@@ -1,5 +1,6 @@
 resource "aws_security_group" "lb" {
     vpc_id = aws_vpc.vpc.id
+    name = "${var.env}-aoc2024-lb-sg"
 
     tags = {
         name = "${var.env}-aoc2024-lb-sg"
@@ -23,6 +24,7 @@ resource "aws_security_group" "lb" {
 
 resource "aws_security_group" "ecs" {
     vpc_id = aws_vpc.vpc.id
+    name = "${var.env}-aoc2024-ecs-sg"
 
     tags = {
         name = "${var.env}-aoc2024-ecs-sg"

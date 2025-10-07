@@ -18,7 +18,7 @@ resource "aws_alb_target_group" "app" {
     target_type = "ip"
 
     health_check {
-        path = "/"
+        path = var.health_check_path
         protocol = "HTTP"
         port = "traffic-port"
         matcher = "200"

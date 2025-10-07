@@ -21,3 +21,7 @@ variable "lb_tcp_port" {
 variable "docker_image" {
     default = "jsafar/advent2024.web:dev"
 }
+
+variable "health_check_path" {
+    default = "/healthcheck"
+}
