@@ -135,6 +135,7 @@ func main() {
 	mux.HandleFunc("GET /list", solverListing)
 	mux.HandleFunc("POST /solve/{day}/{part}", solve)
 	mux.HandleFunc("GET /solve/{day}/{part}/upload", withTemplate(uploadTemplate, ContextKeyUploadTemplate, solveWithUpload))
+	mux.HandleFunc("GET /healthcheck", healthCheck)
 
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
@@ -146,6 +147,12 @@ func main() {
 }
 
 func serverStatus(w http.ResponseWriter, r *http.Request) {
+
+	if r.URL.Path != "/" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	registered_keys := solver.ListRegister()
 	registered_keys_string := strings.Join(registered_keys, " ")
 
@@ -307,4 +314,9 @@ func solveWithUpload(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf("{}")))
 		return
 	}
+}
+
+func healthCheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }
