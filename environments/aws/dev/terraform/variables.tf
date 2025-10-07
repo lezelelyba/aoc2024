@@ -13,3 +13,7 @@ variable "private_cidr" {
 variable "app_tcp_port" {
     default = "8080"
 }
+
+variable "docker_image" {
+    default = "jsafar/advent2024.web:dev"
+}

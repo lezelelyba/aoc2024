@@ -30,13 +30,21 @@ localclean:
 	docker rmi advent2024.web || true
 	docker rmi advent2024.cli || true
 
-TF_DIR ?= environments/aws_bootstrap/terraform
+TF_BOOTSTRAPDIR ?= environments/aws_bootstrap/terraform
 
 awsbootstrap:
-	(cd $(TF_DIR); terraform init; terraform plan; terraform apply)
+	(cd $(TF_BOOTSTRAPDIR); terraform init; terraform plan; terraform apply)
 
 awsbootstrapdestroy:
-	(cd $(TF_DIR); terraform destroy)
+	(cd $(TF_BOOTSTRAPDIR); terraform destroy)
+
+TF_DEVDIR ?= environments/aws/dev/terraform
+
+awsdev:
+	(cd $(TF_DEVDIR); terraform init; terraform plan; terraform apply)
+
+awsdevdestroy:
+	(cd $(TF_DEVDIR); terraform destroy)
 
 # Run tests (unit, integration)
 test:
