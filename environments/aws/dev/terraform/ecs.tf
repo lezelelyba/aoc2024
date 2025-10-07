@@ -49,11 +49,11 @@ resource "aws_ecs_task_definition" "ecs_task" {
             logConfiguration = {
                 logDriver = "awslogs"
                 options = {
-                  awslogs-group = aws_cloudwatch_log_group.group
+                  awslogs-group = aws_cloudwatch_log_group.ecs_log_group.name
                   awslogs-region = var.region
-                  awslogs-stream-prefix = "${var.env}-aoc2024"
+                  awslogs-stream-prefix = "${var.env}-ecs-aoc2024"
                 }
-      }
+            }
         }
     ])
 }

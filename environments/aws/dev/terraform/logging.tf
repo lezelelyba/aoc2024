@@ -1,3 +1,4 @@
-resource "aws_cloudwatch_log_group" "group" {
-  name = "${var.env}-aoc2024-log-group"
+resource "aws_cloudwatch_log_group" "ecs_log_group" {
+  name = "${var.env}/ecs/aoc2024"
+  retention_in_days = 14
 }

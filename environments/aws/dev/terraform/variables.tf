@@ -25,3 +25,10 @@ variable "docker_image" {
 variable "health_check_path" {
     default = "/healthcheck"
 }
+
+variable "sshpubkeypath" {
+    default = "~/id_rsa.pub"
+}
+variable "sshprivkeypath" {
+    default = "~/id_rsa"
+}

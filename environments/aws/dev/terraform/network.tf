@@ -66,12 +66,14 @@ resource "aws_nat_gateway" "nat" {
     count = 2
 
     allocation_id = aws_eip.nat_eip[count.index].id
-    subnet_id = aws_subnet.private[count.index].id
+    subnet_id = aws_subnet.public[count.index].id
 
     tags = {
         name = "${var.env}-aoc2024-natgw-${count.index}"
         environment = var.env
     }
+
+    depends_on = [aws_internet_gateway.igw]
 }
 
 resource "aws_route_table" "private" {
@@ -89,7 +91,7 @@ resource "aws_route" "private_gw" {
 
     route_table_id = aws_route_table.private[count.index].id
     destination_cidr_block = "0.0.0.0/0"
-    gateway_id = aws_nat_gateway.nat[count.index].id
+    nat_gateway_id = aws_nat_gateway.nat[count.index].id
 }
 
 resource "aws_route_table" "public" {
