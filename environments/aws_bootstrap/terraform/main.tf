@@ -2,6 +2,8 @@ resource "aws_s3_bucket" "tf_state_bucket" {
     provider = aws.prov1
     bucket = "${var.tf_state_bucket}-${random_string.bucket_number.result}"
 
+    force_destroy = true
+
     tags = {
         managed-by = var.mngd
     }

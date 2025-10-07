@@ -8,8 +8,8 @@ resource "aws_security_group" "lb" {
 
     ingress {
         protocol = "tcp"
-        from_port = var.app_tcp_port
-        to_port = var.app_tcp_port
+        from_port = tonumber(var.lb_tcp_port)
+        to_port = tonumber(var.lb_tcp_port)
         cidr_blocks = ["0.0.0.0/0"]
     }
 
@@ -33,7 +33,7 @@ resource "aws_security_group" "ecs" {
         protocol = "tcp"
         from_port = var.app_tcp_port
         to_port = var.app_tcp_port
-        security_groups = [aws_security_group.lb]
+        security_groups = [aws_security_group.lb.id]
     }
 
     egress {

@@ -3,15 +3,19 @@ variable "vpc_cidr" {
 }
 
 variable "public_cidr" {
-    default = "10.192.1.0/24"
+    default = "10.192.0.0/24"
 }
 
 variable "private_cidr" {
-    default = "10.192.129.0/24"
+    default = "10.192.8.0/24"
 }
 
 variable "app_tcp_port" {
     default = "8080"
+}
+
+variable "lb_tcp_port" {
+    default = "80"
 }
 
 variable "docker_image" {

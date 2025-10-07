@@ -12,4 +12,5 @@ terraform {
 provider "aws" {
    alias = "prov1"
    region = var.region
+   profile = var.env
 }

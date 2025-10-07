@@ -5,7 +5,7 @@ resource "aws_ecs_cluster" "ecs_cluster" {
 resource "aws_iam_role" "ecs_task_execution_role" {
     name = "${var.env}Aoc2024ExecutionRole"
 
-    assume_role_policy = {
+    assume_role_policy = jsonencode({
         Version = "2012-10-17"
         Statement = [{
             Action = "sts:AssumeRole"
@@ -14,7 +14,7 @@ resource "aws_iam_role" "ecs_task_execution_role" {
                 Service = "ecs-tasks.amazonaws.com"
             }
         }]
-    }
+    })
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
@@ -22,16 +22,16 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
     policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-resource "awc_ecs_task_definition" "ecs_task" {
+resource "aws_ecs_task_definition" "ecs_task" {
     family = "${var.env}-aoc2024-ecs-task"
     network_mode = "awsvpc"
 
-    required_compatibilities = ["FARGATE"]
+    requires_compatibilities = ["FARGATE"]
 
-    cpu = "1"
-    memory = "512"
+    cpu = 256
+    memory = 512
 
-    execution_role = aws_iam_role_policy_attachment.ecs_task_execution_role.arn
+    execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
 
     container_definitions = jsonencode([
         {
@@ -40,8 +40,8 @@ resource "awc_ecs_task_definition" "ecs_task" {
             essential = true
             portMappings = [
                 {
-                    containerPort = var.app_tcp_port
-                    hostPort = var.app_tcp_port
+                    containerPort = tonumber(var.app_tcp_port)
+                    hostPort = tonumber(var.app_tcp_port)
                     protocol = "tcp"
                 }
             ]
@@ -49,14 +49,14 @@ resource "awc_ecs_task_definition" "ecs_task" {
     ])
 }
 resource "aws_ecs_service" "app" {
-    name = "${dev}-aoc2024-app"
+    name = "${var.env}-aoc2024-app"
     cluster = aws_ecs_cluster.ecs_cluster.id 
     task_definition = aws_ecs_task_definition.ecs_task.arn
-    desired_count = 1
+    desired_count = 2
     launch_type = "FARGATE"
 
     network_configuration {
-        subnets = aws_subnet.private.id
+        subnets = aws_subnet.private[*].id
         security_groups = [aws_security_group.ecs.id]
     }
 

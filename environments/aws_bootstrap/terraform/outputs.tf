@@ -20,9 +20,10 @@ resource "local_file" "backend_info" {
 resource "local_file" "bootstrap_variables" {
   for_each = var.envs  
 
-    filename = "${path.module}/../../aws/${each.value.prefix}/terraform/boostrap-variables.tf"
+    filename = "${path.module}/../../aws/${each.value.prefix}/terraform/bootstrap-variables.tf"
     content = templatefile("${path.module}/templates/bootstrap-variables.tf.tmpl", {
         region = var.region
+        environment = each.value.prefix
     })
 }
 
