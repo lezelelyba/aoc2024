@@ -38,6 +38,12 @@ resource "aws_iam_openid_connect_provider" "gh_oidc_provider" {
     }
 }
 
+locals {
+    github_subs = [
+        for e in var.envs :
+        "repo:${var.repo_name}:ref:refs/heads/${e.branch}"
+    ]
+}
 resource "aws_iam_role" "gh_actions_role" {
     provider = aws.prov1
     name = "gh-actions-role"
@@ -53,7 +59,7 @@ resource "aws_iam_role" "gh_actions_role" {
                 Action = "sts:AssumeRoleWithWebIdentity",
                 Condition = {
                     StringEquals = {
-                        "token.actions.githubusercontent.com:sub" = "repo:${var.repo_name}:ref:refs/heads/*",
+                        "token.actions.githubusercontent.com:sub" = local.github_subs,
                         "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
                     }
                 }
@@ -79,7 +85,8 @@ resource "aws_iam_policy" "gh_actions_policy" {
             "s3:*",
             "dynamodb:*",
             "ecs:*",
-            "elasticloadbalancing:*"
+            "elasticloadbalancing:*",
+            "ssm:GetParameter"
           ],
           Resource = "*"
         }

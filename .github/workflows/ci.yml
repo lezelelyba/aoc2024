@@ -17,6 +17,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      actions: write
+      contents: read
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -66,3 +70,10 @@ jobs:
 
           docker push jsafar/advent2024.cli:latest
           docker push jsafar/advent2024.web:latest
+
+      - name: Trigger ECS deploy workflow_run
+        if: github.event_name == 'push' && ( github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev' )
+        run: gh workflow run .github/workflows/ecs-image-change.yml --ref ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

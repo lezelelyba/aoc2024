@@ -3,14 +3,10 @@
 name: Redeploy latest image to ECS
 
 on:
-  workflow_run:
-    workflows: ["CI / Docker Build"]
-    types:
-      - completed
+  workflow_dispatch:
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }} && ${{ github.event.workflow_run.event == 'push' }}
     runs-on: ubuntu-latest
 
     permissions:
