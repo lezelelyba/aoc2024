@@ -70,7 +70,7 @@ devapply:
 dev: devinit devapply
 
 devdestroy:
-	(cd $(TF_DEVDIR); terraform destroy)
+	(cd $(TF_DEVDIR); terraform destroy -var="sshpubkeypath=${TF_DEVSSHPUBKEYPATH}" -var="sshprivkeypath=${TF_DEVSSHPRIVKEYPATH}")
 
 devoutput:
 	(cd $(TF_DEVDIR); terraform output)

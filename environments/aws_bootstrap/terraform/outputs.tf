@@ -35,13 +35,22 @@ output "gh_actions_role_arn" {
   value = aws_iam_role.gh_actions_role.arn
 }
 
-resource "local_file" "gh_actions_deploy" {
+# resource "local_file" "gh_actions_deploy" {
+#   for_each = var.envs
+# 
+#     filename = "${path.module}/../../../.github/workflows/${each.value.prefix}-tf-deploy.yml"
+#     content = templatefile("${path.module}/templates/tf-deploy.yml.tmpl", {
+#         region = var.region
+#         role_arn = aws_iam_role.gh_actions_role.arn
+#         branch = each.value.branch
+#     })
+# }
 
-  for_each = var.envs
-    filename = "${path.module}/../../../.github/workflows/${each.value.prefix}_deploy.yml"
-    content = templatefile("${path.module}/templates/deploy.yml.tmpl", {
+resource "local_file" "gh_actions_ecs_change" {
+    filename = "${path.module}/../../../.github/workflows/ecs-image-change.yml"
+    content = templatefile("${path.module}/templates/ecs-image-change.yml.tmpl", {
+        envs = var.envs
         region = var.region
         role_arn = aws_iam_role.gh_actions_role.arn
-        branch = each.value.branch
     })
 }

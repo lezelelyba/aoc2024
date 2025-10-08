@@ -1,0 +1,58 @@
+# Created by Terraform Bootstrap
+
+name: Redeploy latest image to ECS
+
+on:
+  workflow_run:
+    workflows: ["CI / Docker Build"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }} && ${{ github.event.workflow_run.event == "push" }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::858431073792:role/gh-actions-role
+          aws-region: eu-central-1
+
+      - name: Fetch ECS config
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          aws ssm get-parameter --name "/cd/dev/config" \
+            --with-decryption --query "Parameter.Value" --output text > ecs.json
+
+      - name: Force new ECS config
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          CLUSTER=$(jq -r '.cluster' ecs.json)
+          SERVICE=$(jq -r '.service' ecs.json)
+          aws ecs update-service \
+            --cluster "$CLUSTER" \
+            --service "$SERVICE" \
+            --force-new-deployment
+            
+      - name: Fetch ECS config
+        if: github.ref == 'refs/heads/master'
+        run: |
+          aws ssm get-parameter --name "/cd/prod/config" \
+            --with-decryption --query "Parameter.Value" --output text > ecs.json
+
+      - name: Force new ECS config
+        if: github.ref == 'refs/heads/master'
+        run: |
+          CLUSTER=$(jq -r '.cluster' ecs.json)
+          SERVICE=$(jq -r '.service' ecs.json)
+          aws ecs update-service \
+            --cluster "$CLUSTER" \
+            --service "$SERVICE" \
+            --force-new-deployment
+            

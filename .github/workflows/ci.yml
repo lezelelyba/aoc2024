@@ -5,8 +5,7 @@ on:
     branches:
       - master
       - dev
-      - 'feature/**'
-      - 'fix/**'
+      
   push:
     branches:
       - master

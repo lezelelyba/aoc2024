@@ -40,7 +40,7 @@ resource "aws_iam_openid_connect_provider" "gh_oidc_provider" {
 
 resource "aws_iam_role" "gh_actions_role" {
     provider = aws.prov1
-    name = "gh-actions-tf-build-role"
+    name = "gh-actions-role"
 
     assume_role_policy = jsonencode({
         Version =  "2012-10-17",
@@ -67,7 +67,7 @@ resource "aws_iam_role" "gh_actions_role" {
 }
 
 resource "aws_iam_policy" "gh_actions_policy" {
-    name = "gh-actions-tf-build-policy" 
+    name = "gh-actions-policy" 
 
     policy = jsonencode({
       Version = "2012-10-17",
