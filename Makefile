@@ -1,4 +1,8 @@
-.PHONY: localci localcd localdestroy localclean test
+CLOUDPROVIDER ?= "aws"
+
+.PHONY: all localci localcd localdestroy localclean bootstrap dev test
+
+all: bootstrap dev
 
 # Run the CI pipeline (e.g. build docker images, run tests)
 # TODO: testing is missing, requirements are missing
@@ -29,7 +33,48 @@ localclean:
 	go clean
 	docker rmi advent2024.web || true
 	docker rmi advent2024.cli || true
+
+
+TF_INITPARAMS ?= 
+TF_APPLYPARAMS ?= 
+
+ifeq ($(CLOUDPROVIDER), "aws")
+TF_BOOTSTRAPDIR ?= environments/aws_bootstrap/terraform
+endif
+
+bootstrapinit:
+	(cd $(TF_BOOTSTRAPDIR); terraform init ${TF_INITPARAMS})
+
+bootstrapapply:
+	(cd $(TF_BOOTSTRAPDIR); terraform apply ${TF_APPLYPARAMS})
+
+bootstrap: bootstrapinit bootstrapapply
+
+bootstrapdestroy:
+	(cd $(TF_BOOTSTRAPDIR); terraform destroy)
 	
+
+ifeq ($(CLOUDPROVIDER), "aws")
+TF_DEVDIR ?= environments/aws/dev/terraform
+endif
+
+TF_DEVSSHPUBKEYPATH ?= ~/.ssh/aws.pem
+TF_DEVSSHPRIVKEYPATH ?= ~/.ssh/aws.priv.pem
+
+devinit:
+	(cd ${TF_DEVDIR}; terraform init ${TF_INITPARAMS})
+
+devapply:
+	(cd $(TF_DEVDIR); terraform apply -var="sshpubkeypath=${TF_DEVSSHPUBKEYPATH}" -var="sshprivkeypath=${TF_DEVSSHPRIVKEYPATH}" ${TF_APPLYPARAMS})
+
+dev: devinit devapply
+
+devdestroy:
+	(cd $(TF_DEVDIR); terraform destroy -var="sshpubkeypath=${TF_DEVSSHPUBKEYPATH}" -var="sshprivkeypath=${TF_DEVSSHPRIVKEYPATH}")
+
+devoutput:
+	(cd $(TF_DEVDIR); terraform output)
+
 # Run tests (unit, integration)
 test:
 	@echo "Running unit tests..."
@@ -40,4 +85,3 @@ test:
 			go test "$$mod/..."; \
 		fi \
 	done
-

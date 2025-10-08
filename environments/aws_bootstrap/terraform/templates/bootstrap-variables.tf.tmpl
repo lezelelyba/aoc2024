@@ -1,0 +1,13 @@
+# Created by Terraform Bootstrap
+
+variable "region" {
+    default = "${region}" 
+}
+
+variable "env" {
+    default = "${environment}"
+}
+
+variable "ssm_path" {
+    default = "/cd/${environment}/config"
+}
