@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - dev
+      - stage
       - master
 
 jobs:
@@ -14,38 +15,66 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Detect changed files between last commit and current
       - name: Detect changed components
         id: changes
         run: |
-          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} \
-            | cut -d/ -f1 | sort -u)
+          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | sort -u)
           echo "changed=$CHANGED" >> $GITHUB_OUTPUT
 
+      # Bump versions for each changed component
       - name: Bump component versions
         run: |
-          components="web cli aws aws_bootstrap main"
+          # key = component, value = space-separated list of dependencies
+          declare -A deps
 
-          for comp in $components; do
-            if echo "${{ steps.changes.outputs.changed }}" | grep -q "$comp"; then
-              echo "Bumping version for $comp"
-              cd $comp || continue
-              CURR_VER=$(cat VERSION 2>/dev/null || echo "0.0.0")
-              
-              # Determine bump type based on branch and Conventional Commits
-              if [[ "${GITHUB_REF}" == "refs/heads/dev" ]]; then
-                NEXT_VER=$(semantic-release pre --branch dev --current-version "$CURR_VER")
-              elif [[ "${GITHUB_REF}" == "refs/heads/stage" ]]; then
-                NEXT_VER=$(semantic-release pre --branch stage --current-version "$CURR_VER")
-              else
-                NEXT_VER=$(semantic-release release --branch master --current-version "$CURR_VER")
-              fi
-              
-              echo "$NEXT_VER" > VERSION
-              git add VERSION
-              git commit -m "chore($comp): bump version to $NEXT_VER"
-              git tag "$comp/v$NEXT_VER"
-              git push origin --tags
-              cd -
+          deps["cmd/web"]="pkg"
+          deps["cmd/cli"]="pkg"
+          deps["modules/aws/infra"]=""
+          deps["environments/bootstrap/aws"]=""
+          deps["environments/aws/dev"]=""
+          deps["environments/aws/stage"]=""
+          deps["environments/aws/prod"]=""
+          deps["build/ci/docker"]=""
+          deps["."]=""
+
+          # components which needs a bump
+
+          declare -A to_bump
+
+          for comp in "${!deps[@]}"; do
+
+            # Check if component itself changed
+            if echo "$CHANGED" | grep -q "^$comp/"; then
+              to_bump["$comp"]=1
+              continue
             fi
+
+            # Check dependencies
+            for dep in ${deps[$comp]}; do
+              if echo "$CHANGED" | grep -q "^$dep/"; then
+                to_bump["$comp"]=1
+              fi
+            done
           done
 
+          for comp in "${!to_bump[@]}"; do
+            echo "Bumping version for $comp"
+            VERSION_FILE="$comp/VERSION"
+            CURR_VER=$(cat "$VERSION_FILE" 2>/dev/null || echo "0.0.0")
+            
+            if [[ "${GITHUB_REF}" == "refs/heads/dev" ]]; then
+              NEXT_VER=$(semantic-release pre --branch dev --current-version "$CURR_VER")
+            elif [[ "${GITHUB_REF}" == "refs/heads/stage" ]]; then
+              NEXT_VER=$(semantic-release pre --branch stage --current-version "$CURR_VER")
+            else
+              NEXT_VER=$(semantic-release release --branch master --current-version "$CURR_VER")
+            fi
+
+            echo "$NEXT_VER" > "$VERSION_FILE"
+            git add "$VERSION_FILE"
+            git commit -m "chore($comp): bump version to $NEXT_VER"
+            git tag "$comp/v$NEXT_VER"
+          done
+
+          git push origin --tags
