@@ -7,7 +7,7 @@ variable "sshprivkeypath" {
 }
 
 variable "ssm_path" {
-    default = "/cd/dev/config"
+    default = "/cd/stage/config"
 }
 
 variable "region" {
@@ -19,5 +19,5 @@ variable "docker_image" {
 }
 
 variable "env" {
-    default = "dev"
+    default = "stage"
 }

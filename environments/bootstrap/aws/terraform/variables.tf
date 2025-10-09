@@ -34,6 +34,10 @@ variable "envs" {
             prefix = "dev"
             branch = "dev"
         },
+        stage = {
+            prefix = "stage"
+            branch = "stage"
+        },
         prod = {
             prefix = "prod"
             branch = "master"

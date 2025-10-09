@@ -7,7 +7,7 @@ variable "sshprivkeypath" {
 }
 
 variable "ssm_path" {
-    default = "/cd/dev/config"
+    default = "/cd/prod/config"
 }
 
 variable "region" {
@@ -15,9 +15,9 @@ variable "region" {
 }
 
 variable "docker_image" {
-    default = "jsafar/advent2024.web:dev"
+    default = "jsafar/advent2024.web:latest"
 }
 
 variable "env" {
-    default = "dev"
+    default = "prod"
 }

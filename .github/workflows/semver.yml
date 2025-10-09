@@ -1,0 +1,51 @@
+name: SemVer CI/CD
+
+on:
+  push:
+    branches:
+      - dev
+      - master
+
+jobs:
+  bump_versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed components
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} \
+            | cut -d/ -f1 | sort -u)
+          echo "changed=$CHANGED" >> $GITHUB_OUTPUT
+
+      - name: Bump component versions
+        run: |
+          components="web cli aws aws_bootstrap main"
+
+          for comp in $components; do
+            if echo "${{ steps.changes.outputs.changed }}" | grep -q "$comp"; then
+              echo "Bumping version for $comp"
+              cd $comp || continue
+              CURR_VER=$(cat VERSION 2>/dev/null || echo "0.0.0")
+              
+              # Determine bump type based on branch and Conventional Commits
+              if [[ "${GITHUB_REF}" == "refs/heads/dev" ]]; then
+                NEXT_VER=$(semantic-release pre --branch dev --current-version "$CURR_VER")
+              elif [[ "${GITHUB_REF}" == "refs/heads/stage" ]]; then
+                NEXT_VER=$(semantic-release pre --branch stage --current-version "$CURR_VER")
+              else
+                NEXT_VER=$(semantic-release release --branch master --current-version "$CURR_VER")
+              fi
+              
+              echo "$NEXT_VER" > VERSION
+              git add VERSION
+              git commit -m "chore($comp): bump version to $NEXT_VER"
+              git tag "$comp/v$NEXT_VER"
+              git push origin --tags
+              cd -
+            fi
+          done
+

@@ -1,6 +1,13 @@
-CLOUDPROVIDER ?= "aws"
+MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+CLOUDPROVIDER ?= aws
+ENVIRONMENT ?= prod
+TF_INITPARAMS ?= 
+TF_APPLYPARAMS ?= 
+TF_DESTROYPARAMS ?= 
+TF_SSHPUBKEYPATH ?= ~/.ssh/aws.pem
+TF_SSHPRIVKEYPATH ?= ~/.ssh/aws.priv.pem
 
-.PHONY: all localci localcd localdestroy localclean bootstrap dev test
+.PHONY: all localci localcd localdestroy localclean bootstrap init apply destroy output test 
 
 all: bootstrap dev
 
@@ -34,12 +41,22 @@ localclean:
 	docker rmi advent2024.web || true
 	docker rmi advent2024.cli || true
 
+ifeq ($(CLOUDPROVIDER), aws)
+TF_BOOTSTRAPDIR ?= environments/bootstrap/aws/terraform
+TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
 
-TF_INITPARAMS ?= 
-TF_APPLYPARAMS ?= 
+ifeq ($(ENVIRONMENT), prod)
+TF_DIR ?= $(MAKEFILE_DIR)environments/aws/prod/terraform
+TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
+else ifeq ($(ENVIRONMENT), dev)
+TF_DIR ?= $(MAKEFILE_DIR)environments/aws/dev/terraform
+TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
+else
+$(error Unknown ENVIRONMENT: $(ENVIRONMENT))
+endif
 
-ifeq ($(CLOUDPROVIDER), "aws")
-TF_BOOTSTRAPDIR ?= environments/aws_bootstrap/terraform
+else
+$(error Unknown CLOUDPROVIDER: $(CLOUDPROVIDER))
 endif
 
 bootstrapinit:
@@ -51,29 +68,16 @@ bootstrapapply:
 bootstrap: bootstrapinit bootstrapapply
 
 bootstrapdestroy:
-	(cd $(TF_BOOTSTRAPDIR); terraform destroy)
+	(cd $(TF_BOOTSTRAPDIR); terraform destroy ${TF_DESTROY_PARAMS})
 	
-
-ifeq ($(CLOUDPROVIDER), "aws")
-TF_DEVDIR ?= environments/aws/dev/terraform
-endif
-
-TF_DEVSSHPUBKEYPATH ?= ~/.ssh/aws.pem
-TF_DEVSSHPRIVKEYPATH ?= ~/.ssh/aws.priv.pem
-
-devinit:
-	(cd ${TF_DEVDIR}; terraform init ${TF_INITPARAMS})
-
-devapply:
-	(cd $(TF_DEVDIR); terraform apply -var="sshpubkeypath=${TF_DEVSSHPUBKEYPATH}" -var="sshprivkeypath=${TF_DEVSSHPRIVKEYPATH}" ${TF_APPLYPARAMS})
-
-dev: devinit devapply
-
-devdestroy:
-	(cd $(TF_DEVDIR); terraform destroy -var="sshpubkeypath=${TF_DEVSSHPUBKEYPATH}" -var="sshprivkeypath=${TF_DEVSSHPRIVKEYPATH}")
-
-devoutput:
-	(cd $(TF_DEVDIR); terraform output)
+init:
+	(cd ${TF_DIR}; terraform init -backend-config=${TF_BACKEND_CONFIG} ${TF_INITPARAMS})
+apply:
+	(cd $(TF_DIR); terraform apply -var="sshpubkeypath=${TF_SSHPUBKEYPATH}" -var="sshprivkeypath=${TF_SSHPRIVKEYPATH}" ${TF_APPLYPARAMS})
+destroy:
+	(cd $(TF_DIR); terraform destroy -var="sshpubkeypath=${TF_SSHPUBKEYPATH}" -var="sshprivkeypath=${TF_SSHPRIVKEYPATH}" ${TF_DESTROYPARAMS})
+output:
+	(cd $(TF_DIR); terraform output)
 
 # Run tests (unit, integration)
 test:
