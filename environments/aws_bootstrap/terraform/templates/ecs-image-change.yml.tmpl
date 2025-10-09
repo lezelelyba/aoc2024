@@ -54,15 +54,24 @@ jobs:
       - name: Get ALB DNS name
         id: get-lb
         run: |
-          ALB_ARN=$(aws ecs describe-services \
+          TG_ARN=$(aws ecs describe-services \
             --cluster $CLUSTER \
             --services $SERVICE \
-            --query "services[0].loadBalancers[0].loadBalancerName" \
+            --query "services[0].loadBalancers[0].targetGroupArn" \
             --output text)
+
+          # Get the Load Balancer ARN from Target Group
+          LB_ARN=$(aws elbv2 describe-target-groups \
+            --target-group-arns $TG_ARN \
+            --query "TargetGroups[0].LoadBalancerArns[0]" \
+            --output text)
+
+          # Get DNS name
           LB_DNS=$(aws elbv2 describe-load-balancers \
-            --names $ALB_ARN \
+            --load-balancer-arns $LB_ARN \
             --query "LoadBalancers[0].DNSName" \
             --output text)
+
           echo "LB_DNS=$LB_DNS" >> $GITHUB_ENV
 
       - name: Run smoke test
