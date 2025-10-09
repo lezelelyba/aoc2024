@@ -5,6 +5,10 @@ on:
     branches:
       - master
       - dev
+    paths:
+      - 'build/**'
+      - 'cmd/**'
+      - 'pgk/**'
       
   push:
     branches:
@@ -12,6 +16,10 @@ on:
       - dev
       - 'feature/**'
       - 'fix/**'
+    paths:
+      - 'build/**'
+      - 'cmd/**'
+      - 'pgk/**'
 
 jobs:
   build:
