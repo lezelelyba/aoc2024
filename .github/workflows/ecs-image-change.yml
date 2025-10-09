@@ -9,9 +9,14 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' 
+
     permissions:
       id-token: write
       contents: read
+
+    outputs:
+      lb_dns: ${{ steps.get-lb.outputs.lb_dns }}
 
     steps:
       - name: Configure AWS credentials via OIDC
@@ -21,7 +26,6 @@ jobs:
           aws-region: eu-central-1
 
       - name: Fetch ECS config
-        if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' 
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
             aws ssm get-parameter --name "/cd/dev/config" \
@@ -39,7 +43,6 @@ jobs:
           echo "SERVICE=$SERVICE" >> $GITHUB_ENV
 
       - name: Force new ECS config
-        if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' 
         run: |
           aws ecs update-service \
             --cluster "$CLUSTER" \
@@ -47,7 +50,6 @@ jobs:
             --force-new-deployment
 
       - name: Wait for ECS service
-        if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' 
         run: |
           aws ecs wait services-stable \
             --cluster $CLUSTER \
@@ -74,9 +76,27 @@ jobs:
             --query "LoadBalancers[0].DNSName" \
             --output text)
 
-          echo "LB_DNS=$LB_DNS" >> $GITHUB_ENV
+          echo "lb_dns=$LB_DNS" >> $GITHUB_OUTPUT
+
+  smoketest:    
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' 
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::858431073792:role/gh-actions-role
+          aws-region: eu-central-1
 
       - name: Run smoke test
+        env:
+          LB_DNS: ${{ needs.deploy.outputs.lb_dns }}
         run: |
           echo "Running smoke test on $LB_DNS"
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$LB_DNS/healthcheck)
