@@ -20,21 +20,57 @@ jobs:
           role-to-assume: ${role_arn}
           aws-region: ${region}
 
-%{ for env in envs ~}
       - name: Fetch ECS config
-        if: github.ref == 'refs/heads/${env.branch}'
+        if: ${included_branches} 
         run: |
-          aws ssm get-parameter --name "/cd/${env.prefix}/config" \
-            --with-decryption --query "Parameter.Value" --output text > ecs.json
+%{ for env in envs ~}
+          if [ "$${GITHUB_REF}" = "refs/heads/${env.branch}" ]; then
+            aws ssm get-parameter --name "/cd/${env.prefix}/config" \
+              --with-decryption --query "Parameter.Value" --output text > ecs.json
+          fi
+%{ endfor ~}
 
-      - name: Force new ECS config
-        if: github.ref == 'refs/heads/${env.branch}'
-        run: |
           CLUSTER=$(jq -r '.cluster' ecs.json)
           SERVICE=$(jq -r '.service' ecs.json)
+          
+          echo "CLUSTER=$CLUSTER" >> $GITHUB_ENV
+          echo "SERVICE=$SERVICE" >> $GITHUB_ENV
+
+      - name: Force new ECS config
+        if: ${included_branches} 
+        run: |
           aws ecs update-service \
             --cluster "$CLUSTER" \
             --service "$SERVICE" \
             --force-new-deployment
-            
-%{ endfor ~}
+
+      - name: Wait for ECS service
+        if: ${included_branches} 
+        run: |
+          aws ecs wait services-stable \
+            --cluster $CLUSTER \
+            --services $SERVICE
+
+      - name: Get ALB DNS name
+        id: get-lb
+        run: |
+          ALB_ARN=$(aws ecs describe-services \
+            --cluster $CLUSTER \
+            --services $SERVICE \
+            --query "services[0].loadBalancers[0].loadBalancerName" \
+            --output text)
+          LB_DNS=$(aws elbv2 describe-load-balancers \
+            --names $ALB_ARN \
+            --query "LoadBalancers[0].DNSName" \
+            --output text)
+          echo "LB_DNS=$LB_DNS" >> $GITHUB_ENV
+
+      - name: Run smoke test
+        run: |
+          echo "Running smoke test on $LB_DNS"
+          STATUS=$(curl -s -o /dev/null -w "%%{http_code}" http://$LB_DNS/healthcheck)
+          if [ "$STATUS" -ne 200 ]; then
+            echo "Smoke test failed: HTTP $STATUS"
+            exit 1
+          fi
+          echo "Smoke test passed: HTTP $STATUS"

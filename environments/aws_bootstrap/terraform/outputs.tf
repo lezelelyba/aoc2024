@@ -51,6 +51,7 @@ resource "local_file" "gh_actions_ecs_change" {
     content = templatefile("${path.module}/templates/ecs-image-change.yml.tmpl", {
         envs = var.envs
         region = var.region
+        included_branches = join(" || ", [for env in var.envs : "github.ref == 'refs/heads/${env.branch}'"])
         role_arn = aws_iam_role.gh_actions_role.arn
     })
 }

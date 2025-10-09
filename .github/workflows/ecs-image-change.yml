@@ -21,34 +21,58 @@ jobs:
           aws-region: eu-central-1
 
       - name: Fetch ECS config
-        if: github.ref == 'refs/heads/dev'
+        if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' 
         run: |
-          aws ssm get-parameter --name "/cd/dev/config" \
-            --with-decryption --query "Parameter.Value" --output text > ecs.json
+          if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
+            aws ssm get-parameter --name "/cd/dev/config" \
+              --with-decryption --query "Parameter.Value" --output text > ecs.json
+          fi
+          if [ "${GITHUB_REF}" = "refs/heads/master" ]; then
+            aws ssm get-parameter --name "/cd/prod/config" \
+              --with-decryption --query "Parameter.Value" --output text > ecs.json
+          fi
 
-      - name: Force new ECS config
-        if: github.ref == 'refs/heads/dev'
-        run: |
           CLUSTER=$(jq -r '.cluster' ecs.json)
           SERVICE=$(jq -r '.service' ecs.json)
+          
+          echo "CLUSTER=$CLUSTER" >> $GITHUB_ENV
+          echo "SERVICE=$SERVICE" >> $GITHUB_ENV
+
+      - name: Force new ECS config
+        if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' 
+        run: |
           aws ecs update-service \
             --cluster "$CLUSTER" \
             --service "$SERVICE" \
             --force-new-deployment
-            
-      - name: Fetch ECS config
-        if: github.ref == 'refs/heads/master'
-        run: |
-          aws ssm get-parameter --name "/cd/prod/config" \
-            --with-decryption --query "Parameter.Value" --output text > ecs.json
 
-      - name: Force new ECS config
-        if: github.ref == 'refs/heads/master'
+      - name: Wait for ECS service
+        if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' 
         run: |
-          CLUSTER=$(jq -r '.cluster' ecs.json)
-          SERVICE=$(jq -r '.service' ecs.json)
-          aws ecs update-service \
-            --cluster "$CLUSTER" \
-            --service "$SERVICE" \
-            --force-new-deployment
-            
+          aws ecs wait services-stable \
+            --cluster $CLUSTER \
+            --services $SERVICE
+
+      - name: Get ALB DNS name
+        id: get-lb
+        run: |
+          ALB_ARN=$(aws ecs describe-services \
+            --cluster $CLUSTER \
+            --services $SERVICE \
+            --query "services[0].loadBalancers[0].loadBalancerName" \
+            --output text)
+          LB_DNS=$(aws elbv2 describe-load-balancers \
+            --names $ALB_ARN \
+            --query "LoadBalancers[0].DNSName" \
+            --output text)
+          echo "LB_DNS=$LB_DNS" >> $GITHUB_ENV
+
+      - name: Run smoke test
+        run: |
+          echo "Running smoke test on $LB_DNS"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$LB_DNS/healthcheck)
+          if [ "$STATUS" -ne 200 ]; then
+            echo "Smoke test failed: HTTP $STATUS"
+            exit 1
+          fi
+          echo "Smoke test passed: HTTP $STATUS"
