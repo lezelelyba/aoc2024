@@ -19,11 +19,14 @@ jobs:
       - name: Detect changed components
         id: changes
         run: |
-          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | sort -u)
+          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | sort -u | jq -R -s -c 'split("\n")[:-1]')
           echo "changed=$CHANGED" >> $GITHUB_OUTPUT
 
       # Bump versions for each changed component
       - name: Bump component versions
+        id: bump
+        env:
+          CHANGED: ${{steps.changes.outputs.changed}}
         run: |
           # key = component, value = space-separated list of dependencies
           declare -A deps
@@ -65,16 +68,19 @@ jobs:
             
             if [[ "${GITHUB_REF}" == "refs/heads/dev" ]]; then
               NEXT_VER=$(semantic-release pre --branch dev --current-version "$CURR_VER")
+              echo "Bumping version for $comp in branch ${GITHUB_REFS} from $CURR_VER to $NEXT_VER"
             elif [[ "${GITHUB_REF}" == "refs/heads/stage" ]]; then
               NEXT_VER=$(semantic-release pre --branch stage --current-version "$CURR_VER")
+              echo "Bumping version for $comp in branch ${GITHUB_REFS} from $CURR_VER to $NEXT_VER"
             else
               NEXT_VER=$(semantic-release release --branch master --current-version "$CURR_VER")
+              echo "Bumping version for $comp in branch ${GITHUB_REFS} from $CURR_VER to $NEXT_VER"
             fi
 
-            echo "$NEXT_VER" > "$VERSION_FILE"
-            git add "$VERSION_FILE"
-            git commit -m "chore($comp): bump version to $NEXT_VER"
-            git tag "$comp/v$NEXT_VER"
+            # echo "$NEXT_VER" > "$VERSION_FILE"
+            # git add "$VERSION_FILE"
+            # git commit -m "chore($comp): bump version to $NEXT_VER"
+            # git tag "$comp/v$NEXT_VER"
           done
 
-          git push origin --tags
+          # git push origin --tags
