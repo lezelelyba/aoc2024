@@ -8,7 +8,7 @@ on:
 
   defaults:
     run:
-      working_directory: ./environments/local
+      working-directory: ./environments/local
 
   jobs:
     bump_version:
