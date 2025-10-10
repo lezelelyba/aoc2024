@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Bump Version of Component
         id: bump
         uses: ./.github/actions/bump-version
@@ -115,6 +116,8 @@ jobs:
       contents: read
 
     steps:      
+      - uses: actions/checkout@v4
+      
       - name: Trigger ECS deploy workflow_run
         run: gh workflow run .github/workflows/ecs-image-change.yml --ref ${{ github.ref_name }}
         env:
