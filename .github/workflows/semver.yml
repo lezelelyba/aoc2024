@@ -30,7 +30,8 @@ jobs:
       - name: Bump component versions
         id: bump
         env:
-          CHANGED_JSON: ${{steps.changes.outputs.changed}}
+          CHANGED_JSON: ${{ steps.changes.outputs.changed }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -92,4 +93,5 @@ jobs:
             git tag "$comp/v$NEXT_VER"
           done
 
+          git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/${{ github.repository }}.git
           git push origin --tags

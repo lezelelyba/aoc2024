@@ -52,5 +52,5 @@ func main() {
 
 	fmt.Printf("Result - Part %d: %s", *part, result)
 
-	//bumptest
+	//bumptest2
 }
