@@ -35,6 +35,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/${{ github.repository }}.git
 
           CHANGED=$(echo "$CHANGED_JSON" | jq -r '.[]')
 
@@ -93,5 +95,4 @@ jobs:
             git tag "$comp/v$NEXT_VER"
           done
 
-          git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/${{ github.repository }}.git
           git push origin --tags
