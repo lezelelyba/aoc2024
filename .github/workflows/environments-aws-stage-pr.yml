@@ -1,0 +1,22 @@
+name: Environments - AWS Stage - Pull Request
+
+on:
+  pull_request:
+    paths:
+      - 'environments/aws/stage/**'
+      - '.github/workflows/environments-aws-stage-pr.yml'
+      
+defaults:
+  run:
+    working-directory: ./environments/aws/stage
+
+jobs:
+  bump_version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Tests
+        run: |
+          echo "No tests"
+          

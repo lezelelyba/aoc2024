@@ -1,0 +1,24 @@
+name: CMD cli - Pull Request
+
+on:
+  pull_request:
+    paths:
+      - 'build/ci/docker/cli.Dockerfile'
+      - 'cmd/cli/**'
+      - '/pkg/**'
+
+jobs:
+  bump_version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Tests
+        run: |
+          for mod in ./pkg/*/; do
+            if [ -f "$mod/go.mod" ]; then
+              echo "Testing $mod"
+              go test "$mod/..."
+            fi
+          done
+          
