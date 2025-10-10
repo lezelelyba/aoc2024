@@ -21,6 +21,7 @@ jobs:
         with:
           branch-name: ${{github.ref_name}}
           work-dir: ./environmets/local
+          tag-prefix: environments/local
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
