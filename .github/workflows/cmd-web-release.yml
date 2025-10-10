@@ -64,11 +64,6 @@ jobs:
         run: |
           echo "if: {{ needs.bump_version_outputs.bumped }} == 'true'"
 
-      #- name: Debug bump outputs double quotes
-      #  if: needs.bump_version_outputs.bumped == "true"
-      #  run: |
-      #    echo "if: needs.bump_version_outputs.bumpe == \"true\""
-
       - name: Debug bump outputs
         run: |
           echo "bumped=${{ needs.bump_version.outputs.bumped }}"
@@ -77,7 +72,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: bump_version
-    if: needs.bump_version.outputs.bumped == true
+    if: ${{ needs.bump_version.outputs.bumped }} == 'true'
 
     permissions:
       actions: write
