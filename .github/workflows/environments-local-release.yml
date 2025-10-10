@@ -59,9 +59,12 @@ jobs:
           echo "$NEXT_VER" > VERSION
 
           # Commit and tag
+          
           git add VERSION
           git commit -m "chore: bump version to $NEXT_VER"
           git tag "v$NEXT_VER"
 
           # Push commit and tag
-          git push origin "HEAD:${GITHUB_HEAD_REF}" --tags
+
+          BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          git push origin HEAD:"$BRANCH_NAME" --tags
