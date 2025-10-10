@@ -54,6 +54,16 @@ jobs:
         run: |
           echo "if: needs.bump_version_outputs.bumped == 'true'"
 
+      - name: Debug bump outputs just expresion
+        if: ${{ needs.bump_version_outputs.bumped }}
+        run: |
+          echo "if: {{ needs.bump_version_outputs.bumped }} "
+
+      - name: Debug bump outputs expresion matching quotes
+        if: ${{ needs.bump_version_outputs.bumped }} == 'true'
+        run: |
+          echo "if: {{ needs.bump_version_outputs.bumped }} == 'true'"
+
       #- name: Debug bump outputs double quotes
       #  if: needs.bump_version_outputs.bumped == "true"
       #  run: |
