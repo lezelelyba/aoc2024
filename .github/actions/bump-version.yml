@@ -4,6 +4,8 @@ description: "Bumps semver and pushes tag"
 inputs:
   branch-name:
     required: true
+  tag-prefix:
+    required: true
   work-dir:
     required: false
     default: "."
@@ -74,9 +76,10 @@ runs:
         echo "$NEXT_VER" > VERSION
 
         # Commit and tag
+        TAG_PREFIX=${{inputs.tag_prefix}}
         git add VERSION
         git commit -m "chore: bump version to $NEXT_VER"
-        git tag "v$NEXT_VER"
+        git tag "$TAG_PREFIX/v$NEXT_VER"
 
         # Push commit and tag
         git push origin HEAD:"${{inputs.branch-name}}" --tags
