@@ -25,6 +25,8 @@ runs:
   using: "composite"
   steps:
     - uses: actions/checkout@v4
+      fetch-depth: 0
+      ref: ${{ inputs.branch-name }}
 
     - name: Cache npm global packages
       uses: actions/cache@v3
@@ -62,6 +64,11 @@ runs:
 
         cd ${{ inputs.work-dir }}
 
+        # Ensure local branch is up-to-date
+
+        git fetch origin ${{ inputs.branch-name }}
+        git reset --hard origin/${{ inputs.branch-name }}
+
         # Setup git
 
         git config user.name "github-actions[bot]"
@@ -94,7 +101,6 @@ runs:
           TAG_PREFIX=${{inputs.tag-prefix}}
 
           git add VERSION
-
           git commit -m "chore: bump version of ${{inputs.work-dir}} to $NEXT_VER"
           git tag "$TAG_PREFIX/v$NEXT_VER"
 
