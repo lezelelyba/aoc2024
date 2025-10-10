@@ -2,11 +2,6 @@ name: Environments - Local - Pull Request
 
 on:
   pull_request:
-    branches:
-      - dev
-      - stage
-      - master
-
     paths:
       - 'environments/local/**'
       - '.github/workflows/environments-local.pr.yml'
@@ -53,7 +48,7 @@ on:
           echo "Next version: $NEXT_VER"
 
           # Update VERSION file
-          
+
           echo "$NEXT_VER" > VERSION
 
           # Commit and tag
