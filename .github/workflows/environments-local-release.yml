@@ -17,10 +17,10 @@ jobs:
   bump_version:
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/actions/bump-version
+      - uses: .github/actions/bump-version
         with:
           branch-name: ${{github.ref_name}}
-          work-dir: ./environments/local
+          work-dir: environments/local
           tag-prefix: environments/local
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
