@@ -20,7 +20,7 @@ jobs:
       - uses: ./.github/actions/bump-version
         with:
           branch-name: ${{github.ref_name}}
-          work-dir: ./environmets/local
+          work-dir: ./environments/local
           tag-prefix: environments/local
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
