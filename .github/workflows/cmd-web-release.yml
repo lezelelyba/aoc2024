@@ -20,7 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - id: bump
+      - name: Bump Version of Component
+        id: bump
         uses: ./.github/actions/bump-version
         with:
           branch-name: ${{github.ref_name}}
@@ -33,6 +34,10 @@ jobs:
         run: |
           echo ${{ steps.bump.outputs.bumped }}
           echo ${{ steps.bump.outputs.next-version }}
+
+    outputs:
+      bumped: ${{ steps.bump.outputs.bumped }}
+      next-version: ${{ steps.bump.outputs.next-version }}
 
   build:
     runs-on: ubuntu-latest
@@ -49,6 +54,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Debug bump outputs
+        run: |
+          echo "bumped=${{ needs.bump_version.outputs.bumped }}"
+          echo "next-version=${{ needs.bump_version.outputs.next-version }}"
 
       - name: Build Docker images
         run: |
