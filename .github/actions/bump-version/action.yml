@@ -27,12 +27,14 @@ runs:
           npm-global-${{ runner.os }}
 
     - name: Setup npm global path
+      shell: bash
       run: |
         mkdir -p ~/.npm-global
         npm config set prefix ~/.npm-global
         echo "PATH=$HOME/.npm-global/bin:$PATH" >> $GITHUB_ENV
 
     - name: Refresh npm global cache if requested
+      shell: bash
       run: |
         if [ "${{ inputs.refresh-cache }}" == "true" ]; then
           echo "Deleting cached semver..."
@@ -40,14 +42,16 @@ runs:
         fi       
 
     - name: Install SemVer
+      shell: bash
       run: |
         npm install -g semver
 
     - name: Bump Version
+      shell: bash
       run: |
         # Move to working dir
 
-        cd ${{ work-dir }}
+        cd ${{ inputs.work-dir }}
 
         # Setup git
 
