@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# test1
+# test2
 
 set -e
 
