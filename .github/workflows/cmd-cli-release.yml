@@ -20,59 +20,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install SemVer
-        run: |
-          npm install -g semver
-
-      - name: Bump version
-        id: bump
+      - id: bump
+        uses: ./.github/actions/bump-version
+        with:
+          branch-name: ${{github.ref_name}}
+          work-dir: cmd/cli
+          tag-prefix: cmd/cli
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        working-directory: ./cmd/cli
-        run: |
-          # Setup git
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/${{ github.repository }}.git
-
-          # Read current version
-
-          CURR_VER=$(cat VERSION 2>/dev/null || echo "0.0.0")
-          echo "Current version: $CURR_VER"
-
-          # Determine next version
-          
-          if [[ "${GITHUB_REF}" == "refs/heads/dev" ]]; then
-            NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid rc)
-          elif [[ "${GITHUB_REF}" == "refs/heads/stage" ]]; then
-            NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid rc)
-          else
-            NEXT_VER=$(semver "$CURR_VER" -i patch)
-          fi
-          echo "Next version: $NEXT_VER"
-
-          # Update VERSION file
-          
-          echo "$NEXT_VER" > VERSION
-
-          if [ "$NEXT_VER" != "$CURR_VER"]; then
-            # Commit and tag
-            git add VERSION
-            git commit -m "chore: bump version to $NEXT_VER"
-            git tag "v$NEXT_VER"
-
-            # Push commit and tag
-            BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-            git push origin HEAD:"$BRANCH_NAME" --tags
-
-            echo "version=$NEXT_VER" >> $GITHUB_OUTPUT
-            echo "bumped=true" >> $GITHUB_OUTPUT
-          else
-            echo "version=$CUR_VER" >> $GITHUB_OUTPUT
-            echo "bumped=false" >> $GITHUB_OUTPUT
-          fi
 
   build:
     runs-on: ubuntu-latest
@@ -84,7 +39,7 @@ jobs:
       contents: read
 
     env:
-      NEXT_VER: ${{ needs.bump_version.outputs.version }}
+      NEXT_VER: ${{ needs.bump_version.outputs.next-version }}
 
     steps:
       - name: Checkout code

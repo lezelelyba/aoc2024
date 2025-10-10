@@ -13,6 +13,12 @@ inputs:
     required: false
     default: "false"
 
+outputs:
+  next-version:
+    description: "The new bumped version"
+  bumped:
+    description: "Was the version bumped"
+
 runs:
   using: "composite"
   steps:
@@ -79,14 +85,22 @@ runs:
         
         echo "$NEXT_VER" > VERSION
 
-        # Commit and tag
-        TAG_PREFIX=${{inputs.tag-prefix}}
-        git add VERSION
-        git commit -m "chore: bump version of ${{inputs.work-dir}} to $NEXT_VER"
-        git tag "$TAG_PREFIX/v$NEXT_VER"
+        if [ "$NEXT_VER" != "$CURR_VER"]; then
+          # Commit and tag
 
-        # Push commit and tag
-        git push origin HEAD:"${{inputs.branch-name}}" --tags
+          TAG_PREFIX=${{inputs.tag-prefix}}
 
-        # Output the next version
-        echo "version=$NEXT_VER" >> $GITHUB_OUTPUT
+          git add VERSION
+
+          git commit -m "chore: bump version of ${{inputs.work-dir}} to $NEXT_VER"
+          git tag "$TAG_PREFIX/v$NEXT_VER"
+
+          # Push commit and tag
+          git push origin HEAD:"${{inputs.branch-name}}" --tags
+
+          echo "next-version=$NEXT_VER" >> $GITHUB_OUTPUT
+          echo "bumped=true" >> $GITHUB_OUTPUT
+        else
+          echo "next-version=$CUR_VER" >> $GITHUB_OUTPUT
+          echo "bumped=false" >> $GITHUB_OUTPUT
+        fi

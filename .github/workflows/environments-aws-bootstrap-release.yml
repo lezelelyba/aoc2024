@@ -1,4 +1,4 @@
-name: Environments - Local - Push to release branches
+name: Environments - AWS Bootstrap - Push to release branches
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
       - stage
       - master
     paths:
-      - 'environments/local/**'
-      - '.github/workflows/environments-local-release.yml'
+      - 'environments/bootstrap/aws/**'
+      - '.github/workflows/environments-aws-bootstrap-release.yml'
 
 permissions:
   contents: write
@@ -21,7 +21,7 @@ jobs:
       - uses: ./.github/actions/bump-version
         with:
           branch-name: ${{github.ref_name}}
-          work-dir: environments/local
-          tag-prefix: environments/local
+          work-dir: environments/bootstrap/aws/
+          tag-prefix: environments/bootstrap/aws
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
