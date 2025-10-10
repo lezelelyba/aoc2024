@@ -51,6 +51,4 @@ func main() {
 	}
 
 	fmt.Printf("Result - Part %d: %s", *part, result)
-
-	// bump test 4
 }

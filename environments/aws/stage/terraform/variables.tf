@@ -21,6 +21,3 @@ variable "docker_image" {
 variable "env" {
     default = "stage"
 }
-variable "bumptest" {
-    default = "bumptest4"
-}

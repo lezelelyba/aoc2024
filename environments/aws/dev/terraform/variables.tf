@@ -21,7 +21,3 @@ variable "docker_image" {
 variable "env" {
     default = "dev"
 }
-
-variable "bumptest" {
-    default = "bumptest4"
-}

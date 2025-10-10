@@ -83,10 +83,10 @@ jobs:
               echo "Bumping version for $comp in branch ${GITHUB_REFS} from $CURR_VER to $NEXT_VER"
             fi
 
-            # echo "$NEXT_VER" > "$VERSION_FILE"
-            # git add "$VERSION_FILE"
-            # git commit -m "chore($comp): bump version to $NEXT_VER"
-            # git tag "$comp/v$NEXT_VER"
+            echo "$NEXT_VER" > "$VERSION_FILE"
+            git add "$VERSION_FILE"
+            git commit -m "chore($comp): bump version for $comp to $NEXT_VER"
+            git tag "$comp/v$NEXT_VER"
           done
 
-          # git push origin --tags
+          git push origin --tags
