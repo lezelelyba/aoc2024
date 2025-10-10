@@ -29,6 +29,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Output Variables
+        run: |
+          echo ${{ steps.bump.outputs.bumped }}
+          echo ${{ steps.bump.outputs.next-version }}
+
   build:
     runs-on: ubuntu-latest
     needs: bump_version
