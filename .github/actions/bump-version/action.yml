@@ -85,7 +85,7 @@ runs:
         
         echo "$NEXT_VER" > VERSION
 
-        if [ "$NEXT_VER" != "$CURR_VER"]; then
+        if [ "$NEXT_VER" != "$CURR_VER" ]; then
           # Commit and tag
 
           TAG_PREFIX=${{inputs.tag-prefix}}
@@ -101,6 +101,6 @@ runs:
           echo "next-version=$NEXT_VER" >> $GITHUB_OUTPUT
           echo "bumped=true" >> $GITHUB_OUTPUT
         else
-          echo "next-version=$CUR_VER" >> $GITHUB_OUTPUT
+          echo "next-version=$CURR_VER" >> $GITHUB_OUTPUT
           echo "bumped=false" >> $GITHUB_OUTPUT
         fi
