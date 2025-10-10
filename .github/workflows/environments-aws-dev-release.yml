@@ -1,4 +1,4 @@
-name: Environments - Local - Push to release branches
+name: Environments - AWS Dev - Push to release branches
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
       - stage
       - master
     paths:
-      - 'environments/local/**'
-      - '.github/workflows/environments-local-release.yml'
+      - 'environments/aws/dev/**'
+      - '.github/workflows/environments-aws-dev-release.yml'
 
 permissions:
   contents: write
@@ -21,7 +21,7 @@ jobs:
       - uses: ./.github/actions/bump-version
         with:
           branch-name: ${{github.ref_name}}
-          work-dir: environments/local
-          tag-prefix: environments/local
+          work-dir: environments/aws/dev
+          tag-prefix: environments/aws/dev
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
