@@ -16,8 +16,10 @@ inputs:
 outputs:
   next-version:
     description: "The new bumped version"
+    value: ${{ steps.bump.outputs.next-version }}
   bumped:
     description: "Was the version bumped"
+    value: ${{ steps.bump.outputs.bumped }}
 
 runs:
   using: "composite"
@@ -53,6 +55,7 @@ runs:
         npm install -g semver
 
     - name: Bump Version
+      id: bump
       shell: bash
       run: |
         # Move to working dir
