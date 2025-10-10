@@ -82,7 +82,7 @@ runs:
         # Commit and tag
         TAG_PREFIX=${{inputs.tag-prefix}}
         git add VERSION
-        git commit -m "chore: bump version to $NEXT_VER"
+        git commit -m "chore: bump version of ${{inputs.work-dir}} to $NEXT_VER"
         git tag "$TAG_PREFIX/v$NEXT_VER"
 
         # Push commit and tag
