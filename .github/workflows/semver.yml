@@ -24,7 +24,7 @@ jobs:
         
       - name: Install SemVer
         run: |
-          npm install -g semantic-release @semantic-release/changelog @semantic-release/git
+          npm install -g semver
 
       # Bump versions for each changed component
       - name: Bump component versions
@@ -73,13 +73,13 @@ jobs:
             CURR_VER=$(cat "$VERSION_FILE" 2>/dev/null || echo "0.0.0")
             
             if [[ "${GITHUB_REF}" == "refs/heads/dev" ]]; then
-              NEXT_VER=$(semantic-release pre --branch dev --current-version "$CURR_VER")
+              NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid dev)
               echo "Bumping version for $comp in branch ${GITHUB_REFS} from $CURR_VER to $NEXT_VER"
             elif [[ "${GITHUB_REF}" == "refs/heads/stage" ]]; then
-              NEXT_VER=$(semantic-release pre --branch stage --current-version "$CURR_VER")
+              NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid stage)
               echo "Bumping version for $comp in branch ${GITHUB_REFS} from $CURR_VER to $NEXT_VER"
             else
-              NEXT_VER=$(semantic-release release --branch master --current-version "$CURR_VER")
+              NEXT_VER=$(semver "$CURR_VER" -i patch)
               echo "Bumping version for $comp in branch ${GITHUB_REFS} from $CURR_VER to $NEXT_VER"
             fi
 
