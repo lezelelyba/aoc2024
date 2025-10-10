@@ -1,0 +1,68 @@
+name: Environments - AWS Dev - Push to release branches
+
+on:
+  push:
+    branches:
+      - dev
+      - stage
+      - master
+    paths:
+      - 'environments/aws/dev/**'
+      - '.github/workflows/environments-aws-dev-release.yml'
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: ./environments/aws/dev
+
+jobs:
+  bump_version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SemVer
+        run: |
+          npm install -g semver
+
+      - name: Bump version
+        id: bump
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Setup git
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/${{ github.repository }}.git
+
+          # Read current version
+
+          CURR_VER=$(cat VERSION 2>/dev/null || echo "0.0.0")
+          echo "Current version: $CURR_VER"
+
+          # Determine next version
+          
+          if [[ "${GITHUB_REF}" == "refs/heads/dev" ]]; then
+            NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid rc)
+          elif [[ "${GITHUB_REF}" == "refs/heads/stage" ]]; then
+            NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid rc)
+          else
+            NEXT_VER=$(semver "$CURR_VER" -i patch)
+          fi
+          echo "Next version: $NEXT_VER"
+
+          # Update VERSION file
+          
+          echo "$NEXT_VER" > VERSION
+
+          # Commit and tag
+          git add VERSION
+          git commit -m "chore: bump version to $NEXT_VER"
+          git tag "v$NEXT_VER"
+
+          # Push commit and tag
+          BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          git push origin HEAD:"$BRANCH_NAME" --tags

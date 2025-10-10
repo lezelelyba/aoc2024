@@ -1,14 +1,14 @@
-name: Environments - Local - Pull Request
+name: Modules - AWS - Infra - Pull Request
 
 on:
   pull_request:
     paths:
-      - 'environments/local/**'
-      - '.github/workflows/environments-local-pr.yml'
+      - 'modules/aws/infra/**'
+      - '.github/workflows/modules-aws-infra-pr.yml'
       
 defaults:
   run:
-    working-directory: ./environments/local
+    working-directory: ./modules/aws/infra
 
 jobs:
   bump_version:

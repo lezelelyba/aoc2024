@@ -1,0 +1,85 @@
+name: "Bump version"
+description: "Bumps semver and pushes tag"
+
+inputs:
+  branch-name:
+    required: true
+  work-dir:
+    required: false
+    default: "."
+  refresh-cache:
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Cache npm global packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm-global
+        key: npm-global-${{ runner.os }}
+        restore-keys: |
+          npm-global-${{ runner.os }}
+
+    - name: Setup npm global path
+      run: |
+        mkdir -p ~/.npm-global
+        npm config set prefix ~/.npm-global
+        echo "PATH=$HOME/.npm-global/bin:$PATH" >> $GITHUB_ENV
+
+    - name: Refresh npm global cache if requested
+      run: |
+        if [ "${{ inputs.refresh-cache }}" == "true" ]; then
+          echo "Deleting cached semver..."
+          rm -rf ~/.npm-global/lib/node_modules/semver
+        fi       
+
+    - name: Install SemVer
+      run: |
+        npm install -g semver
+
+    - name: Bump Version
+      run: |
+        # Move to working dir
+
+        cd ${{ work-dir }}
+
+        # Setup git
+
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/${{ github.repository }}.git
+
+        # Read current version
+
+        CURR_VER=$(cat VERSION 2>/dev/null || echo "0.0.0")
+        echo "Current version: $CURR_VER"
+
+        # Determine next version
+        
+        if [[ "${{inputs.branch-name}}" == "refs/heads/dev" ]]; then
+          NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid rc)
+        elif [[ "${{inputs.branch-name}}" == "refs/heads/stage" ]]; then
+          NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid rc)
+        else
+          NEXT_VER=$(semver "$CURR_VER" -i patch)
+        fi
+        echo "Next version: $NEXT_VER"
+
+        # Update VERSION file
+        
+        echo "$NEXT_VER" > VERSION
+
+        # Commit and tag
+        git add VERSION
+        git commit -m "chore: bump version to $NEXT_VER"
+        git tag "v$NEXT_VER"
+
+        # Push commit and tag
+        git push origin HEAD:"${{inputs.branch-name}}" --tags
+
+        # Output the next version
+        echo "version=$NEXT_VER" >> $GITHUB_OUTPUT

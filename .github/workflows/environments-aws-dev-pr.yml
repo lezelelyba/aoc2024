@@ -1,14 +1,14 @@
-name: Environments - Local - Pull Request
+name: Environments - AWS Dev - Pull Request
 
 on:
   pull_request:
     paths:
-      - 'environments/local/**'
-      - '.github/workflows/environments-local-pr.yml'
+      - 'environments/aws/dev/**'
+      - '.github/workflows/environments-aws-dev-pr.yml'
       
 defaults:
   run:
-    working-directory: ./environments/local
+    working-directory: ./environments/aws/dev
 
 jobs:
   bump_version:
