@@ -80,7 +80,7 @@ runs:
         echo "$NEXT_VER" > VERSION
 
         # Commit and tag
-        TAG_PREFIX=${{inputs.tag_prefix}}
+        TAG_PREFIX=${{inputs.tag-prefix}}
         git add VERSION
         git commit -m "chore: bump version to $NEXT_VER"
         git tag "$TAG_PREFIX/v$NEXT_VER"
