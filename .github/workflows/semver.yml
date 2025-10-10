@@ -21,6 +21,10 @@ jobs:
         run: |
           CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | sort -u | jq -R -s -c 'split("\n")[:-1]')
           echo "changed=$CHANGED" >> $GITHUB_OUTPUT
+        
+      - name: Install SemVer
+        run: |
+          npm install -g semantic-release @semantic-release/changelog @semantic-release/git
 
       # Bump versions for each changed component
       - name: Bump component versions
@@ -29,7 +33,7 @@ jobs:
           CHANGED_JSON: ${{steps.changes.outputs.changed}}
         run: |
           CHANGED=$(echo "$CHANGED_JSON" | jq -r '.[]')
-          
+
           # key = component, value = space-separated list of dependencies
           declare -A deps
 
