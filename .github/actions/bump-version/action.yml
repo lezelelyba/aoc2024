@@ -66,9 +66,9 @@ runs:
 
         # Determine next version
         
-        if [[ "${{inputs.branch-name}}" == "refs/heads/dev" ]]; then
+        if [[ "${{inputs.branch-name}}" == "dev" ]]; then
           NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid rc)
-        elif [[ "${{inputs.branch-name}}" == "refs/heads/stage" ]]; then
+        elif [[ "${{inputs.branch-name}}" == "stage" ]]; then
           NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid rc)
         else
           NEXT_VER=$(semver "$CURR_VER" -i patch)
@@ -82,7 +82,7 @@ runs:
         # Commit and tag
         TAG_PREFIX=${{inputs.tag-prefix}}
         git add VERSION
-        git commit -m "chore: bump version to $NEXT_VER"
+        git commit -m "chore: bump version of ${{inputs.work-dir}} to $NEXT_VER"
         git tag "$TAG_PREFIX/v$NEXT_VER"
 
         # Push commit and tag
