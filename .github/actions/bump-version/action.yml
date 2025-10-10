@@ -66,9 +66,9 @@ runs:
 
         # Determine next version
         
-        if [[ "${{inputs.branch-name}}" == "refs/heads/dev" ]]; then
+        if [[ "${{inputs.branch-name}}" == "dev" ]]; then
           NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid rc)
-        elif [[ "${{inputs.branch-name}}" == "refs/heads/stage" ]]; then
+        elif [[ "${{inputs.branch-name}}" == "stage" ]]; then
           NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid rc)
         else
           NEXT_VER=$(semver "$CURR_VER" -i patch)
