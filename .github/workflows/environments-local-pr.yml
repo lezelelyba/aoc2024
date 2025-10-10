@@ -60,4 +60,4 @@ jobs:
           git tag "v$NEXT_VER"
 
           # Push commit and tag
-          git push origin HEAD --tags
+          git push origin "HEAD:${GITHUB_HEAD_REF}" --tags
