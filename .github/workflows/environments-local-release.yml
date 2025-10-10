@@ -8,7 +8,7 @@ on:
       - master
     paths:
       - 'environments/local/**'
-      - '.github/workflows/environments-local.pr.yml'
+      - '.github/workflows/environments-local-release.yml'
 
 permissions:
   contents: write

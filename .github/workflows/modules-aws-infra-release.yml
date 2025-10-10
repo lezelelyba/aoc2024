@@ -8,7 +8,7 @@ on:
       - master
     paths:
       - 'modules/aws/infra/**'
-      - '.github/workflows/modules-aws-infra-pr.yml'
+      - '.github/workflows/modules-aws-infra-release.yml'
 
 permissions:
   contents: write

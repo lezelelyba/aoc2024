@@ -3,6 +3,7 @@ name: CMD web - Pull Request
 on:
   pull_request:
     paths:
+      - '.github/workflows/cmd-web-pr.yml'
       - 'build/ci/docker/web.Dockerfile'
       - 'cmd/web/**'
       - '/pkg/**'

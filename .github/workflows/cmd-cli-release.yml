@@ -7,6 +7,7 @@ on:
       - stage
       - master
     paths:
+      - '.github/workflows/cmd-cli-release.yml'
       - 'build/ci/docker/cli.Dockerfile'
       - 'cmd/cli/**'
       - '/pkg/**'

@@ -3,6 +3,7 @@ name: CMD cli - Pull Request
 on:
   pull_request:
     paths:
+      - '.github/workflows/cmd-cli-pr.yml'
       - 'build/ci/docker/cli.Dockerfile'
       - 'cmd/cli/**'
       - '/pkg/**'
