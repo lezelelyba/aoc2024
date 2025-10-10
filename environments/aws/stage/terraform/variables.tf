@@ -22,5 +22,5 @@ variable "env" {
     default = "stage"
 }
 variable "bumptest" {
-    default = "bumptest"
+    default = "bumptest2"
 }

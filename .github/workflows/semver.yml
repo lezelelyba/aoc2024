@@ -26,8 +26,10 @@ jobs:
       - name: Bump component versions
         id: bump
         env:
-          CHANGED: ${{steps.changes.outputs.changed}}
+          CHANGED_JSON: ${{steps.changes.outputs.changed}}
         run: |
+          CHANGED=$(echo "$CHANGED_JSON" | jq -r '.[]')
+          
           # key = component, value = space-separated list of dependencies
           declare -A deps
 
