@@ -88,19 +88,19 @@ runs:
 
         echo "Next version: $NEXT_VER"
 
-        # Update VERSION file
-        
-        echo "$NEXT_VER" > VERSION
-
-        echo "Version Updated"
-        echo $(cat VERSION)
-
         if [ "$NEXT_VER" != "$CURR_VER" ]; then
         
           echo "Fetch"
 
           git fetch origin ${{ inputs.branch-name }}
           git reset --hard origin/${{ inputs.branch-name }}
+
+          # Update VERSION file
+          
+          echo "$NEXT_VER" > VERSION
+
+          echo "Version Updated"
+          echo $(cat VERSION)
 
           echo "Commit new VERSION"
 
