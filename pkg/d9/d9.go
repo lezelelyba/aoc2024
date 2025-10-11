@@ -2,6 +2,7 @@ package d9
 
 import (
 	"bufio"
+	"container/list"
 	"fmt"
 	"io"
 	"log"
@@ -11,12 +12,18 @@ import (
 	"advent2024/pkg/solver"
 )
 
-type Disk struct {
+type Block struct {
+	size    int
+	blockid int
+	space   bool
+	moved   bool
 }
+
 type PuzzleStruct struct {
 	input    string
 	intInput []int
-	blocks   map[int]int
+
+	blockList list.List
 }
 
 func init() {
@@ -50,6 +57,27 @@ func (p *PuzzleStruct) Init(reader io.Reader) error {
 	}
 
 	p.intInput = intInput
+	space := false
+	blockid := 0
+
+	for i := 0; i < len(p.intInput); i++ {
+		if !space {
+			p.blockList.PushBack(&Block{size: p.intInput[i],
+				blockid: blockid,
+				space:   false,
+				moved:   false})
+		} else {
+			p.blockList.PushBack(&Block{size: p.intInput[i],
+				blockid: 0,
+				space:   true,
+				moved:   false})
+		}
+
+		space = !space
+		if !space {
+			blockid++
+		}
+	}
 
 	return nil
 }
@@ -88,6 +116,11 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 				}
 			}
 
+			// if we moved back array past the front array, break
+			if front_array_idx > back_array_idx {
+				break
+			}
+
 			if !space {
 				// increase sum
 				sum += disk_idx * front_block_idx
@@ -112,16 +145,24 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 					back_block_idx -= 1
 				}
 			}
-
-			// if we moved back array past the front array, break
-			if front_array_idx > back_array_idx {
-				break
-			}
 		}
 
 		return strconv.Itoa(sum), nil
 	case 2:
 		sum := 0
+
+		for back := p.blockList.Back(); back != p.blockList.Front(); back = back.Prev() {
+
+			block := back.Value.(*Block)
+
+			if block.space {
+				continue
+			}
+
+			back, _ = tryToMove(&p.blockList, back)
+		}
+
+		sum = Checksum(&p.blockList)
 
 		return strconv.Itoa(sum), nil
 	}
@@ -138,4 +179,63 @@ func parseInput(sc *bufio.Scanner) (string, error) {
 	}
 
 	return line, nil
+}
+
+func tryToMove(l *list.List, e *list.Element) (*list.Element, error) {
+
+	head := l.Front()
+
+	if e.Value.(*Block).space {
+		return e, fmt.Errorf("trying to move space")
+	}
+
+	if e.Value.(*Block).moved {
+		return e, fmt.Errorf("Already moved")
+	}
+
+	for next := head; next != e; next = next.Next() {
+		if !next.Value.(*Block).space {
+			continue
+		}
+
+		if next.Value.(*Block).size < e.Value.(*Block).size {
+			continue
+		}
+
+		new_space := Block{space: true, size: e.Value.(*Block).size, moved: false, blockid: 0}
+
+		ret := l.InsertAfter(&new_space, e)
+		l.MoveBefore(e, next)
+
+		next.Value.(*Block).size -= new_space.size
+		if next.Value.(*Block).size == 0 {
+			_ = l.Remove(next)
+		}
+
+		e.Value.(*Block).moved = true
+
+		return ret, nil
+	}
+
+	return e, fmt.Errorf("Cannot move")
+}
+
+func Checksum(l *list.List) int {
+
+	sum := 0
+	idx := 0
+
+	for c := l.Front(); c != l.Back(); c = c.Next() {
+		if c.Value.(*Block).space {
+			idx += c.Value.(*Block).size
+		} else {
+			blockid := c.Value.(*Block).blockid
+			for i := idx; i < c.Value.(*Block).size+idx; i++ {
+				sum += i * blockid
+			}
+			idx += c.Value.(*Block).size
+		}
+	}
+
+	return sum
 }
