@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 
 	"advent2024/pkg/solver"
 )
@@ -76,6 +78,7 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 		antinodesMap := make(map[Coords]struct{})
 
 		for freq := range p.antennas {
+			// time.Sleep(time.Second / 1000)
 			antennas := p.antennas[freq]
 			for a1 := 0; a1 < len(antennas); a1++ {
 				for a2 := a1 + 1; a2 < len(antennas); a2++ {
@@ -101,6 +104,77 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 					}
 				}
 			}
+		}
+
+		sum = len(antinodesMap)
+
+		return strconv.Itoa(sum), nil
+
+	case 21:
+
+		// Rerwite using Go Routines
+
+		sum := 0
+		antinodesMap := make(map[Coords]struct{})
+
+		tasks := make(chan byte, 10)
+		results := make(chan Coords, 100)
+
+		var wg sync.WaitGroup
+
+		numWorkers := runtime.NumCPU()
+
+		for i := 0; i < numWorkers; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for t := range tasks {
+					// time.Sleep(time.Second / 1000)
+					freq := t
+					antennas := p.antennas[freq]
+					for a1 := 0; a1 < len(antennas); a1++ {
+						for a2 := a1 + 1; a2 < len(antennas); a2++ {
+
+							// line in one direction
+							iter := NewLineIter(antennas[a1], antennas[a2])
+
+							for an, ok := iter.Next(); ok; an, ok = iter.Next() {
+								if !p.inField(an) {
+									break
+								}
+								results <- an
+							}
+
+							// line in the other direction
+							iter = NewLineIter(antennas[a2], antennas[a1])
+
+							for an, ok := iter.Next(); ok; an, ok = iter.Next() {
+								if !p.inField(an) {
+									break
+								}
+								results <- an
+							}
+						}
+					}
+
+				}
+			}()
+		}
+
+		go func() {
+			wg.Wait()
+			close(results)
+		}()
+
+		go func() {
+			for t := range p.antennas {
+				tasks <- t
+			}
+			close(tasks)
+		}()
+
+		for an := range results {
+			antinodesMap[an] = struct{}{}
 		}
 
 		sum = len(antinodesMap)
