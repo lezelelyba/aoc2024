@@ -65,10 +65,6 @@ runs:
 
         cd ${{ inputs.work-dir }}
 
-        # Ensure local branch is up-to-date
-
-        git fetch origin ${{ inputs.branch-name }}
-        git reset --hard origin/${{ inputs.branch-name }}
 
         # Setup git
 
@@ -97,16 +93,28 @@ runs:
         echo "$NEXT_VER" > VERSION
 
         if [ "$NEXT_VER" != "$CURR_VER" ]; then
-          # Commit and tag
+        
+          # Ensure local branch is up-to-date
+          git fetch origin ${{ inputs.branch-name }}
+          git reset --hard origin/${{ inputs.branch-name }}
 
-          TAG_PREFIX=${{inputs.tag-prefix}}
-
+          # commit new VERSION file
           git add VERSION
           git commit -m "chore: bump version of ${{inputs.work-dir}} to $NEXT_VER"
-          git tag "$TAG_PREFIX/v$NEXT_VER"
 
-          # Push commit and tag
-          git push origin HEAD:"${{inputs.branch-name}}" --tags
+          git push origin HEAD:"${{inputs.branch-name}}"
+
+          # create tag and push
+
+          TAG_PREFIX=${{inputs.tag-prefix}}
+          TAG_NAME="$TAG_PREFIX/v$NEXT_VER"
+
+          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
+            echo "Tag $TAG_NAME already exists, skipping tagging."
+          else
+              git tag "$TAG_NAME"
+              git push origin "$TAG_NAME"
+          fi
 
           echo "next-version=$NEXT_VER" >> $GITHUB_OUTPUT
           echo "bumped=true" >> $GITHUB_OUTPUT
