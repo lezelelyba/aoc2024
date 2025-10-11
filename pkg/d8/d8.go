@@ -83,7 +83,7 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 					// line in one direction
 					iter := NewLineIter(antennas[a1], antennas[a2])
 
-					for an := iter.Next(); ; an = iter.Next() {
+					for an, ok := iter.Next(); ok; an, ok = iter.Next() {
 						if !p.inField(an) {
 							break
 						}
@@ -93,7 +93,7 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 					// line in the other direction
 					iter = NewLineIter(antennas[a2], antennas[a1])
 
-					for an := iter.Next(); ; an = iter.Next() {
+					for an, ok := iter.Next(); ok; an, ok = iter.Next() {
 						if !p.inField(an) {
 							break
 						}
@@ -189,7 +189,7 @@ func NewLineIter(this, other Coords) LineIter {
 	return LineIter{curr: this, delta: Sub(other, this)}
 }
 
-func (i *LineIter) Next() Coords {
+func (i *LineIter) Next() (Coords, bool) {
 	i.curr = Add(i.curr, i.delta)
-	return i.curr
+	return i.curr, true
 }
