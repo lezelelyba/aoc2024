@@ -11,5 +11,6 @@ use (
 	./pkg/d5
 	./pkg/d6
 	./pkg/d7
+	./pkg/d8
 	./pkg/solver
 )
