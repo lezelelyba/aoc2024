@@ -61,12 +61,11 @@ runs:
       id: bump
       shell: bash
       run: |
-        # Move to working dir
+        echo "Move to working dir"
 
         cd ${{ inputs.work-dir }}
 
-
-        # Setup git
+        echo "Setup git"
 
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -86,25 +85,31 @@ runs:
         else
           NEXT_VER=$(semver "$CURR_VER" -i patch)
         fi
+
         echo "Next version: $NEXT_VER"
 
         # Update VERSION file
         
         echo "$NEXT_VER" > VERSION
 
+        echo "Version Updated"
+        echo $(cat VERSION)
+
         if [ "$NEXT_VER" != "$CURR_VER" ]; then
         
-          # Ensure local branch is up-to-date
+          echo "Fetch"
+
           git fetch origin ${{ inputs.branch-name }}
           git reset --hard origin/${{ inputs.branch-name }}
 
-          # commit new VERSION file
+          echo "Commit new VERSION"
+
           git add VERSION
           git commit -m "chore: bump version of ${{inputs.work-dir}} to $NEXT_VER"
 
           git push origin HEAD:"${{inputs.branch-name}}"
 
-          # create tag and push
+          echo "Create Tag"
 
           TAG_PREFIX=${{inputs.tag-prefix}}
           TAG_NAME="$TAG_PREFIX/v$NEXT_VER"
@@ -112,6 +117,7 @@ runs:
           if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
             echo "Tag $TAG_NAME already exists, skipping tagging."
           else
+              echo "Push Tag"
               git tag "$TAG_NAME"
               git push origin "$TAG_NAME"
           fi
