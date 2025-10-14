@@ -4,8 +4,7 @@
         "description": "Solver for AoC 2024 written in Go",
         "title": "Advent of Code 2024 Solver API",
         "contact": {
-            "name": "None",
-            "url": "http://localhost"
+            "name": "None"
         },
         "license": {
             "name": "Apache 2.0",
@@ -13,9 +12,34 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:8080",
     "basePath": "/api",
     "paths": {
+        "/list": {
+            "get": {
+                "description": "Lists days which the solver can solve",
+                "tags": [
+                    "solverList"
+                ],
+                "summary": "Solve List",
+                "responses": {
+                    "200": {
+                        "description": "Result",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.RegisteredDay"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/solve/{day}/{part}": {
             "post": {
                 "description": "Provides solution for the day and part based on input",
@@ -57,14 +81,48 @@
                             "$ref": "#/definitions/api.SolveResult"
                         }
                     },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found"
+                        "description": "Solver for the day not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
                     }
                 }
             }
         }
     },
     "definitions": {
+        "api.APIError": {
+            "type": "object",
+            "properties": {
+                "errorcode": {
+                    "type": "integer"
+                },
+                "errormessage": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.RegisteredDay": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "api.SolvePayload": {
             "type": "object",
             "properties": {

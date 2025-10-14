@@ -1,5 +1,17 @@
 basePath: /api
 definitions:
+  api.APIError:
+    properties:
+      errorcode:
+        type: integer
+      errormessage:
+        type: string
+    type: object
+  api.RegisteredDay:
+    properties:
+      name:
+        type: string
+    type: object
   api.SolvePayload:
     properties:
       input:
@@ -15,11 +27,9 @@ definitions:
 externalDocs:
   description: OpenAPI
   url: https://swagger.io/resources/open-api/
-host: localhost:8080
 info:
   contact:
     name: None
-    url: http://localhost
   description: Solver for AoC 2024 written in Go
   license:
     name: Apache 2.0
@@ -27,6 +37,23 @@ info:
   title: Advent of Code 2024 Solver API
   version: "1.0"
 paths:
+  /list:
+    get:
+      description: Lists days which the solver can solve
+      responses:
+        "200":
+          description: Result
+          schema:
+            items:
+              $ref: '#/definitions/api.RegisteredDay'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Solve List
+      tags:
+      - solverList
   /solve/{day}/{part}:
     post:
       description: Provides solution for the day and part based on input
@@ -54,8 +81,18 @@ paths:
           description: Result
           schema:
             $ref: '#/definitions/api.SolveResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
         "404":
-          description: Not Found
+          description: Solver for the day not found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.APIError'
       summary: Solver
       tags:
       - solver

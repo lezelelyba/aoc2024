@@ -30,12 +30,10 @@ import (
 //	@description	Solver for AoC 2024 written in Go
 
 //	@contact.name	None
-//	@contact.url	http://localhost
 
 //	@license.name	Apache 2.0
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 
-//	@host		localhost:8080
 //	@BasePath	/api
 
 // @externalDocs.description	OpenAPI
@@ -68,6 +66,7 @@ func main() {
 
 	// api
 	mux.HandleFunc("POST /api/solve/{day}/{part}", api.Solve)
+	mux.HandleFunc("GET /api/list", api.SolverListing)
 
 	// static files
 	fs := http.FileServer(http.Dir("static"))
