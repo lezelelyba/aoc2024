@@ -1,0 +1,62 @@
+basePath: /api
+definitions:
+  api.SolvePayload:
+    properties:
+      input:
+        example: MyAgIDQKNCAgIDMKMiAgIDUKMSAgIDMKMyAgIDkKMyAgIDMK
+        format: base64
+        type: string
+    type: object
+  api.SolveResult:
+    properties:
+      output:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8080
+info:
+  contact:
+    name: None
+    url: http://localhost
+  description: Solver for AoC 2024 written in Go
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Advent of Code 2024 Solver API
+  version: "1.0"
+paths:
+  /solve/{day}/{part}:
+    post:
+      description: Provides solution for the day and part based on input
+      parameters:
+      - description: Day, format d[0-9]*
+        example: d1
+        in: path
+        name: day
+        required: true
+        type: string
+      - description: Problem part
+        example: 1
+        in: path
+        name: part
+        required: true
+        type: integer
+      - description: Solve Base64 encoded input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/api.SolvePayload'
+      responses:
+        "200":
+          description: Result
+          schema:
+            $ref: '#/definitions/api.SolveResult'
+        "404":
+          description: Not Found
+      summary: Solver
+      tags:
+      - solver
+swagger: "2.0"
