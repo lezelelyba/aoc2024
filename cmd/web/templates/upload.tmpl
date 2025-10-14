@@ -11,6 +11,9 @@
   <label for="fileInput">Choose a file:</label>
   <input type="file" id="fileInput"><br><br>
 
+  <label for="textInput">Or paste text:</label>
+  <textarea id="textInput" rows="4" cols="50"></textarea><br><br>
+
   <button onclick="handleClick()">Send to API</button>
 
   <pre id="result" style="margin-top:20px; background:#f4f4f4; padding:10px;"></pre>
@@ -20,17 +23,26 @@
       const input = document.getElementById('fileInput');
       const file = input.files[0];
 
+      const textInput = document.getElementById('textInput');
+      const text = textInput.value;
+
       const resultEl = document.getElementById('result');
 
       const endpoint = "{{.Endpoint}}";
 
-      if (!file) {
-        resultEl.textContent = 'Please select a file first.';
+      if (!file && text.trim() === "" ) {
+        resultEl.textContent = 'Please select a file of input text first.';
         return;
-      } 
+      }
       
       try {
-        const base64 = await toBase64(file);
+        let base64;
+        if (file) {
+          base64 = await toBase64(file);
+        } else {
+          base64 = btoa(unescape(encodeURIComponent(text)));
+        }
+        
         const response = await sendToApi(endpoint, { input: base64 })
         resultEl.textContent = JSON.stringify(response, null, 2)
       } catch(error) {
