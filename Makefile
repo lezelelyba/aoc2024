@@ -9,7 +9,7 @@ TF_SSHPRIVKEYPATH ?= ~/.ssh/aws.priv.pem
 
 .PHONY: all localci localcd localdestroy localclean bootstrap init apply destroy output test 
 
-all: bootstrap dev
+all: init apply
 
 # Run the CI pipeline (e.g. build docker images, run tests)
 # TODO: testing is missing, requirements are missing
@@ -19,7 +19,12 @@ local: localci localcd
 localci:
 	@echo "Building Docker images"
 	./environments/local/build_docker_images.sh
-	@echo "Completed"
+	@echo "Done"
+
+localrun: localci
+	@echo "Running local Docker Image"
+	docker run -p 8080:8080 advent2024.web &
+	@echo "Done"
 
 # Run the CD pipeline (e.g. deploy with ansible, terraform, etc.)
 localcd:

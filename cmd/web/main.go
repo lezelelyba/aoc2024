@@ -15,7 +15,6 @@ import (
 	_ "advent2024/pkg/d8"
 	_ "advent2024/pkg/d9"
 
-	// swagger embed files
 	httpSwagger "github.com/swaggo/http-swagger"
 
 	"advent2024/web/api"
@@ -65,8 +64,7 @@ func main() {
 	mux.HandleFunc("GET /healthcheck", web.HealthCheck)
 
 	// swagger docs
-	// mux.HandleFunc("GET /swagger/*", httpSwagger.Handler(httpSwagger.URL("/docs/swagger.json")))
-	mux.HandleFunc("GET /swagger/*", httpSwagger.WrapHandler)
+	mux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)
 
 	// api
 	mux.HandleFunc("POST /api/solve/{day}/{part}", api.Solve)
