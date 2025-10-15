@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -91,6 +92,22 @@ func WithTemplate(template *template.Template, key contextKey, next http.Handler
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), key, template)
 		next(w, r.WithContext(ctx))
+	}
+}
+
+func RateLimitMiddleware(tokenRate, burst int) func(http.Handler) http.Handler {
+	limiter := rate.NewLimiter(rate.Limit(tokenRate), burst)
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			if !limiter.Allow() {
+				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+				return
+			} else {
+				next.ServeHTTP(w, r)
+			}
+		})
 	}
 }
 

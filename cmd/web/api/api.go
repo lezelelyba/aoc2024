@@ -41,6 +41,7 @@ type RegisteredDay struct {
 //	@Success		200					{object}	SolveResult		"Result"
 //	@Failure		400					{object}	APIError		"Bad Request"
 //	@Failure		404					{object}	APIError		"Solver for the day not found"
+//	@Failure		429					body		string			"Request was Rate limited"
 //	@Failure		500					{object}	APIError		"Internal Server Error"
 //	@Router			/solve/{day}/{part}	[post]
 func Solve(w http.ResponseWriter, r *http.Request) {
@@ -185,6 +186,7 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 //	@Accepts		json
 //	@Produces		json
 //	@Success		200		{array}		RegisteredDay	"Result"
+//	@Failure		429		body		string			"Request was Rate limited"
 //	@Failure		500		{object}	APIError		"Internal Server Error"
 //	@Router			/list	[GET]
 func SolverListing(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"text/template"
@@ -39,13 +40,20 @@ import (
 // @externalDocs.description	OpenAPI
 // @externalDocs.url			https://swagger.io/resources/open-api/
 func main() {
-
 	// create new mux
-	mux := http.NewServeMux()
+	webMux := http.NewServeMux()
+	apiMux := http.NewServeMux()
+	globalMux := http.NewServeMux()
 
-	// "parse" config
+	// parse config
 
-	config := config.Config{Empty: ""}
+	config, errors := config.LoadConfig()
+
+	if len(errors) != 0 {
+		for _, e := range errors {
+			log.Println(e)
+		}
+	}
 
 	// parse templates
 
@@ -56,26 +64,37 @@ func main() {
 	logger := middleware.NewLogger(&config)
 
 	// web pages
-	mux.HandleFunc("GET /", web.ServerStatus)
-	mux.HandleFunc("GET /list", web.SolverListing)
-	mux.HandleFunc("GET /solve/{day}/{part}", middleware.WithTemplate(uploadTemplate, middleware.ContextKeyUploadTemplate, web.SolveWithUpload))
-	mux.HandleFunc("GET /healthcheck", web.HealthCheck)
+	webMux.HandleFunc("GET /", web.ServerStatus)
+	webMux.HandleFunc("GET /list", web.SolverListing)
+	webMux.HandleFunc("GET /solve/{day}/{part}", middleware.WithTemplate(uploadTemplate, middleware.ContextKeyUploadTemplate, web.SolveWithUpload))
+	webMux.HandleFunc("GET /healthcheck", web.HealthCheck)
 
 	// swagger docs
-	mux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)
-
-	// api
-	mux.HandleFunc("POST /api/solve/{day}/{part}", api.Solve)
-	mux.HandleFunc("GET /api/list", api.SolverListing)
+	webMux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)
 
 	// static files
 	fs := http.FileServer(http.Dir("static"))
-	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	webMux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+
+	// api
+	apiMux.HandleFunc("GET /solvers", api.SolverListing)
+	apiMux.HandleFunc("POST /solvers/{day}/{part}", api.Solve)
+
+	// combine muxes
+	globalMux.Handle("/api/", http.StripPrefix("/api", middleware.RateLimitMiddleware(config.APIRate, config.APIBurst)(apiMux)))
+	globalMux.Handle("/", webMux)
 
 	// add logging middleware
-	loggedMux := middleware.LoggingMiddleware(logger)(mux)
+	loggedMux := middleware.LoggingMiddleware(logger)(globalMux)
 
 	// start server
-	log.Println("Starting Server on : 8080")
-	http.ListenAndServe(":8080", loggedMux)
+	addr := fmt.Sprintf(":%d", config.Port)
+
+	if !config.EnableTLS {
+		log.Printf("Starting Server on : %d\n", config.Port)
+		log.Fatal(http.ListenAndServe(addr, loggedMux))
+	} else {
+		log.Printf("Starting TLS Server on : %d\n", config.Port)
+		log.Fatal(http.ListenAndServeTLS(addr, config.CertFile, config.KeyFile, loggedMux))
+	}
 }

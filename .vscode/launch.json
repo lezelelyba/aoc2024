@@ -15,6 +15,21 @@
         "showLog": true
        },
        {
+        "name": "Run TLS Web",
+        "type": "go",
+        "request":"launch",
+        "mode": "auto",
+        "program": "${workspaceFolder}/cmd/web/main.go",
+        "args": [],
+        "showLog": true,
+        "env": {
+          "PORT": "8443",
+          "ENABLE_HTTPS": "true",
+          "TLS_CERT_FILE": "${workspaceFolder}/cmd/web/tls/cert.pem",
+          "TLS_KEY_FILE": "${workspaceFolder}/cmd/web/tls/key.pem" 
+        },
+       },
+       {
         "name": "Run Any",
         "type": "go",
         "request":"launch",

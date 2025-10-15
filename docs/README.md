@@ -16,6 +16,7 @@ Requirements:
   - AWS account
   - AWS CLI installed
   - Defined AWS user which can boostrap the environment
+  - Obtain a domain
 
 Manual Tasks:
   - Clone repo
