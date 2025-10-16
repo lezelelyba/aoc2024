@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -17,62 +18,79 @@ type Config struct {
 }
 
 func NewConfig() Config {
-	return Config{}
+	return Config{
+		Port:      8080,
+		EnableTLS: false,
+		APIRate:   3,
+		APIBurst:  3,
+	}
 }
 
 func LoadConfig() (Config, []error) {
-	var errors []error
+	var errs []error
+
 	config := NewConfig()
 
-	port := flag.String("port", envOrDefault("PORT", "8080"), "TCP port on which the app runs, default 8080")
-	enableHttps := flag.String("https", envOrDefault("ENABLE_HTTPS", "false"), "Enables HTTPS, requires cert and key to be specified")
+	port := flag.String("port", envOrDefault("PORT", strconv.Itoa(config.Port)), "TCP port on which the app runs, default 8080")
+	enableHttps := flag.String("https", envOrDefault("ENABLE_HTTPS", fmt.Sprintf("%t", config.EnableTLS)), "Enables HTTPS, requires cert and key to be specified")
 	cert := flag.String("cert", envOrDefault("TLS_CERT_FILE", ""), "cert file")
 	key := flag.String("key", envOrDefault("TLS_KEY_FILE", ""), "key file")
-	apiRate := flag.String("apirate", envOrDefault("API_RATE", "3"), "API rate limit per second, default 3")
-	apiBurst := flag.String("apiburst", envOrDefault("API_BURST", "3"), "API rate burst size, default 3")
+	apiRate := flag.String("apirate", envOrDefault("API_RATE", strconv.Itoa(config.APIRate)), "API rate limit per second, default 3")
+	apiBurst := flag.String("apiburst", envOrDefault("API_BURST", strconv.Itoa(config.APIBurst)), "API rate burst size, default 3")
 
 	flag.Parse()
 
-	if port_int, err := strconv.Atoi(*port); err != nil {
-		errors = append(errors, err)
-		errors = append(errors, fmt.Errorf("unable to parse port, using default %d", config.Port))
-	} else {
-		config.Port = port_int
+	parseInt := func(name, value string, dest *int, fallback int) {
+		v, err := strconv.Atoi(value)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("unable to parse %s, using default %d", name, fallback))
+			*dest = fallback
+			return
+		}
+
+		*dest = v
 	}
 
-	if apiRate_int, err := strconv.Atoi(*apiRate); err != nil {
-		errors = append(errors, err)
-		errors = append(errors, fmt.Errorf("unable to parse apiRate, using default %d", config.APIRate))
-	} else {
-		config.APIRate = apiRate_int
-	}
-
-	if apiBurst_int, err := strconv.Atoi(*apiBurst); err != nil {
-		errors = append(errors, err)
-		errors = append(errors, fmt.Errorf("unable to parse apiRate, using default %d", config.APIBurst))
-	} else {
-		config.APIBurst = apiBurst_int
-	}
+	parseInt("port", *port, &config.Port, config.Port)
+	parseInt("apiRate", *apiRate, &config.APIRate, config.APIRate)
+	parseInt("apiBurst", *apiBurst, &config.APIBurst, config.APIBurst)
 
 	if *enableHttps == "true" {
-		config.EnableTLS = true
 
-		if *cert == "" {
-			errors = append(errors, fmt.Errorf("TLS enabled, but cert path is missing. Disabling TLS"))
-			config.EnableTLS = false
-		} else {
-			config.CertFile = *cert
+		config.EnableTLS = true
+		config.CertFile = *cert
+		config.KeyFile = *key
+
+		tlsErrors := 0
+
+		checks := []struct {
+			path string
+			name string
+		}{
+			{*cert, "certificate"},
+			{*key, "key"},
 		}
 
-		if *key == "" {
-			errors = append(errors, fmt.Errorf("TLS enabled, but key path is missing. Disabling TLS"))
+		for _, c := range checks {
+			if c.path == "" {
+				errs = append(errs, fmt.Errorf("TLS enabled, but %s path is missing", c.name))
+				tlsErrors++
+				continue
+			}
+
+			if _, err := os.Stat(c.path); errors.Is(err, os.ErrNotExist) {
+				errs = append(errs, fmt.Errorf("TLS enabled, but %s file not found", c.name))
+				tlsErrors++
+			}
+		}
+
+		if tlsErrors > 0 {
 			config.EnableTLS = false
-		} else {
-			config.KeyFile = *key
+			errs = append(errs, fmt.Errorf("TLS disabled due to configuration errors"))
 		}
 	}
 
-	return config, errors
+	return config, errs
 
 }
 
