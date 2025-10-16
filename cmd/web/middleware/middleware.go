@@ -14,9 +14,11 @@ import (
 )
 
 const (
-	ContextKeyLogger         contextKey = "logger"
-	ContextKeyRequestID      contextKey = "requestID"
-	ContextKeyUploadTemplate contextKey = "uploadTemplate"
+	ContextConfig              contextKey = "config"
+	ContextKeyLogger           contextKey = "logger"
+	ContextKeyRequestID        contextKey = "requestID"
+	ContextKeyUploadTemplate   contextKey = "uploadTemplate"
+	ContextKeyCallbackTemplate contextKey = "callbackTemplate"
 )
 
 type contextKey string
@@ -78,8 +80,8 @@ func LoggingMiddleware(logger *log.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-func GetLogger(ctx context.Context) *log.Logger {
-	loggerVal := ctx.Value(ContextKeyLogger)
+func GetLogger(r *http.Request) *log.Logger {
+	loggerVal := r.Context().Value(ContextKeyLogger)
 	logger, ok := loggerVal.(*log.Logger)
 	if !ok || logger == nil {
 		logger = log.Default()
@@ -109,6 +111,20 @@ func RateLimitMiddleware(tokenRate, burst int) func(http.Handler) http.Handler {
 			}
 		})
 	}
+}
+
+func WithConfig(cfg *config.Config) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(r.Context(), ContextConfig, cfg)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func GetConfig(r *http.Request) (*config.Config, bool) {
+	cfg, ok := r.Context().Value(ContextConfig).(*config.Config)
+	return cfg, ok
 }
 
 func clientIP(r *http.Request) string {

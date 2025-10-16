@@ -9,18 +9,28 @@ import (
 )
 
 type Config struct {
-	Port      int
-	EnableTLS bool
-	CertFile  string
-	KeyFile   string
-	APIRate   int
-	APIBurst  int
+	Port           int
+	EnableTLS      bool
+	CertFile       string
+	KeyFile        string
+	APIRate        int
+	APIBurst       int
+	OAuth          bool
+	OAuthProviders map[string]OAuthProvider
+}
+
+type OAuthProvider struct {
+	Name         string
+	URL          string
+	ClientId     string
+	ClientSecret string
 }
 
 func NewConfig() Config {
 	return Config{
 		Port:      8080,
 		EnableTLS: false,
+		OAuth:     false,
 		APIRate:   3,
 		APIBurst:  3,
 	}
@@ -32,11 +42,18 @@ func LoadConfig() (Config, []error) {
 	config := NewConfig()
 
 	port := flag.String("port", envOrDefault("PORT", strconv.Itoa(config.Port)), "TCP port on which the app runs, default 8080")
+
 	enableHttps := flag.String("https", envOrDefault("ENABLE_HTTPS", fmt.Sprintf("%t", config.EnableTLS)), "Enables HTTPS, requires cert and key to be specified")
 	cert := flag.String("cert", envOrDefault("TLS_CERT_FILE", ""), "cert file")
 	key := flag.String("key", envOrDefault("TLS_KEY_FILE", ""), "key file")
+
 	apiRate := flag.String("apirate", envOrDefault("API_RATE", strconv.Itoa(config.APIRate)), "API rate limit per second, default 3")
 	apiBurst := flag.String("apiburst", envOrDefault("API_BURST", strconv.Itoa(config.APIBurst)), "API rate burst size, default 3")
+
+	oAuth := flag.String("oauth", envOrDefault("ENABLE_OAUTH", fmt.Sprintf("%t", config.OAuth)), "Enables OAuth API authentication, requires client id and secret to be specified")
+	oAuthGithubURL := flag.String("oauth-github-url", envOrDefault("OAUTH_GITHUB_CLIENT_URL", ""), "Github OAuth Token exchange URL")
+	oAuthGithubId := flag.String("oauth-github-id", envOrDefault("OAUTH_GITHUB_CLIENT_ID", ""), "Github OAuth Client ID")
+	oAuthGithubSecret := flag.String("oauth-github-secret", envOrDefault("OAUTH_GITHUB_CLIENT_SECRET", ""), "Github OAuth Secret ID")
 
 	flag.Parse()
 
@@ -87,6 +104,44 @@ func LoadConfig() (Config, []error) {
 		if tlsErrors > 0 {
 			config.EnableTLS = false
 			errs = append(errs, fmt.Errorf("TLS disabled due to configuration errors"))
+		}
+	}
+
+	if *oAuth == "true" {
+
+		config.OAuth = true
+		config.OAuthProviders = map[string]OAuthProvider{}
+
+		oauthErrors := 0
+
+		provider := OAuthProvider{Name: "github"}
+
+		if *oAuthGithubURL == "" {
+			errs = append(errs, fmt.Errorf("OAuth enable, but url is missing"))
+			oauthErrors++
+		} else {
+			provider.URL = *oAuthGithubURL
+		}
+
+		if *oAuthGithubId == "" {
+			errs = append(errs, fmt.Errorf("OAuth enable, but client id is missing"))
+			oauthErrors++
+		} else {
+			provider.ClientId = *oAuthGithubId
+		}
+
+		if *oAuthGithubSecret == "" {
+			errs = append(errs, fmt.Errorf("OAuth enable, but secret is missing"))
+			oauthErrors++
+		} else {
+			provider.ClientSecret = *oAuthGithubSecret
+		}
+
+		if oauthErrors > 0 {
+			config.OAuth = false
+			errs = append(errs, fmt.Errorf("OAuth disabled due to configuration errors"))
+		} else {
+			config.OAuthProviders[provider.Name] = provider
 		}
 	}
 

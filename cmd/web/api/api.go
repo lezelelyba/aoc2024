@@ -46,7 +46,7 @@ type RegisteredDay struct {
 //	@Router			/solve/{day}/{part}	[post]
 func Solve(w http.ResponseWriter, r *http.Request) {
 
-	logger := middleware.GetLogger(r.Context())
+	logger := middleware.GetLogger(r)
 
 	day := r.PathValue("day")
 	part := r.PathValue("part")
@@ -190,7 +190,7 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 //	@Failure		500		{object}	APIError		"Internal Server Error"
 //	@Router			/list	[GET]
 func SolverListing(w http.ResponseWriter, r *http.Request) {
-	logger := middleware.GetLogger(r.Context())
+	logger := middleware.GetLogger(r)
 
 	registered_keys := solver.ListRegister()
 

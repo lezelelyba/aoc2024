@@ -9,3 +9,6 @@ inputs
 
 #do not include tls cert and keys
 tls
+
+#do not include vscode setup
+.vscode

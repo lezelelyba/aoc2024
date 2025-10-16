@@ -58,6 +58,7 @@ func main() {
 	// parse templates
 
 	uploadTemplate := template.Must(template.ParseFiles("./templates/upload.tmpl"))
+	callbackTemplate := template.Must(template.ParseFiles("./templates/callback.tmpl"))
 
 	// create logging middleware
 
@@ -68,6 +69,10 @@ func main() {
 	webMux.HandleFunc("GET /list", web.SolverListing)
 	webMux.HandleFunc("GET /solve/{day}/{part}", middleware.WithTemplate(uploadTemplate, middleware.ContextKeyUploadTemplate, web.SolveWithUpload))
 	webMux.HandleFunc("GET /healthcheck", web.HealthCheck)
+
+	// oauth
+	webMux.HandleFunc("GET /callback", middleware.WithTemplate(callbackTemplate, middleware.ContextKeyCallbackTemplate, web.OAuthCallback))
+	webMux.HandleFunc("POST /oauth/{provider}/token", web.OAuthHandler)
 
 	// swagger docs
 	webMux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)
@@ -87,14 +92,17 @@ func main() {
 	// add logging middleware
 	loggedMux := middleware.LoggingMiddleware(logger)(globalMux)
 
+	// add config middleware
+	finalMux := middleware.WithConfig(&config)(loggedMux)
+
 	// start server
 	addr := fmt.Sprintf(":%d", config.Port)
 
 	if !config.EnableTLS {
 		log.Printf("Starting Server on : %d\n", config.Port)
-		log.Fatal(http.ListenAndServe(addr, loggedMux))
+		log.Fatal(http.ListenAndServe(addr, finalMux))
 	} else {
 		log.Printf("Starting TLS Server on : %d\n", config.Port)
-		log.Fatal(http.ListenAndServeTLS(addr, config.CertFile, config.KeyFile, loggedMux))
+		log.Fatal(http.ListenAndServeTLS(addr, config.CertFile, config.KeyFile, finalMux))
 	}
 }
