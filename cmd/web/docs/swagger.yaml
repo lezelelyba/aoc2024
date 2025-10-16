@@ -37,7 +37,7 @@ info:
   title: Advent of Code 2024 Solver API
   version: "1.0"
 paths:
-  /list:
+  /solvers:
     get:
       description: Lists days which the solver can solve
       responses:
@@ -47,6 +47,10 @@ paths:
             items:
               $ref: '#/definitions/api.RegisteredDay'
             type: array
+        "401":
+          description: Unathorized
+          schema:
+            type: body
         "429":
           description: Request was Rate limited
           schema:
@@ -55,10 +59,13 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.APIError'
+      security:
+      - 'OAuth2AccessCode ':
+        - read
       summary: Solve List
       tags:
       - solverList
-  /solve/{day}/{part}:
+  /solvers/{day}/{part}:
     post:
       description: Provides solution for the day and part based on input
       parameters:
@@ -89,6 +96,10 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/api.APIError'
+        "401":
+          description: Unathorized
+          schema:
+            type: body
         "404":
           description: Solver for the day not found
           schema:
@@ -101,7 +112,19 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.APIError'
+      security:
+      - 'OAuth2AccessCode ':
+        - read
       summary: Solver
       tags:
       - solver
+securityDefinitions:
+  OAuth2AccessCode:
+    authorizationUrl: https://github.com/login/oauth/authorize
+    description: GitHub OAuth
+    flow: accessCode
+    scopes:
+      read: Grants read access
+    tokenUrl: https://github.com/login/oauth/access_token
+    type: oauth2
 swagger: "2.0"

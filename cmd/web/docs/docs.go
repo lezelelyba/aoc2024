@@ -21,8 +21,15 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/list": {
+        "/solvers": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2AccessCode ": [
+                            "read"
+                        ]
+                    }
+                ],
                 "description": "Lists days which the solver can solve",
                 "tags": [
                     "solverList"
@@ -36,6 +43,12 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/api.RegisteredDay"
                             }
+                        }
+                    },
+                    "401": {
+                        "description": "Unathorized",
+                        "schema": {
+                            "type": "body"
                         }
                     },
                     "429": {
@@ -53,8 +66,15 @@ const docTemplate = `{
                 }
             }
         },
-        "/solve/{day}/{part}": {
+        "/solvers/{day}/{part}": {
             "post": {
+                "security": [
+                    {
+                        "OAuth2AccessCode ": [
+                            "read"
+                        ]
+                    }
+                ],
                 "description": "Provides solution for the day and part based on input",
                 "tags": [
                     "solver"
@@ -98,6 +118,12 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/api.APIError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unathorized",
+                        "schema": {
+                            "type": "body"
                         }
                     },
                     "404": {
@@ -158,6 +184,18 @@ const docTemplate = `{
                 "output": {
                     "type": "string"
                 }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "OAuth2AccessCode": {
+            "description": "GitHub OAuth",
+            "type": "oauth2",
+            "flow": "accessCode",
+            "authorizationUrl": "https://github.com/login/oauth/authorize",
+            "tokenUrl": "https://github.com/login/oauth/access_token",
+            "scopes": {
+                "read": "Grants read access"
             }
         }
     },

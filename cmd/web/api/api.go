@@ -35,15 +35,18 @@ type RegisteredDay struct {
 //	@Tags			solver
 //	@Accepts		json
 //	@Produces		json
-//	@Param			day					path		string			true	"Day, format d[0-9]*"	example(d1)
-//	@Param			part				path		int				true	"Problem part"			example(1)
-//	@Param			input				body		SolvePayload	true	"Solve Base64 encoded input"
-//	@Success		200					{object}	SolveResult		"Result"
-//	@Failure		400					{object}	APIError		"Bad Request"
-//	@Failure		404					{object}	APIError		"Solver for the day not found"
-//	@Failure		429					body		string			"Request was Rate limited"
-//	@Failure		500					{object}	APIError		"Internal Server Error"
-//	@Router			/solve/{day}/{part}	[post]
+//	@Security
+//	@Param		day						path		string			true	"Day, format d[0-9]*"	example(d1)
+//	@Param		part					path		int				true	"Problem part"			example(1)
+//	@Param		input					body		SolvePayload	true	"Solve Base64 encoded input"
+//	@Success	200						{object}	SolveResult		"Result"
+//	@Failure	400						{object}	APIError		"Bad Request"
+//	@Failure	401						body		string			"Unathorized"
+//	@Failure	404						{object}	APIError		"Solver for the day not found"
+//	@Failure	429						body		string			"Request was Rate limited"
+//	@Failure	500						{object}	APIError		"Internal Server Error"
+//	@Router		/solvers/{day}/{part}	[post]
+//	@Security	OAuth2AccessCode [read]
 func Solve(w http.ResponseWriter, r *http.Request) {
 
 	logger := middleware.GetLogger(r)
@@ -185,10 +188,12 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 //	@Tags			solverList
 //	@Accepts		json
 //	@Produces		json
-//	@Success		200		{array}		RegisteredDay	"Result"
-//	@Failure		429		body		string			"Request was Rate limited"
-//	@Failure		500		{object}	APIError		"Internal Server Error"
-//	@Router			/list	[GET]
+//	@Success		200			{array}		RegisteredDay	"Result"
+//	@Failure		401			body		string			"Unathorized"
+//	@Failure		429			body		string			"Request was Rate limited"
+//	@Failure		500			{object}	APIError		"Internal Server Error"
+//	@Router			/solvers	[GET]
+//	@Security		OAuth2AccessCode [read]
 func SolverListing(w http.ResponseWriter, r *http.Request) {
 	logger := middleware.GetLogger(r)
 

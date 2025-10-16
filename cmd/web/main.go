@@ -37,8 +37,14 @@ import (
 
 //	@BasePath	/api
 
-// @externalDocs.description	OpenAPI
-// @externalDocs.url			https://swagger.io/resources/open-api/
+//	@externalDocs.description	OpenAPI
+//	@externalDocs.url			https://swagger.io/resources/open-api/
+
+// @securitydefinitions.oauth2.accessCode	OAuth2AccessCode
+// @authorizationURL						https://github.com/login/oauth/authorize
+// @tokenURL								https://github.com/login/oauth/access_token
+// @scope.read								Grants read access
+// @description							GitHub OAuth
 func main() {
 	// create new mux
 	webMux := http.NewServeMux()
@@ -101,7 +107,6 @@ func main() {
 		apiHandler = middleware.Chain(apiHandler,
 			middleware.WithConfig(&config),
 			middleware.AuthenticationMiddleware())
-		// apiHandler = middleware.AuthenticationMiddleware()(apiHandler)
 	}
 
 	globalMux.Handle("/api/", http.StripPrefix("/api", apiHandler))
