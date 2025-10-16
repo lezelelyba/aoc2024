@@ -22,6 +22,7 @@ type Config struct {
 type OAuthProvider struct {
 	Name         string
 	URL          string
+	CallbackURL  string
 	ClientId     string
 	ClientSecret string
 }
@@ -50,7 +51,8 @@ func LoadConfig() (Config, []error) {
 	apiRate := flag.String("apirate", envOrDefault("API_RATE", strconv.Itoa(config.APIRate)), "API rate limit per second, default 3")
 	apiBurst := flag.String("apiburst", envOrDefault("API_BURST", strconv.Itoa(config.APIBurst)), "API rate burst size, default 3")
 
-	oAuth := flag.String("oauth", envOrDefault("ENABLE_OAUTH", fmt.Sprintf("%t", config.OAuth)), "Enables OAuth API authentication, requires client id and secret to be specified")
+	oAuth := flag.String("oauth", envOrDefault("ENABLE_OAUTH", fmt.Sprintf("%t", config.OAuth)), "Enables OAuth API authentication, requires callback url, token exhcnage url, client id and secret to be specified")
+	oAuthGithubCallbackURL := flag.String("oauth-callback-url", envOrDefault("OAUTH_GITHUB_CALLBACK_URL", ""), "Github OAuth callback")
 	oAuthGithubURL := flag.String("oauth-github-url", envOrDefault("OAUTH_GITHUB_CLIENT_URL", ""), "Github OAuth Token exchange URL")
 	oAuthGithubId := flag.String("oauth-github-id", envOrDefault("OAUTH_GITHUB_CLIENT_ID", ""), "Github OAuth Client ID")
 	oAuthGithubSecret := flag.String("oauth-github-secret", envOrDefault("OAUTH_GITHUB_CLIENT_SECRET", ""), "Github OAuth Secret ID")
@@ -111,30 +113,30 @@ func LoadConfig() (Config, []error) {
 
 		config.OAuth = true
 		config.OAuthProviders = map[string]OAuthProvider{}
+		provider := OAuthProvider{Name: "github"}
+
+		provider.CallbackURL = *oAuthGithubCallbackURL
+		provider.ClientId = *oAuthGithubId
+		provider.ClientSecret = *oAuthGithubSecret
+		provider.URL = *oAuthGithubURL
 
 		oauthErrors := 0
 
-		provider := OAuthProvider{Name: "github"}
-
-		if *oAuthGithubURL == "" {
-			errs = append(errs, fmt.Errorf("OAuth enable, but url is missing"))
-			oauthErrors++
-		} else {
-			provider.URL = *oAuthGithubURL
+		checks := []struct {
+			str  string
+			name string
+		}{
+			{*oAuthGithubURL, "token exchange URL"},
+			{*oAuthGithubId, "client id"},
+			{*oAuthGithubSecret, "client secret"},
+			{*oAuthGithubCallbackURL, "callback URL"},
 		}
 
-		if *oAuthGithubId == "" {
-			errs = append(errs, fmt.Errorf("OAuth enable, but client id is missing"))
-			oauthErrors++
-		} else {
-			provider.ClientId = *oAuthGithubId
-		}
-
-		if *oAuthGithubSecret == "" {
-			errs = append(errs, fmt.Errorf("OAuth enable, but secret is missing"))
-			oauthErrors++
-		} else {
-			provider.ClientSecret = *oAuthGithubSecret
+		for _, c := range checks {
+			if c.str == "" {
+				errs = append(errs, fmt.Errorf("OAuth enable, but %s is missing", c.name))
+				oauthErrors++
+			}
 		}
 
 		if oauthErrors > 0 {

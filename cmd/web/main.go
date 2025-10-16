@@ -67,12 +67,22 @@ func main() {
 	// web pages
 	webMux.HandleFunc("GET /", web.ServerStatus)
 	webMux.HandleFunc("GET /list", web.SolverListing)
-	webMux.HandleFunc("GET /solve/{day}/{part}", middleware.WithTemplate(uploadTemplate, middleware.ContextKeyUploadTemplate, web.SolveWithUpload))
+	webMux.Handle("GET /solve/{day}/{part}",
+		middleware.Chain(http.HandlerFunc(web.SolveWithUpload),
+			middleware.WithConfig(&config),
+			middleware.WithTemplate(uploadTemplate, middleware.ContextKeyUploadTemplate)))
 	webMux.HandleFunc("GET /healthcheck", web.HealthCheck)
 
 	// oauth
-	webMux.HandleFunc("GET /callback", middleware.WithTemplate(callbackTemplate, middleware.ContextKeyCallbackTemplate, web.OAuthCallback))
-	webMux.HandleFunc("POST /oauth/{provider}/token", web.OAuthHandler)
+	if config.OAuth {
+		webMux.Handle("GET /callback/{provider}",
+			middleware.Chain(http.HandlerFunc(web.OAuthCallback),
+				middleware.WithConfig(&config),
+				middleware.WithTemplate(callbackTemplate, middleware.ContextKeyCallbackTemplate)))
+		webMux.Handle("POST /oauth/{provider}/token",
+			middleware.Chain(http.HandlerFunc(web.OAuthHandler),
+				middleware.WithConfig(&config)))
+	}
 
 	// swagger docs
 	webMux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)
@@ -86,14 +96,16 @@ func main() {
 	apiMux.HandleFunc("POST /solvers/{day}/{part}", api.Solve)
 
 	// combine muxes
-	globalMux.Handle("/api/", http.StripPrefix("/api", middleware.RateLimitMiddleware(config.APIRate, config.APIBurst)(apiMux)))
+	apiHandler := middleware.RateLimitMiddleware(config.APIRate, config.APIBurst)(apiMux)
+	if config.OAuth {
+		apiHandler = middleware.AuthenticationMiddleware()(apiHandler)
+	}
+
+	globalMux.Handle("/api/", http.StripPrefix("/api", apiHandler))
 	globalMux.Handle("/", webMux)
 
 	// add logging middleware
-	loggedMux := middleware.LoggingMiddleware(logger)(globalMux)
-
-	// add config middleware
-	finalMux := middleware.WithConfig(&config)(loggedMux)
+	finalMux := middleware.LoggingMiddleware(logger)(globalMux)
 
 	// start server
 	addr := fmt.Sprintf(":%d", config.Port)

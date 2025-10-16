@@ -1,6 +1,3 @@
-const clientId = "Ov23liOBCoU2I2xwhN9u";
-const redirectUri = "http://localhost:8080/callback";
-
 function updateUI() {
   const accessToken = sessionStorage.getItem("accessToken");
   const authEls = document.querySelectorAll(".auth-required");
@@ -18,28 +15,19 @@ function updateUI() {
   }
 }
 
-function authenticate() {
-    const accessToken = sessionStorage.getItem("accessToken");
-
-    if (accessToken === null) {
-        sessionStorage.setItem("postAuthRedirect", window.location.pathname + window.location.search);
-        startOAuth(clientId, redirectUri);
-    }
-}
-
 function startOAuth(clientId, redirectUri) {
-  const state = Math.random().toString(36).substring(2);
-  sessionStorage.setItem("oauth_state", state);
+  const accessToken = sessionStorage.getItem("accessToken");
+  if (accessToken === null) {
+    sessionStorage.setItem("postAuthRedirect", window.location.pathname + window.location.search);
+    
+    const state = Math.random().toString(36).substring(2);
+    sessionStorage.setItem("oauth_state", state);
 
-  const authUrl = `https://github.com/login/oauth/authorize?` +
-                  `client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}` +
-                  `&scope=read:user,user:email&state=${state}`;
-  window.location.href = authUrl;
-}
-
-
-async function handleCallback() {
-    await handleOAuthCallback(redirectUri);
+    const authUrl = `https://github.com/login/oauth/authorize?` +
+                    `client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}` +
+                    `&scope=read:user,user:email&state=${state}`;
+    window.location.href = authUrl;
+  }
 }
 
 async function handleOAuthCallback(redirectUri) {

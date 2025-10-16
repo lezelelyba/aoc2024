@@ -90,10 +90,12 @@ func GetLogger(r *http.Request) *log.Logger {
 	return logger
 }
 
-func WithTemplate(template *template.Template, key contextKey, next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), key, template)
-		next(w, r.WithContext(ctx))
+func WithTemplate(template *template.Template, key contextKey) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(r.Context(), key, template)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
 	}
 }
 
@@ -122,6 +124,14 @@ func WithConfig(cfg *config.Config) func(http.Handler) http.Handler {
 	}
 }
 
+func AuthenticationMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 func GetConfig(r *http.Request) (*config.Config, bool) {
 	cfg, ok := r.Context().Value(ContextConfig).(*config.Config)
 	return cfg, ok
@@ -139,4 +149,11 @@ func clientIP(r *http.Request) string {
 	}
 
 	return ip
+}
+
+func Chain(h http.Handler, mws ...func(http.Handler) http.Handler) http.Handler {
+	for i := len(mws) - 1; i >= 0; i-- {
+		h = mws[i](h)
+	}
+	return h
 }

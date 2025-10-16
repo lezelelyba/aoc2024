@@ -2,6 +2,7 @@ package web
 
 import (
 	"advent2024/pkg/solver"
+	"advent2024/web/config"
 	"advent2024/web/middleware"
 	"encoding/json"
 	"fmt"
@@ -53,6 +54,14 @@ func SolverListing(w http.ResponseWriter, r *http.Request) {
 
 func SolveWithUpload(w http.ResponseWriter, r *http.Request) {
 	logger := middleware.GetLogger(r)
+	cfg, ok := middleware.GetConfig(r)
+
+	if !ok {
+		logger.Printf("solve with upload: unable to get config")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Server configuration error"))
+		return
+	}
 
 	templateVal := r.Context().Value(middleware.ContextKeyUploadTemplate)
 	template, ok := templateVal.(*template.Template)
@@ -64,16 +73,42 @@ func SolveWithUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: add oauth for mutliple providers
+
+	var provider config.OAuthProvider
+
+	if cfg.OAuth {
+		providerName := "github"
+		if _, exists := cfg.OAuthProviders[providerName]; !exists {
+			logger.Printf("unable to find oauth provider %s", providerName)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Unknown OAuth provider"))
+			return
+		}
+
+		provider = cfg.OAuthProviders[providerName]
+	}
+
 	data := struct {
 		Title    string
 		Endpoint string
+		Auth     bool
+		Provider *config.OAuthProvider
 	}{
 		Title:    fmt.Sprintf("Upload Page for day %s", r.PathValue("day")),
 		Endpoint: fmt.Sprintf("/api/solvers/%s/%s", r.PathValue("day"), r.PathValue("part")),
+		Auth: func() bool {
+			if cfg == nil {
+				return false
+			} else {
+				return cfg.OAuth
+			}
+		}(),
+		Provider: &provider,
 	}
 
 	if err := template.Execute(w, data); err != nil {
-		logger.Printf("Unable to render Upload template")
+		logger.Printf("Unable to render Upload template %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("{}")))
 		return
@@ -82,6 +117,23 @@ func SolveWithUpload(w http.ResponseWriter, r *http.Request) {
 
 func OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	logger := middleware.GetLogger(r)
+
+	config, ok := middleware.GetConfig(r)
+
+	if !ok {
+		logger.Printf("oauth callback unable to get config")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Server configuration error"))
+		return
+	}
+
+	providerName := r.PathValue("provider")
+	if _, exists := config.OAuthProviders[providerName]; !exists {
+		logger.Printf("unable to find oauth provider %s", providerName)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Unknown OAuth provider"))
+		return
+	}
 
 	templateVal := r.Context().Value(middleware.ContextKeyCallbackTemplate)
 	template, ok := templateVal.(*template.Template)
@@ -93,7 +145,15 @@ func OAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := template.Execute(w, ""); err != nil {
+	provider := config.OAuthProviders[providerName]
+
+	data := struct {
+		CallbackURL string
+	}{
+		CallbackURL: provider.CallbackURL,
+	}
+
+	if err := template.Execute(w, data); err != nil {
 		logger.Printf("Unable to render Callback template")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("{}")))
@@ -106,7 +166,7 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 	config, ok := middleware.GetConfig(r)
 
 	if !ok {
-		logger.Printf("unable to get config")
+		logger.Printf("oauth unable to get config")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Server configuration error"))
 		return
