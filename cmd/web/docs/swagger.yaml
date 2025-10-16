@@ -47,6 +47,10 @@ paths:
             items:
               $ref: '#/definitions/api.RegisteredDay'
             type: array
+        "429":
+          description: Request was Rate limited
+          schema:
+            type: body
         "500":
           description: Internal Server Error
           schema:
@@ -89,6 +93,10 @@ paths:
           description: Solver for the day not found
           schema:
             $ref: '#/definitions/api.APIError'
+        "429":
+          description: Request was Rate limited
+          schema:
+            type: body
         "500":
           description: Internal Server Error
           schema:

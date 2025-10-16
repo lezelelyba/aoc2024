@@ -38,6 +38,12 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "429": {
+                        "description": "Request was Rate limited",
+                        "schema": {
+                            "type": "body"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -98,6 +104,12 @@ const docTemplate = `{
                         "description": "Solver for the day not found",
                         "schema": {
                             "$ref": "#/definitions/api.APIError"
+                        }
+                    },
+                    "429": {
+                        "description": "Request was Rate limited",
+                        "schema": {
+                            "type": "body"
                         }
                     },
                     "500": {

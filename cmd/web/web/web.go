@@ -67,7 +67,7 @@ func SolveWithUpload(w http.ResponseWriter, r *http.Request) {
 		Endpoint string
 	}{
 		Title:    fmt.Sprintf("Upload Page for day %s", r.PathValue("day")),
-		Endpoint: fmt.Sprintf("/api/solve/%s/%s", r.PathValue("day"), r.PathValue("part")),
+		Endpoint: fmt.Sprintf("/api/solvers/%s/%s", r.PathValue("day"), r.PathValue("part")),
 	}
 
 	if err := template.Execute(w, data); err != nil {
@@ -80,5 +80,5 @@ func SolveWithUpload(w http.ResponseWriter, r *http.Request) {
 
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK CI"))
+	w.Write([]byte("OK"))
 }
