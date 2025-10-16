@@ -24,7 +24,9 @@
         "showLog": true,
         "env": {
           "ENABLE_OAUTH": "true",
-          "OAUTH_GITHUB_CLIENT_URL": "https://github.com/login/oauth/access_token",
+          "JWT_SECRET": "someLovelySecretNobodyKnows",
+          "OAUTH_GITHUB_USER_AUTH_URL": "https://github.com/login/oauth/authorize",
+          "OAUTH_GITHUB_TOKEN_URL": "https://github.com/login/oauth/access_token",
           "OAUTH_GITHUB_CLIENT_ID": "Ov23liOBCoU2I2xwhN9u",
           "OAUTH_GITHUB_CLIENT_SECRET": "88521744a4bfac4e2b6951c050b27bf547dee42c" ,
           "OAUTH_GITHUB_CALLBACK_URL": "http://localhost:8080/callback/github",

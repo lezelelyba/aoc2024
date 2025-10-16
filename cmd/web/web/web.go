@@ -6,13 +6,14 @@ import (
 	"advent2024/web/middleware"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"text/template"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func ServerStatus(w http.ResponseWriter, r *http.Request) {
@@ -148,9 +149,9 @@ func OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	provider := config.OAuthProviders[providerName]
 
 	data := struct {
-		CallbackURL string
+		Endpoint string
 	}{
-		CallbackURL: provider.CallbackURL,
+		Endpoint: provider.TokenEndpoint(),
 	}
 
 	if err := template.Execute(w, data); err != nil {
@@ -185,22 +186,67 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch provider.Name {
 	case "github":
+		token, err := exchangeCodeForToken(&provider, query.Get("code"))
+
+		if err != nil {
+			logger.Printf("unable to resolve token with %s: %v", provider.Name, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("Unable to exchange code for token with %s", provider.Name)))
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		jwtToken, err := generateJWT(provider.Name, token.Token(), config.JWTSecret)
+
+		if err != nil {
+			logger.Printf("unable to create jwt token")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("Unable to create jwt token")))
+			return
+		}
+
+		json.NewEncoder(w).Encode(map[string]string{"access_token": jwtToken})
+
+		return
+	}
+}
+
+type OAuthReplyGithub struct {
+	AccessToken string `json:"access_token"`
+	Scope       string `json:"scope"`
+	TokenType   string `json:"token_type"`
+}
+
+func (rep OAuthReplyGithub) Token() string {
+	return rep.AccessToken
+}
+
+type Token interface {
+	Token() string
+}
+
+func exchangeCodeForToken(provider *config.OAuthProvider, code string) (Token, error) {
+	if provider == nil {
+		return nil, fmt.Errorf("unable to find empty provider")
+	}
+
+	switch provider.Name {
+	case "github":
 		data := url.Values{}
 		data.Set("client_id", provider.ClientId)
 		data.Set("client_secret", provider.ClientSecret)
-		data.Set("code", query.Get("code"))
+		data.Set("code", code)
 		// TODO: redirect_uri
 
 		req, err := http.NewRequest(
 			"POST",
-			provider.URL,
+			provider.TokenURL,
 			strings.NewReader(data.Encode()))
 
 		if err != nil {
-			logger.Printf("unable to create OAuth Request")
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Internal Server Error"))
-			return
+			return nil, fmt.Errorf("unable to create OAuth request")
 		}
 
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -210,18 +256,31 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 		defer resp.Body.Close()
 
 		if err != nil {
-			logger.Printf("unable to resolve token with %s", provider.Name)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Internal Server Error"))
-			return
+			return nil, fmt.Errorf("unable to exchange code for token with %s", provider.Name)
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		io.Copy(w, resp.Body)
+		var token OAuthReplyGithub
 
-		return
+		err = json.NewDecoder(resp.Body).Decode(&token)
+		if err != nil {
+			return nil, fmt.Errorf("unable to unmarshal %s response", provider.Name)
+		}
+
+		return token, nil
+
+	default:
+		return nil, fmt.Errorf("unable to find provider %s", provider.Name)
 	}
+}
+
+func generateJWT(provider, token, secret string) (string, error) {
+	claims := jwt.MapClaims{
+		"provider": provider,
+		"token":    token,
+	}
+
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return jwtToken.SignedString([]byte(secret))
 }
 
 func HealthCheck(w http.ResponseWriter, r *http.Request) {

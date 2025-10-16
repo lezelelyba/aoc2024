@@ -16,12 +16,14 @@ type Config struct {
 	APIRate        int
 	APIBurst       int
 	OAuth          bool
+	JWTSecret      string
 	OAuthProviders map[string]OAuthProvider
 }
 
 type OAuthProvider struct {
 	Name         string
-	URL          string
+	UserAuthURL  string
+	TokenURL     string
 	CallbackURL  string
 	ClientId     string
 	ClientSecret string
@@ -35,6 +37,10 @@ func NewConfig() Config {
 		APIRate:   3,
 		APIBurst:  3,
 	}
+}
+
+func (p OAuthProvider) TokenEndpoint() string {
+	return fmt.Sprintf("/oauth/%s/token", p.Name)
 }
 
 func LoadConfig() (Config, []error) {
@@ -51,9 +57,11 @@ func LoadConfig() (Config, []error) {
 	apiRate := flag.String("apirate", envOrDefault("API_RATE", strconv.Itoa(config.APIRate)), "API rate limit per second, default 3")
 	apiBurst := flag.String("apiburst", envOrDefault("API_BURST", strconv.Itoa(config.APIBurst)), "API rate burst size, default 3")
 
-	oAuth := flag.String("oauth", envOrDefault("ENABLE_OAUTH", fmt.Sprintf("%t", config.OAuth)), "Enables OAuth API authentication, requires callback url, token exhcnage url, client id and secret to be specified")
+	oAuth := flag.String("oauth", envOrDefault("ENABLE_OAUTH", fmt.Sprintf("%t", config.OAuth)), "Enables OAuth API authentication, requireds jwt secret and then requireds per provider callback url, token exhcnage url, client id and secret to be specified")
+	jwtSecret := flag.String("jwt-secret", envOrDefault("JWT_SECRET", ""), "JWT Secret")
 	oAuthGithubCallbackURL := flag.String("oauth-callback-url", envOrDefault("OAUTH_GITHUB_CALLBACK_URL", ""), "Github OAuth callback")
-	oAuthGithubURL := flag.String("oauth-github-url", envOrDefault("OAUTH_GITHUB_CLIENT_URL", ""), "Github OAuth Token exchange URL")
+	oAuthGithubUserAuthURL := flag.String("oauth-github-user-auth-url", envOrDefault("OAUTH_GITHUB_USER_AUTH_URL", ""), "Github OAuth User auth URL")
+	oAuthGithubTokenURL := flag.String("oauth-github-token-url", envOrDefault("OAUTH_GITHUB_TOKEN_URL", ""), "Github OAuth Token exchange URL")
 	oAuthGithubId := flag.String("oauth-github-id", envOrDefault("OAUTH_GITHUB_CLIENT_ID", ""), "Github OAuth Client ID")
 	oAuthGithubSecret := flag.String("oauth-github-secret", envOrDefault("OAUTH_GITHUB_CLIENT_SECRET", ""), "Github OAuth Secret ID")
 
@@ -113,12 +121,15 @@ func LoadConfig() (Config, []error) {
 
 		config.OAuth = true
 		config.OAuthProviders = map[string]OAuthProvider{}
+		config.JWTSecret = *jwtSecret
+
 		provider := OAuthProvider{Name: "github"}
 
 		provider.CallbackURL = *oAuthGithubCallbackURL
 		provider.ClientId = *oAuthGithubId
 		provider.ClientSecret = *oAuthGithubSecret
-		provider.URL = *oAuthGithubURL
+		provider.UserAuthURL = *oAuthGithubUserAuthURL
+		provider.TokenURL = *oAuthGithubTokenURL
 
 		oauthErrors := 0
 
@@ -126,7 +137,9 @@ func LoadConfig() (Config, []error) {
 			str  string
 			name string
 		}{
-			{*oAuthGithubURL, "token exchange URL"},
+			{*jwtSecret, "JWT secret"},
+			{*oAuthGithubUserAuthURL, "user authentication URL"},
+			{*oAuthGithubTokenURL, "token exchange URL"},
 			{*oAuthGithubId, "client id"},
 			{*oAuthGithubSecret, "client secret"},
 			{*oAuthGithubCallbackURL, "callback URL"},

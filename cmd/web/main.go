@@ -98,7 +98,10 @@ func main() {
 	// combine muxes
 	apiHandler := middleware.RateLimitMiddleware(config.APIRate, config.APIBurst)(apiMux)
 	if config.OAuth {
-		apiHandler = middleware.AuthenticationMiddleware()(apiHandler)
+		apiHandler = middleware.Chain(apiHandler,
+			middleware.WithConfig(&config),
+			middleware.AuthenticationMiddleware())
+		// apiHandler = middleware.AuthenticationMiddleware()(apiHandler)
 	}
 
 	globalMux.Handle("/api/", http.StripPrefix("/api", apiHandler))

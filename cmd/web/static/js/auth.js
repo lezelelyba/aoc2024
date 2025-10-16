@@ -15,7 +15,7 @@ function updateUI() {
   }
 }
 
-function startOAuth(clientId, redirectUri) {
+function startOAuth(authURL, clientId, redirectUri) {
   const accessToken = sessionStorage.getItem("accessToken");
   if (accessToken === null) {
     sessionStorage.setItem("postAuthRedirect", window.location.pathname + window.location.search);
@@ -23,14 +23,15 @@ function startOAuth(clientId, redirectUri) {
     const state = Math.random().toString(36).substring(2);
     sessionStorage.setItem("oauth_state", state);
 
-    const authUrl = `https://github.com/login/oauth/authorize?` +
+    // const authUrl = `https://github.com/login/oauth/authorize?` +
+    const authUrl = `${authURL}?` +
                     `client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}` +
                     `&scope=read:user,user:email&state=${state}`;
     window.location.href = authUrl;
   }
 }
 
-async function handleOAuthCallback(redirectUri) {
+async function handleOAuthCallback(endpoint) {
   const params = new URLSearchParams(window.location.search);
   const code = params.get("code");
   const state = params.get("state");
@@ -38,7 +39,7 @@ async function handleOAuthCallback(redirectUri) {
 
   if (code && state === storedState) {
     try {
-      const resp = await fetch(`/oauth/github/token?code=${code}`, { method: "POST" });
+      const resp = await fetch(`${endpoint}?code=${code}`, { method: "POST" });
       const data = await resp.json();
       sessionStorage.setItem("accessToken", data.access_token);
 

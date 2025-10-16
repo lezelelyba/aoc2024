@@ -1,11 +1,14 @@
 async function sendToApi(endpoint, payload) {
+  const accessToken = sessionStorage.getItem("accessToken");
+
   console.log("Sending to:", endpoint);
 
   try {
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + accessToken,
       },
       body: JSON.stringify(payload)
     });

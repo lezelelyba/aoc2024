@@ -3,12 +3,15 @@ package middleware
 import (
 	"advent2024/web/config"
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"text/template"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/time/rate"
 )
@@ -127,9 +130,48 @@ func WithConfig(cfg *config.Config) func(http.Handler) http.Handler {
 func AuthenticationMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			logger := GetLogger(r)
+			cfg, ok := GetConfig(r)
+
+			if !ok {
+				logger.Printf("solve with upload: unable to get config")
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("Server configuration error"))
+				return
+			}
+
+			auth := r.Header.Get("Authorization")
+
+			if !strings.HasPrefix(auth, "Bearer ") {
+				logger.Printf("unauthorized %s", auth)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			tokenStr := strings.TrimPrefix(auth, "Bearer ")
+
+			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method")
+				}
+				return []byte(cfg.JWTSecret), nil
+
+			})
+
+			if err != nil || !token.Valid {
+				logger.Printf("unauthorized: invalid token %s", auth)
+				http.Error(w, "Invalid Token", http.StatusUnauthorized)
+				return
+			}
+
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func ValidateToken(token string, cfg *config.Config) (bool, error) {
+	return true, nil
 }
 
 func GetConfig(r *http.Request) (*config.Config, bool) {

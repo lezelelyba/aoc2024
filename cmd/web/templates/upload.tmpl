@@ -29,7 +29,7 @@
   <script>
 {{if .Auth}}
     updateUI();
-    document.getElementById("authBtn").addEventListener("click", () => startOAuth("{{.Provider.ClientId}}", "{{.Provider.CallbackURL}}"));
+    document.getElementById("authBtn").addEventListener("click", () => startOAuth("{{.Provider.UserAuthURL}}", "{{.Provider.ClientId}}", "{{.Provider.CallbackURL}}"));
 {{end}}
     document.getElementById("submitBtn").addEventListener("click", () => handleClick());
     
