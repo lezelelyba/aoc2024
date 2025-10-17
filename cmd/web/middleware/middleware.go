@@ -23,6 +23,7 @@ const (
 	ContextKeyRequestID        contextKey = "requestID"
 	ContextKeyUploadTemplate   contextKey = "uploadTemplate"
 	ContextKeyCallbackTemplate contextKey = "callbackTemplate"
+	ContextKeyIndexTemplate    contextKey = "indexTemplate"
 )
 
 type contextKey string

@@ -63,6 +63,7 @@ func main() {
 
 	// parse templates
 
+	indexTemplate := template.Must(template.ParseFiles("./templates/index.tmpl"))
 	uploadTemplate := template.Must(template.ParseFiles("./templates/upload.tmpl"))
 	callbackTemplate := template.Must(template.ParseFiles("./templates/callback.tmpl"))
 
@@ -71,7 +72,10 @@ func main() {
 	logger := middleware.NewLogger(&config)
 
 	// web pages
-	webMux.HandleFunc("GET /", web.ServerStatus)
+	webMux.Handle("GET /",
+		middleware.Chain(
+			http.HandlerFunc(web.ServerStatus),
+			middleware.WithTemplate(indexTemplate, middleware.ContextKeyIndexTemplate)))
 	webMux.HandleFunc("GET /list", web.SolverListing)
 	webMux.Handle("GET /solve/{day}/{part}",
 		middleware.Chain(

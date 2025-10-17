@@ -21,10 +21,6 @@ type SolveResult struct {
 	Output string `json:"output"`
 }
 
-type RegisteredDay struct {
-	Name string `json:"name"`
-}
-
 // Solve godoc
 //
 //	@Summary		Solver
@@ -33,15 +29,15 @@ type RegisteredDay struct {
 //	@Accepts		json
 //	@Produces		json
 //	@Security
-//	@Param		day						path		string			true	"Day, format d[0-9]*"	example(d1)
-//	@Param		part					path		int				true	"Problem part"			example(1)
-//	@Param		input					body		SolvePayload	true	"Solve Base64 encoded input"
-//	@Success	200						{object}	SolveResult		"Result"
-//	@Failure	400						{object}	Error		"Bad Request"
-//	@Failure	401						body		string			"Unathorized"
-//	@Failure	404						{object}	Error		"Solver for the day not found"
-//	@Failure	429						body		string			"Request was Rate limited"
-//	@Failure	500						{object}	Error		"Internal Server Error"
+//	@Param		day						path		string				true	"Day, format d[0-9]*"	example(d1)
+//	@Param		part					path		int					true	"Problem part"			example(1)
+//	@Param		input					body		SolvePayload		true	"Solve Base64 encoded input"
+//	@Success	200						{object}	SolveResult			"Result"
+//	@Failure	400						{object}	weberrors.AoCError	"Bad Request"
+//	@Failure	401						{object}	weberrors.AoCError	"Unathorized"
+//	@Failure	404						{object}	weberrors.AoCError	"Solver for the day not found"
+//	@Failure	429						{object}	weberrors.AoCError	"Request was Rate limited"
+//	@Failure	500						{object}	weberrors.AoCError	"Internal Server Error"
 //	@Router		/solvers/{day}/{part}	[post]
 //	@Security	OAuth2AccessCode [read]
 func Solve(w http.ResponseWriter, r *http.Request) {
@@ -132,28 +128,21 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 //	@Tags			solverList
 //	@Accepts		json
 //	@Produces		json
-//	@Success		200			{array}		RegisteredDay	"Result"
-//	@Failure		401			body		string			"Unathorized"
-//	@Failure		429			body		string			"Request was Rate limited"
-//	@Failure		500			{object}	Error		"Internal Server Error"
+//	@Success		200			{array}		solver.RegistryItemPublic	"Result"
+//	@Failure		401			{object}	weberrors.AoCError						"Unathorized"
+//	@Failure		429			{object}	weberrors.AoCError			"Request was Rate limited"
+//	@Failure		500			{object}	weberrors.AoCError			"Internal Server Error"
 //	@Router			/solvers	[GET]
 //	@Security		OAuth2AccessCode [read]
 func SolverListing(w http.ResponseWriter, r *http.Request) {
 	logger := middleware.GetLogger(r)
 
-	registered_keys := solver.ListRegister()
+	registryItems := solver.ListRegistryItems()
 
-	response := make([]RegisteredDay, len(registered_keys))
-
-	for i, key := range registered_keys {
-		response[i] = RegisteredDay{Name: key}
-
-	}
-
-	b, err := json.Marshal(response)
+	b, err := json.Marshal(registryItems)
 
 	rc := http.StatusInternalServerError
-	errMsg := "Unable to Marshal result"
+	errMsg := "unable to marchal registered items solvers"
 	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}

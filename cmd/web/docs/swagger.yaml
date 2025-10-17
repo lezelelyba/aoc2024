@@ -1,17 +1,5 @@
 basePath: /api
 definitions:
-  api.APIError:
-    properties:
-      errorcode:
-        type: integer
-      errormessage:
-        type: string
-    type: object
-  api.RegisteredDay:
-    properties:
-      name:
-        type: string
-    type: object
   api.SolvePayload:
     properties:
       input:
@@ -22,6 +10,20 @@ definitions:
   api.SolveResult:
     properties:
       output:
+        type: string
+    type: object
+  solver.RegistryItemPublic:
+    properties:
+      name:
+        type: string
+      next:
+        type: boolean
+    type: object
+  weberrors.AoCError:
+    properties:
+      errorcode:
+        type: integer
+      errormessage:
         type: string
     type: object
 externalDocs:
@@ -45,20 +47,20 @@ paths:
           description: Result
           schema:
             items:
-              $ref: '#/definitions/api.RegisteredDay'
+              $ref: '#/definitions/solver.RegistryItemPublic'
             type: array
         "401":
           description: Unathorized
           schema:
-            type: body
+            $ref: '#/definitions/weberrors.AoCError'
         "429":
           description: Request was Rate limited
           schema:
-            type: body
+            $ref: '#/definitions/weberrors.AoCError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/api.APIError'
+            $ref: '#/definitions/weberrors.AoCError'
       security:
       - 'OAuth2AccessCode ':
         - read
@@ -95,23 +97,23 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/api.APIError'
+            $ref: '#/definitions/weberrors.AoCError'
         "401":
           description: Unathorized
           schema:
-            type: body
+            $ref: '#/definitions/weberrors.AoCError'
         "404":
           description: Solver for the day not found
           schema:
-            $ref: '#/definitions/api.APIError'
+            $ref: '#/definitions/weberrors.AoCError'
         "429":
           description: Request was Rate limited
           schema:
-            type: body
+            $ref: '#/definitions/weberrors.AoCError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/api.APIError'
+            $ref: '#/definitions/weberrors.AoCError'
       security:
       - 'OAuth2AccessCode ':
         - read

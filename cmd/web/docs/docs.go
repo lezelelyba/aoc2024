@@ -41,26 +41,26 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.RegisteredDay"
+                                "$ref": "#/definitions/solver.RegistryItemPublic"
                             }
                         }
                     },
                     "401": {
                         "description": "Unathorized",
                         "schema": {
-                            "type": "body"
+                            "$ref": "#/definitions/weberrors.AoCError"
                         }
                     },
                     "429": {
                         "description": "Request was Rate limited",
                         "schema": {
-                            "type": "body"
+                            "$ref": "#/definitions/weberrors.AoCError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/weberrors.AoCError"
                         }
                     }
                 }
@@ -117,31 +117,31 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/weberrors.AoCError"
                         }
                     },
                     "401": {
                         "description": "Unathorized",
                         "schema": {
-                            "type": "body"
+                            "$ref": "#/definitions/weberrors.AoCError"
                         }
                     },
                     "404": {
                         "description": "Solver for the day not found",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/weberrors.AoCError"
                         }
                     },
                     "429": {
                         "description": "Request was Rate limited",
                         "schema": {
-                            "type": "body"
+                            "$ref": "#/definitions/weberrors.AoCError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/weberrors.AoCError"
                         }
                     }
                 }
@@ -149,25 +149,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api.APIError": {
-            "type": "object",
-            "properties": {
-                "errorcode": {
-                    "type": "integer"
-                },
-                "errormessage": {
-                    "type": "string"
-                }
-            }
-        },
-        "api.RegisteredDay": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
         "api.SolvePayload": {
             "type": "object",
             "properties": {
@@ -182,6 +163,28 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "output": {
+                    "type": "string"
+                }
+            }
+        },
+        "solver.RegistryItemPublic": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "next": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "weberrors.AoCError": {
+            "type": "object",
+            "properties": {
+                "errorcode": {
+                    "type": "integer"
+                },
+                "errormessage": {
                     "type": "string"
                 }
             }

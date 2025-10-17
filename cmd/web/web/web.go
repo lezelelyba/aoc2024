@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"text/template"
 
@@ -26,35 +25,54 @@ type Token interface {
 }
 
 func ServerStatus(w http.ResponseWriter, r *http.Request) {
+	var rc int
+	var errMsg string
+
+	logger := middleware.GetLogger(r)
 
 	if r.URL.Path != "/" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	registered_keys := solver.ListRegister()
-	registered_keys_string := strings.Join(registered_keys, " ")
+	templateVal := r.Context().Value(middleware.ContextKeyIndexTemplate)
+	template, ok := templateVal.(*template.Template)
 
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = "UnknownHostname"
+	ok = ok && template != nil
+
+	rc = http.StatusInternalServerError
+	errMsg = "unable to find index template"
+	if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
+		return
 	}
+
+	// registeredKeys := solver.ListRegistryItems()
+	// var keyNames []string
+
+	// for _, i := range registeredKeys {
+	// 	keyNames = append(keyNames, i.Name)
+	// }
+	// registeredKeysStr := strings.Join(keyNames, " ")
+
+	// hostname, err := os.Hostname()
+	// if err != nil {
+	// 	hostname = "UnknownHostname"
+	// }
+	// w.WriteHeader(http.StatusOK)
+	// w.Write([]byte("Server " + hostname + " is up and running\n" + "Registered days: " + registeredKeysStr + "\n"))
+
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Server " + hostname + " is up and running\n" + "Registered days: " + registered_keys_string + "\n"))
 }
 
 func SolverListing(w http.ResponseWriter, r *http.Request) {
-	registered_keys := solver.ListRegister()
 	logger := middleware.GetLogger(r)
 
-	type registeredKeys struct {
-		Keys []string
-	}
+	registryItems := solver.ListRegistryItems()
 
-	b, err := json.Marshal(registeredKeys{Keys: registered_keys})
+	b, err := json.Marshal(registryItems)
 
 	rc := http.StatusInternalServerError
-	errMsg := "unable to marchal registered solvers"
+	errMsg := "unable to marchal registered items solvers"
 	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
@@ -79,9 +97,11 @@ func SolveWithUpload(w http.ResponseWriter, r *http.Request) {
 	templateVal := r.Context().Value(middleware.ContextKeyUploadTemplate)
 	template, ok := templateVal.(*template.Template)
 
+	ok = ok && template != nil
+
 	rc = http.StatusInternalServerError
 	errMsg = "unable to find upload tempate"
-	if weberrors.HandleError(w, logger, weberrors.OkToError(!ok || template == nil), rc, errMsg) != nil {
+	if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
 		return
 	}
 
@@ -156,9 +176,11 @@ func OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	templateVal := r.Context().Value(middleware.ContextKeyCallbackTemplate)
 	template, ok := templateVal.(*template.Template)
 
+	ok = ok && template != nil
+
 	rc = http.StatusInternalServerError
 	errMsg = "unable to find callback template"
-	if weberrors.HandleError(w, logger, weberrors.OkToError(!ok || template == nil), rc, errMsg) != nil {
+	if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
 		return
 	}
 

@@ -7,13 +7,13 @@ import (
 	"net/http"
 )
 
-type APIError struct {
+type AoCError struct {
 	ErrorCode    int    `json:"errorcode"`
 	ErrorMessage string `json:"errormessage"`
 }
 
-func NewError(status int, message string) APIError {
-	return APIError{ErrorCode: status, ErrorMessage: message}
+func NewError(status int, message string) AoCError {
+	return AoCError{ErrorCode: status, ErrorMessage: message}
 }
 
 func HandleError(w http.ResponseWriter, logger *log.Logger, err error, httpErrorCode int, errMsg string) error {
