@@ -74,7 +74,8 @@ func main() {
 	webMux.HandleFunc("GET /", web.ServerStatus)
 	webMux.HandleFunc("GET /list", web.SolverListing)
 	webMux.Handle("GET /solve/{day}/{part}",
-		middleware.Chain(http.HandlerFunc(web.SolveWithUpload),
+		middleware.Chain(
+			http.HandlerFunc(web.SolveWithUpload),
 			middleware.WithConfig(&config),
 			middleware.WithTemplate(uploadTemplate, middleware.ContextKeyUploadTemplate)))
 	webMux.HandleFunc("GET /healthcheck", web.HealthCheck)
@@ -82,11 +83,13 @@ func main() {
 	// oauth
 	if config.OAuth {
 		webMux.Handle("GET /callback/{provider}",
-			middleware.Chain(http.HandlerFunc(web.OAuthCallback),
+			middleware.Chain(
+				http.HandlerFunc(web.OAuthCallback),
 				middleware.WithConfig(&config),
 				middleware.WithTemplate(callbackTemplate, middleware.ContextKeyCallbackTemplate)))
 		webMux.Handle("POST /oauth/{provider}/token",
-			middleware.Chain(http.HandlerFunc(web.OAuthHandler),
+			middleware.Chain(
+				http.HandlerFunc(web.OAuthHandler),
 				middleware.WithConfig(&config)))
 	}
 
@@ -104,7 +107,8 @@ func main() {
 	// combine muxes
 	apiHandler := middleware.RateLimitMiddleware(config.APIRate, config.APIBurst)(apiMux)
 	if config.OAuth {
-		apiHandler = middleware.Chain(apiHandler,
+		apiHandler = middleware.Chain(
+			apiHandler,
 			middleware.WithConfig(&config),
 			middleware.AuthenticationMiddleware())
 	}

@@ -28,11 +28,22 @@
 
   <script>
 {{if .Auth}}
+    // updates UI based on authentication status
     updateUI();
-    document.getElementById("authBtn").addEventListener("click", () => startOAuth("{{.Provider.UserAuthURL}}", "{{.Provider.ClientId}}", "{{.Provider.CallbackURL}}"));
+    // modify authentication button to reflect provider
+    const userAuthenticationURL = "{{.Provider.UserAuth}}"
+    document.getElementById("authBtn").textContent = "Authenticate via {{.Provider.Name}}";
+    document.getElementById("authBtn").addEventListener("click", () => startOAuth(userAuthenticationURL));
 {{end}}
+    // sends request via API
     document.getElementById("submitBtn").addEventListener("click", () => handleClick());
-    
+
+    /**
+     * Create payload and sends it to API
+     *
+     * Checks if file is selected or text area is populated before sending the request
+     * Selected file will be send out preferably over the text area content
+     */ 
     async function handleClick() {
       const input = document.getElementById('fileInput');
       const file = input.files[0];
@@ -42,13 +53,16 @@
 
       const resultEl = document.getElementById('result');
 
-      const endpoint = "{{.Endpoint}}";
+      const apiEndpoint = "{{.Endpoint}}";
 
+      // check if something was filled
+      // display error if not
       if (!file && text.trim() === "" ) {
         resultEl.textContent = 'Please select a file of input text first.';
         return;
       }
       
+      // base64 encode the input, send request to API and display return value
       try {
         let base64;
         if (file) {
@@ -57,7 +71,7 @@
           base64 = btoa(unescape(encodeURIComponent(text)));
         }
         
-        const response = await sendToApi(endpoint, { input: base64 })
+        const response = await sendToApi(apiEndpoint, { input: base64 })
         resultEl.textContent = JSON.stringify(response, null, 2)
       } catch(error) {
         resultEl.textContent = 'Error: ' + error.message;

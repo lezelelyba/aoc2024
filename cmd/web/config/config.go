@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 )
@@ -41,6 +42,10 @@ func NewConfig() Config {
 
 func (p OAuthProvider) TokenEndpoint() string {
 	return fmt.Sprintf("/oauth/%s/token", p.Name)
+}
+
+func (p OAuthProvider) UserAuth() string {
+	return fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=read:user", p.UserAuthURL, p.ClientId, url.QueryEscape(p.CallbackURL))
 }
 
 func LoadConfig() (Config, []error) {

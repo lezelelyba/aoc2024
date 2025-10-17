@@ -6,6 +6,11 @@
 </head>
 <body>
   <script>
+    /**
+     * Client Side processing of the OAuth callback
+     *
+     * Sends oauth code to the backend code exchange endpoint 
+     */
     window.addEventListener("DOMContentLoaded", handleOAuthCallback("{{.Endpoint}}"));
   </script>
 </body>

@@ -1,10 +1,20 @@
-async function sendToApi(endpoint, payload) {
+/**
+ * Sends an authenticated POST request to the API
+ * 
+ * includes Authorization header with the stored access token
+ * 
+ * @param {string} apiEndpoint - Target API Endpoint URL
+ * @param {Object} payload - payload to be serialized as JSON
+ * @returns {Promise<object>} Promise resolving to the parsed API response
+ */
+async function sendToApi(apiEndpoint, payload) {
   const accessToken = sessionStorage.getItem("accessToken");
-
-  console.log("Sending to:", endpoint);
+  
+  console.log("Sending to:", apiEndpoint);
 
   try {
-    const res = await fetch(endpoint, {
+    // sends authorized request
+    const res = await fetch(apiEndpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -13,6 +23,7 @@ async function sendToApi(endpoint, payload) {
       body: JSON.stringify(payload)
     });
 
+    // attempt to parse response
     const data = await res.json();
     console.log("Response:", data);
     return data;
@@ -22,6 +33,12 @@ async function sendToApi(endpoint, payload) {
   }
 }
 
+/**
+ * Encodes content of a file into base64
+ *  
+ * @param {string} file - filepath
+ * @returns {Promise<string>} Promise that resolves with Base64-encoded file content
+ */
 function toBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

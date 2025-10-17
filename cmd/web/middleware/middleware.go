@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"advent2024/web/config"
+	"advent2024/web/weberrors"
 	"context"
 	"fmt"
 	"log"
@@ -107,12 +108,16 @@ func RateLimitMiddleware(tokenRate, burst int) func(http.Handler) http.Handler {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger := GetLogger(r)
 
-			if !limiter.Allow() {
-				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
-				return
-			} else {
+			if limiter.Allow() {
 				next.ServeHTTP(w, r)
+			} else {
+				rc := http.StatusTooManyRequests
+				errMsg := "too many requests"
+				weberrors.HandleError(w, logger, fmt.Errorf(errMsg), rc, errMsg)
+
+				return
 			}
 		})
 	}
@@ -131,37 +136,35 @@ func AuthenticationMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+			var rc int
+			var errMsg string
+
 			logger := GetLogger(r)
 			cfg, ok := GetConfig(r)
 
-			if !ok {
-				logger.Printf("solve with upload: unable to get config")
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("Server configuration error"))
+			rc = http.StatusInternalServerError
+			errMsg = "configuration error: unable to get config"
+			if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
 				return
 			}
 
 			auth := r.Header.Get("Authorization")
+			ok = strings.HasPrefix(auth, "Bearer ")
 
-			if !strings.HasPrefix(auth, "Bearer ") {
-				logger.Printf("unauthorized %s", auth)
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			rc = http.StatusUnauthorized
+			errMsg = fmt.Sprintf("unauthorized %s", auth)
+			if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
 				return
 			}
 
 			tokenStr := strings.TrimPrefix(auth, "Bearer ")
+			tokenValid, err := ValidateToken(tokenStr, cfg)
 
-			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, fmt.Errorf("unexpected signing method")
-				}
-				return []byte(cfg.JWTSecret), nil
+			ok = (err == nil && tokenValid)
 
-			})
-
-			if err != nil || !token.Valid {
-				logger.Printf("unauthorized: invalid token %s", auth)
-				http.Error(w, "Invalid Token", http.StatusUnauthorized)
+			rc = http.StatusUnauthorized
+			errMsg = fmt.Sprintf("unauthorized: invalid token %s", auth)
+			if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
 				return
 			}
 
@@ -170,8 +173,19 @@ func AuthenticationMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
-func ValidateToken(token string, cfg *config.Config) (bool, error) {
-	return true, nil
+func ValidateToken(tokenStr string, cfg *config.Config) (bool, error) {
+	if tokenStr != "" && cfg != nil {
+		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method")
+			}
+			return []byte(cfg.JWTSecret), nil
+		})
+
+		return token.Valid, err
+	}
+
+	return false, nil
 }
 
 func GetConfig(r *http.Request) (*config.Config, bool) {
