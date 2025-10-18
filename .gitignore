@@ -11,4 +11,4 @@ inputs
 tls
 
 #do not include vscode setup
-.vscode
+*/.vscode/launch.json
