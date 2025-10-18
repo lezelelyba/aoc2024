@@ -2,7 +2,8 @@ package solver
 
 import (
 	"io"
-	"strings"
+	"sort"
+	"sync"
 )
 
 type PuzzleSolver interface {
@@ -10,30 +11,73 @@ type PuzzleSolver interface {
 	Solve(part int) (string, error)
 }
 
-var registry = map[string]func() PuzzleSolver{}
-
-func Register(name string, constructor func() PuzzleSolver) {
-	registry[name] = constructor
+type Stepper interface {
+	Next() (string, error)
 }
 
-func ListRegister() []string {
-	registered_keys := make([]string, len(registry))
+type RegistryItem struct {
+	Name        string
+	Next        bool
+	Constructor func() PuzzleSolver
+}
+type RegistryItemPublic struct {
+	Name string `json:"name"`
+	Next bool   `json:"next"`
+}
 
-	i := 0
-	for k := range registry {
-		registered_keys[i] = strings.Clone(k)
-		i++
+var registry = map[string]RegistryItem{}
+var keys []string
+var mu sync.RWMutex
+
+func Register(name string, constructor func() PuzzleSolver) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	item := RegistryItem{Name: name, Constructor: constructor}
+
+	var ps PuzzleSolver
+
+	// recovers from panic
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				ps = nil
+			}
+		}()
+		ps = constructor()
+	}()
+
+	if _, ok := ps.(Stepper); ok {
+		item.Next = true
 	}
 
-	return registered_keys
+	registry[name] = item
+
+	// sort the keys
+	keys = append(keys, name)
+	sort.Strings(keys)
+}
+
+func ListRegistryItems() []RegistryItemPublic {
+	mu.RLock()
+	defer mu.RUnlock()
+
+	items := make([]RegistryItemPublic, 0, len(registry))
+
+	for _, k := range keys {
+		v := registry[k]
+		items = append(items, RegistryItemPublic{Name: v.Name, Next: v.Next})
+	}
+
+	return items
 }
 
 func New(name string) (PuzzleSolver, bool) {
-	constructor, ok := registry[name]
+	solver, ok := registry[name]
 
 	if !ok {
 		return nil, false
 	}
 
-	return constructor(), true
+	return solver.Constructor(), true
 }

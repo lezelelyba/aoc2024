@@ -1,3 +1,7 @@
+output "alb_dns_name_aws" {
+  description = "Public URL of the Application Load Balancer - AWS generated"
+  value       = module.infra.alb_dns_name_aws
+}
 output "alb_dns_name" {
   description = "Public URL of the Application Load Balancer"
   value       = module.infra.alb_dns_name

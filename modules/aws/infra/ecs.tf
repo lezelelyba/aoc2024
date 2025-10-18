@@ -17,6 +17,22 @@ resource "aws_iam_role" "ecs_task_execution_role" {
     })
 }
 
+resource "aws_iam_role_policy" "ecs_task_execution_secrets_policy" {
+    name = "${var.env}Aoc2024ExecutionSecrets"
+    role = aws_iam_role.ecs_task_execution_role.id
+
+    policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+          {
+            Effect = "Allow"
+            Action = ["secretsmanager:GetSecretValue"]
+            Resource = "*"
+          }
+        ]
+    })
+}
+
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
     role = aws_iam_role.ecs_task_execution_role.name
     policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
@@ -43,6 +59,20 @@ resource "aws_ecs_task_definition" "ecs_task" {
                     containerPort = tonumber(var.app_tcp_port)
                     hostPort = tonumber(var.app_tcp_port)
                     protocol = "tcp"
+                }
+            ]
+
+            environment = [
+                for k, v in var.ecs_app_env_map : {
+                    name = k
+                    value = v
+                }
+            ]
+
+            secrets = [
+                for i in var.ecs_app_env_map_secret_keys : {
+                    name = i
+                    valueFrom = aws_secretsmanager_secret.container_env_secret[i].arn
                 }
             ]
 
@@ -76,4 +106,17 @@ resource "aws_ecs_service" "app" {
     }
 
     depends_on = [aws_alb.main]
+}
+
+resource "aws_secretsmanager_secret" "container_env_secret" {
+    for_each = { for k in var.ecs_app_env_map_secret_keys: k => k }
+
+    name = each.key
+}
+
+resource "aws_secretsmanager_secret_version" "container_env_secret_value" {
+    for_each = aws_secretsmanager_secret.container_env_secret
+
+    secret_id = each.value.id
+    secret_string = var.ecs_app_env_map_secret[each.key]
 }

@@ -2,21 +2,28 @@ package middleware
 
 import (
 	"advent2024/web/config"
+	"advent2024/web/weberrors"
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"text/template"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/time/rate"
 )
 
 const (
-	ContextKeyLogger         contextKey = "logger"
-	ContextKeyRequestID      contextKey = "requestID"
-	ContextKeyUploadTemplate contextKey = "uploadTemplate"
+	ContextConfig              contextKey = "config"
+	ContextKeyLogger           contextKey = "logger"
+	ContextKeyRequestID        contextKey = "requestID"
+	ContextKeyUploadTemplate   contextKey = "uploadTemplate"
+	ContextKeyCallbackTemplate contextKey = "callbackTemplate"
+	ContextKeyIndexTemplate    contextKey = "indexTemplate"
 )
 
 type contextKey string
@@ -78,8 +85,8 @@ func LoggingMiddleware(logger *log.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-func GetLogger(ctx context.Context) *log.Logger {
-	loggerVal := ctx.Value(ContextKeyLogger)
+func GetLogger(r *http.Request) *log.Logger {
+	loggerVal := r.Context().Value(ContextKeyLogger)
 	logger, ok := loggerVal.(*log.Logger)
 	if !ok || logger == nil {
 		logger = log.Default()
@@ -88,10 +95,12 @@ func GetLogger(ctx context.Context) *log.Logger {
 	return logger
 }
 
-func WithTemplate(template *template.Template, key contextKey, next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), key, template)
-		next(w, r.WithContext(ctx))
+func WithTemplate(template *template.Template, key contextKey) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(r.Context(), key, template)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
 	}
 }
 
@@ -100,15 +109,93 @@ func RateLimitMiddleware(tokenRate, burst int) func(http.Handler) http.Handler {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger := GetLogger(r)
 
-			if !limiter.Allow() {
-				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
-				return
-			} else {
+			if limiter.Allow() {
 				next.ServeHTTP(w, r)
+			} else {
+				rc := http.StatusTooManyRequests
+				errMsg := "too many requests"
+				weberrors.HandleError(w, logger, fmt.Errorf(errMsg), rc, errMsg)
+
+				return
 			}
 		})
 	}
+}
+
+func WithConfig(cfg *config.Config) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(r.Context(), ContextConfig, cfg)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func AuthenticationMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			var rc int
+			var errMsg string
+
+			logger := GetLogger(r)
+			cfg, ok := GetConfig(r)
+
+			rc = http.StatusInternalServerError
+			errMsg = "configuration error: unable to get config"
+			if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
+				return
+			}
+
+			auth := r.Header.Get("Authorization")
+			ok = strings.HasPrefix(auth, "Bearer ")
+
+			rc = http.StatusUnauthorized
+			errMsg = fmt.Sprintf("unauthorized %s", auth)
+			if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
+				return
+			}
+
+			tokenStr := strings.TrimPrefix(auth, "Bearer ")
+			tokenValid, err := ValidateToken(tokenStr, cfg)
+
+			ok = (err == nil && tokenValid)
+
+			rc = http.StatusUnauthorized
+			errMsg = fmt.Sprintf("unauthorized: invalid token %s", auth)
+			if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func ValidateToken(tokenStr string, cfg *config.Config) (bool, error) {
+	if tokenStr != "" && cfg != nil {
+		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method")
+			}
+			return []byte(cfg.JWTSecret), nil
+		})
+
+		if token != nil {
+			return token.Valid, err
+		}
+
+		return false, err
+	}
+
+	return false, fmt.Errorf("token empty or cfg not available")
+}
+
+func GetConfig(r *http.Request) (*config.Config, bool) {
+	cfg, ok := r.Context().Value(ContextConfig).(*config.Config)
+	return cfg, ok
 }
 
 func clientIP(r *http.Request) string {
@@ -123,4 +210,11 @@ func clientIP(r *http.Request) string {
 	}
 
 	return ip
+}
+
+func Chain(h http.Handler, mws ...func(http.Handler) http.Handler) http.Handler {
+	for i := len(mws) - 1; i >= 0; i-- {
+		h = mws[i](h)
+	}
+	return h
 }

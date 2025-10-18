@@ -1,0 +1,53 @@
+/* Reset common browser styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Body styling */
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.5;
+  padding: 20px;
+  background-color: #f9f9f9;
+}
+
+/* Header and footer */
+header, footer {
+  background-color: #333;
+  color: #fff;
+  padding: 10px 20px;
+}
+
+/* Links */
+a {
+  color: #0066cc;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Table styling */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 10px;
+}
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+/* Buttons */
+button {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+/* Simple spacing for sections */
+main > * {
+  margin-bottom: 20px;
+}

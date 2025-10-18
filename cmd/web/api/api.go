@@ -3,6 +3,7 @@ package api
 import (
 	"advent2024/pkg/solver"
 	"advent2024/web/middleware"
+	"advent2024/web/weberrors"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,20 +13,12 @@ import (
 	"strings"
 )
 
-type SolvePayload struct {
+type SolveRequest struct {
 	Input string `json:"input" format:"base64" example:"MyAgIDQKNCAgIDMKMiAgIDUKMSAgIDMKMyAgIDkKMyAgIDMK"`
 }
 
 type SolveResult struct {
 	Output string `json:"output"`
-}
-type APIError struct {
-	ErrorCode    int    `json:"errorcode"`
-	ErrorMessage string `json:"errormessage"`
-}
-
-type RegisteredDay struct {
-	Name string `json:"name"`
 }
 
 // Solve godoc
@@ -35,34 +28,33 @@ type RegisteredDay struct {
 //	@Tags			solver
 //	@Accepts		json
 //	@Produces		json
-//	@Param			day					path		string			true	"Day, format d[0-9]*"	example(d1)
-//	@Param			part				path		int				true	"Problem part"			example(1)
-//	@Param			input				body		SolvePayload	true	"Solve Base64 encoded input"
-//	@Success		200					{object}	SolveResult		"Result"
-//	@Failure		400					{object}	APIError		"Bad Request"
-//	@Failure		404					{object}	APIError		"Solver for the day not found"
-//	@Failure		429					body		string			"Request was Rate limited"
-//	@Failure		500					{object}	APIError		"Internal Server Error"
-//	@Router			/solve/{day}/{part}	[post]
+//	@Security
+//	@Param		day						path		string				true	"Day, format d[0-9]*"	example(d1)
+//	@Param		part					path		int					true	"Problem part"			example(1)
+//	@Param		input					body		SolveRequest		true	"Solve Base64 encoded input"
+//	@Success	200						{object}	SolveResult			"Result"
+//	@Failure	400						{object}	weberrors.AoCError	"Bad Request"
+//	@Failure	401						{object}	weberrors.AoCError	"Unathorized"
+//	@Failure	404						{object}	weberrors.AoCError	"Solver for the day not found"
+//	@Failure	429						{object}	weberrors.AoCError	"Request was Rate limited"
+//	@Failure	500						{object}	weberrors.AoCError	"Internal Server Error"
+//	@Router		/solvers/{day}/{part}	[post]
+//	@Security	OAuth2AccessCode [read]
 func Solve(w http.ResponseWriter, r *http.Request) {
 
-	logger := middleware.GetLogger(r.Context())
+	logger := middleware.GetLogger(r)
 
 	day := r.PathValue("day")
 	part := r.PathValue("part")
 
 	part_converted, err := strconv.Atoi(part)
 
-	if err != nil {
-		rc := http.StatusBadRequest
-		errMsg := fmt.Sprintf("Solver for day %s part %s not implemented: part is not numerical", day, part)
+	var rc int
+	var errMsg string
 
-		errJson, _ := json.Marshal(NewAPIError(rc, errMsg))
-
-		logger.Println(errMsg)
-		w.WriteHeader(rc)
-		w.Write(errJson)
-
+	rc = http.StatusBadRequest
+	errMsg = fmt.Sprintf("Solver for day %s part %s not implemented: part is not numerical", day, part)
+	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
 
@@ -71,106 +63,57 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 
-	if err != nil {
-		rc := http.StatusBadRequest
-		errMsg := fmt.Sprintf("Unable to read body")
-
-		errJson, _ := json.Marshal(NewAPIError(rc, errMsg))
-
-		logger.Println(errMsg)
-		w.WriteHeader(rc)
-		w.Write(errJson)
-
+	rc = http.StatusBadRequest
+	errMsg = "unable to read body"
+	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
 
-	var p SolvePayload
+	var p SolveRequest
 	err = json.Unmarshal(body, &p)
 
-	if err != nil && p.Input == "" {
-		rc := http.StatusBadRequest
-		errMsg := fmt.Sprintf("Unable to read body: Invalid JSON")
-
-		errJson, _ := json.Marshal(NewAPIError(rc, errMsg))
-
-		logger.Println(errMsg)
-		w.WriteHeader(rc)
-		w.Write(errJson)
-
+	rc = http.StatusBadRequest
+	errMsg = "unable to read body: Invalid JSON"
+	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
 
 	decoded_body, err := base64.StdEncoding.DecodeString(string(p.Input))
 
-	if err != nil {
-		rc := http.StatusBadRequest
-		errMsg := fmt.Sprintf("Unable to read body: Invalid Base64 encoding")
-
-		errJson, _ := json.Marshal(NewAPIError(rc, errMsg))
-
-		logger.Println(errMsg)
-		w.WriteHeader(rc)
-		w.Write(errJson)
-
+	rc = http.StatusBadRequest
+	errMsg = "unable to read body: Invalid Base64 encoding"
+	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
 
 	solver, ok := solver.New(day)
 
-	if !ok {
-		rc := http.StatusNotFound
-		errMsg := fmt.Sprintf("Solver for day %s part %s not implemented: day not implemented", day, part)
-
-		errJson, _ := json.Marshal(NewAPIError(rc, errMsg))
-
-		logger.Println(errMsg)
-		w.WriteHeader(rc)
-		w.Write(errJson)
-
+	rc = http.StatusNotFound
+	errMsg = fmt.Sprintf("Solver for day %s part %s not implemented: day not implemented", day, part)
+	if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
 		return
 	}
 
 	err = solver.Init(strings.NewReader(string(decoded_body)))
 
-	if err != nil {
-		rc := http.StatusBadRequest
-		errMsg := fmt.Sprintf("Unable to intialize Solver for day %s", day)
-
-		errJson, _ := json.Marshal(NewAPIError(rc, errMsg))
-
-		logger.Println(errMsg)
-		w.WriteHeader(rc)
-		w.Write(errJson)
-
+	rc = http.StatusBadRequest
+	errMsg = fmt.Sprintf("Unable to intialize Solver for day %s", day)
+	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
 
 	result, err := solver.Solve(part_converted)
 
-	if err != nil {
-		rc := http.StatusInternalServerError
-		errMsg := fmt.Sprintf("Unable to solve for day %s part %s", day, part)
-
-		errJson, _ := json.Marshal(NewAPIError(rc, errMsg))
-
-		logger.Println(errMsg)
-		w.WriteHeader(rc)
-		w.Write(errJson)
-
+	rc = http.StatusInternalServerError
+	errMsg = fmt.Sprintf("Unable to solve for day %s part %s", day, part)
+	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
 
 	b, err := json.Marshal(SolveResult{Output: result})
-	if err != nil {
-		rc := http.StatusInternalServerError
-		errMsg := fmt.Sprintf("unable to Marshal result: %s", err)
-
-		errJson, _ := json.Marshal(NewAPIError(rc, errMsg))
-
-		logger.Println(errMsg)
-		w.WriteHeader(rc)
-		w.Write(errJson)
-
+	rc = http.StatusInternalServerError
+	errMsg = fmt.Sprintf("unable to Marshal result: %s", err)
+	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
 
@@ -185,41 +128,25 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 //	@Tags			solverList
 //	@Accepts		json
 //	@Produces		json
-//	@Success		200		{array}		RegisteredDay	"Result"
-//	@Failure		429		body		string			"Request was Rate limited"
-//	@Failure		500		{object}	APIError		"Internal Server Error"
-//	@Router			/list	[GET]
+//	@Success		200			{array}		solver.RegistryItemPublic	"Result"
+//	@Failure		401			{object}	weberrors.AoCError			"Unathorized"
+//	@Failure		429			{object}	weberrors.AoCError			"Request was Rate limited"
+//	@Failure		500			{object}	weberrors.AoCError			"Internal Server Error"
+//	@Router			/solvers	[GET]
+//	@Security		OAuth2AccessCode [read]
 func SolverListing(w http.ResponseWriter, r *http.Request) {
-	logger := middleware.GetLogger(r.Context())
+	logger := middleware.GetLogger(r)
 
-	registered_keys := solver.ListRegister()
+	registryItems := solver.ListRegistryItems()
 
-	response := make([]RegisteredDay, len(registered_keys))
+	b, err := json.Marshal(registryItems)
 
-	for i, key := range registered_keys {
-		response[i] = RegisteredDay{Name: key}
-
-	}
-
-	b, err := json.Marshal(response)
-
-	if err != nil {
-		rc := http.StatusInternalServerError
-		errMsg := "Unable to Marshal result"
-
-		errJson, _ := json.Marshal(NewAPIError(rc, errMsg))
-
-		logger.Println(errMsg)
-		w.WriteHeader(rc)
-		w.Write(errJson)
-
+	rc := http.StatusInternalServerError
+	errMsg := "unable to marchal registered items solvers"
+	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(b)
-}
-
-func NewAPIError(status int, message string) APIError {
-	return APIError{ErrorCode: status, ErrorMessage: message}
 }

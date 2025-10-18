@@ -13,9 +13,20 @@ variable "private_cidr" {
 variable "app_tcp_port" {
     default = "8080"
 }
-
-variable "lb_tcp_port" {
+variable "alb_http_port" {
     default = "80"
+}
+variable "alb_http" {
+    type = bool
+    default = true 
+}
+variable "alb_https" {
+    type = bool
+    default = false
+}
+
+variable "alb_https_port" {
+    default = "443"
 }
 
 variable "docker_image" {
@@ -51,4 +62,26 @@ variable "bastion" {
 
 variable "private_host" {
     default = true
+}
+
+variable "dns_zone" {
+    default = "example.com."
+}
+variable "alb_dns_name" {
+    default = "app.example.com"
+}
+
+variable "ecs_app_env_map" {
+    type = map(string)
+    default = {}
+}
+
+variable "ecs_app_env_map_secret" {
+    type = map(string)
+    default = {}
+    sensitive = true
+}
+variable "ecs_app_env_map_secret_keys" {
+    type = list(string)
+    default = []
 }

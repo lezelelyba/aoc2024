@@ -9,3 +9,10 @@ inputs
 
 #do not include tls cert and keys
 tls
+
+# do not include tf vars
+*.tfvars
+!*.tfvars.template
+
+#do not include vscode setup
+.vscode/

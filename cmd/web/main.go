@@ -37,8 +37,14 @@ import (
 
 //	@BasePath	/api
 
-// @externalDocs.description	OpenAPI
-// @externalDocs.url			https://swagger.io/resources/open-api/
+//	@externalDocs.description	OpenAPI
+//	@externalDocs.url			https://swagger.io/resources/open-api/
+
+// @securitydefinitions.oauth2.accessCode	OAuth2AccessCode
+// @authorizationURL						https://github.com/login/oauth/authorize
+// @tokenURL								https://github.com/login/oauth/access_token
+// @scope.read								Grants read access
+// @description							GitHub OAuth
 func main() {
 	// create new mux
 	webMux := http.NewServeMux()
@@ -57,17 +63,55 @@ func main() {
 
 	// parse templates
 
-	uploadTemplate := template.Must(template.ParseFiles("./templates/upload.tmpl"))
+	funcMap := template.FuncMap{
+		"fieldNames": web.FieldNames,
+		"getField":   web.GetField,
+	}
+
+	indexTemplate := template.Must(template.New("").Funcs(funcMap).ParseFiles("./templates/index.tmpl"))
+	// uploadTemplate := template.Must(template.ParseFiles("./templates/upload.tmpl"))
+	callbackTemplate := template.Must(template.ParseFiles("./templates/callback.tmpl"))
+
+	// TODO: load all common templates
+	// TODO: create template for each page, including the common templates
+	// use those templates to render each page
+	//
+	// cannot load all templates at once and then reference just one of them
+	// as for the common blocks, the last template loaded which defines that block
+	// will be use
+	//
+	// templates := template.Must(template.ParseGlob("./templates/*.tmpl"))
 
 	// create logging middleware
 
 	logger := middleware.NewLogger(&config)
 
 	// web pages
-	webMux.HandleFunc("GET /", web.ServerStatus)
+	webMux.Handle("GET /",
+		middleware.Chain(
+			http.HandlerFunc(web.ServerIndex),
+			middleware.WithConfig(&config),
+			middleware.WithTemplate(indexTemplate, middleware.ContextKeyIndexTemplate)))
 	webMux.HandleFunc("GET /list", web.SolverListing)
-	webMux.HandleFunc("GET /solve/{day}/{part}", middleware.WithTemplate(uploadTemplate, middleware.ContextKeyUploadTemplate, web.SolveWithUpload))
 	webMux.HandleFunc("GET /healthcheck", web.HealthCheck)
+	// webMux.Handle("GET /solve/{day}/{part}",
+	// 	middleware.Chain(
+	// 		http.HandlerFunc(web.SolveWithUpload),
+	// 		middleware.WithConfig(&config),
+	// 		middleware.WithTemplate(uploadTemplate, middleware.ContextKeyUploadTemplate)))
+
+	// oauth
+	if config.OAuth {
+		webMux.Handle("GET /callback/{provider}",
+			middleware.Chain(
+				http.HandlerFunc(web.OAuthCallback),
+				middleware.WithConfig(&config),
+				middleware.WithTemplate(callbackTemplate, middleware.ContextKeyCallbackTemplate)))
+		webMux.Handle("POST /oauth/{provider}/token",
+			middleware.Chain(
+				http.HandlerFunc(web.OAuthHandler),
+				middleware.WithConfig(&config)))
+	}
 
 	// swagger docs
 	webMux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)
@@ -81,20 +125,28 @@ func main() {
 	apiMux.HandleFunc("POST /solvers/{day}/{part}", api.Solve)
 
 	// combine muxes
-	globalMux.Handle("/api/", http.StripPrefix("/api", middleware.RateLimitMiddleware(config.APIRate, config.APIBurst)(apiMux)))
+	apiHandler := middleware.RateLimitMiddleware(config.APIRate, config.APIBurst)(apiMux)
+	if config.OAuth {
+		apiHandler = middleware.Chain(
+			apiHandler,
+			middleware.WithConfig(&config),
+			middleware.AuthenticationMiddleware())
+	}
+
+	globalMux.Handle("/api/", http.StripPrefix("/api", apiHandler))
 	globalMux.Handle("/", webMux)
 
 	// add logging middleware
-	loggedMux := middleware.LoggingMiddleware(logger)(globalMux)
+	finalMux := middleware.LoggingMiddleware(logger)(globalMux)
 
 	// start server
 	addr := fmt.Sprintf(":%d", config.Port)
 
 	if !config.EnableTLS {
 		log.Printf("Starting Server on : %d\n", config.Port)
-		log.Fatal(http.ListenAndServe(addr, loggedMux))
+		log.Fatal(http.ListenAndServe(addr, finalMux))
 	} else {
 		log.Printf("Starting TLS Server on : %d\n", config.Port)
-		log.Fatal(http.ListenAndServeTLS(addr, config.CertFile, config.KeyFile, loggedMux))
+		log.Fatal(http.ListenAndServeTLS(addr, config.CertFile, config.KeyFile, finalMux))
 	}
 }
