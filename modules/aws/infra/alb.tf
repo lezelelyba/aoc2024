@@ -29,13 +29,50 @@ resource "aws_alb_target_group" "app" {
     }
 }
 
-resource "aws_alb_listener" "front_end" {
-    load_balancer_arn = aws_alb.main.arn 
-    port = var.alb_http_port
-    protocol = "HTTP"          
+resource "aws_alb_listener" "frontend_http" {
+  count = var.alb_http ? 1 : 0
+  load_balancer_arn = aws_alb.main.arn
+  port = var.alb_http_port
+  protocol = "HTTP"
+
+  default_action {
+    type = "forward"
+    target_group_arn = aws_alb_target_group.app.arn
+  }
+}
+
+resource "aws_alb_listener" "frontend_http_redirect" {
+  count = var.alb_https && !var.alb_http ? 1 : 0
+  load_balancer_arn = aws_alb.main.arn
+  port = var.alb_http_port
+  protocol = "HTTP"
+
+  default_action {
+    type = "redirect"
+    redirect {
+      protocol    = "HTTPS"
+      port        = "443"
+      status_code = "HTTP_301"
+    }
+  }
+}
+resource "aws_lb_listener" "frontend_https" {
+    count = var.alb_https ? 1 : 0
+
+    load_balancer_arn = aws_alb.main.arn
+    port              = var.alb_https_port
+    protocol          = "HTTPS"
+
+    ssl_policy      = "ELBSecurityPolicy-TLS13-1-0-2021-06"
+
+    // to make sure cert is validated before moving on
+    depends_on = [aws_acm_certificate_validation.cert[0]]
+
+    certificate_arn = aws_acm_certificate.alb_cert[0].arn
+
     default_action {
-        target_group_arn = aws_alb_target_group.app.id
         type = "forward"
+        target_group_arn = aws_alb_target_group.app.id
     }
 }
 
@@ -89,23 +126,4 @@ resource "aws_acm_certificate_validation" "cert" {
 
     certificate_arn         = aws_acm_certificate.alb_cert[0].arn
     validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
-}
-resource "aws_lb_listener" "https" {
-    count = var.alb_https ? 1 : 0
-
-    load_balancer_arn = aws_alb.main.arn
-    port              = var.alb_https_port
-    protocol          = "HTTPS"
-
-    ssl_policy      = "ELBSecurityPolicy-2016-08"
-
-    // to make sure cert is validated before moving on
-    depends_on = [aws_acm_certificate_validation.cert[0]]
-
-    certificate_arn = aws_acm_certificate.alb_cert[0].arn
-
-    default_action {
-        type = "forward"
-        target_group_arn = aws_alb_target_group.app.id
-    }
 }

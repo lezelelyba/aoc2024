@@ -6,7 +6,7 @@ locals {
       to_port     = tonumber(var.alb_http_port)
       cidr_blocks = ["0.0.0.0/0"]
     }
-  ] 
+  ]
   # append HTTPS rule if HTTPS is enabled
   lb_ingress_rules_https = var.alb_https ? [
     {
@@ -28,12 +28,6 @@ resource "aws_security_group" "lb" {
         environment = var.env
     }
 
-    // ingress {
-    //     protocol = "tcp"
-    //     from_port = tonumber(var.alb_http_port)
-    //     to_port = tonumber(var.alb_http_port)
-    //     cidr_blocks = ["0.0.0.0/0"]
-    // }
     dynamic "ingress" {
         for_each = local.combined_rules
         content {
