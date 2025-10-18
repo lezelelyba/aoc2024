@@ -103,7 +103,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.SolvePayload"
+                            "$ref": "#/definitions/api.SolveRequest"
                         }
                     }
                 ],
@@ -149,7 +149,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api.SolvePayload": {
+        "api.SolveRequest": {
             "type": "object",
             "properties": {
                 "input": {

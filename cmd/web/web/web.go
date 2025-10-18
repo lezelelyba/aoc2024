@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"reflect"
 	"strings"
 	"text/template"
 
@@ -25,20 +27,50 @@ type Token interface {
 }
 
 func ServerStatus(w http.ResponseWriter, r *http.Request) {
-	var rc int
-	var errMsg string
-
-	logger := middleware.GetLogger(r)
 
 	if r.URL.Path != "/" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	templateVal := r.Context().Value(middleware.ContextKeyIndexTemplate)
-	template, ok := templateVal.(*template.Template)
+	registeredKeys := solver.ListRegistryItems()
+	var keyNames []string
 
-	ok = ok && template != nil
+	for _, i := range registeredKeys {
+		keyNames = append(keyNames, i.Name)
+	}
+	registeredKeysStr := strings.Join(keyNames, " ")
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "UnknownHostname"
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Server " + hostname + " is up and running\n" + "Registered days: " + registeredKeysStr + "\n"))
+}
+
+func ServerIndex(w http.ResponseWriter, r *http.Request) {
+	var rc int
+	var errMsg string
+
+	if r.URL.Path != "/" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	logger := middleware.GetLogger(r)
+	cfg, ok := middleware.GetConfig(r)
+
+	rc = http.StatusInternalServerError
+	errMsg = "configuration error: index: unable to get config"
+	if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
+		return
+	}
+
+	templateVal := r.Context().Value(middleware.ContextKeyIndexTemplate)
+	tmpl, ok := templateVal.(*template.Template)
+
+	ok = ok && tmpl != nil
 
 	rc = http.StatusInternalServerError
 	errMsg = "unable to find index template"
@@ -46,22 +78,30 @@ func ServerStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// registeredKeys := solver.ListRegistryItems()
-	// var keyNames []string
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "UnknownHostname"
+	}
 
-	// for _, i := range registeredKeys {
-	// 	keyNames = append(keyNames, i.Name)
-	// }
-	// registeredKeysStr := strings.Join(keyNames, " ")
+	registryItems := solver.ListRegistryItems()
 
-	// hostname, err := os.Hostname()
-	// if err != nil {
-	// 	hostname = "UnknownHostname"
-	// }
-	// w.WriteHeader(http.StatusOK)
-	// w.Write([]byte("Server " + hostname + " is up and running\n" + "Registered days: " + registeredKeysStr + "\n"))
+	data := struct {
+		Hostname      string
+		Config        *config.Config
+		RegistryItems []solver.RegistryItemPublic
+	}{
+		Hostname:      hostname,
+		RegistryItems: registryItems,
+		Config:        cfg,
+	}
 
-	w.WriteHeader(http.StatusOK)
+	err = tmpl.ExecuteTemplate(w, "index.tmpl", data)
+
+	rc = http.StatusInternalServerError
+	errMsg = fmt.Sprintf("unable to render index template %v", err)
+	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
+		return
+	}
 }
 
 func SolverListing(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +157,7 @@ func SolveWithUpload(w http.ResponseWriter, r *http.Request) {
 		rc = http.StatusBadRequest
 		errMsg = fmt.Sprintf("unknown Oauth provider %s", providerName)
 
-		if weberrors.HandleError(w, logger, weberrors.OkToError(!exists), rc, errMsg) != nil {
+		if weberrors.HandleError(w, logger, weberrors.OkToError(exists), rc, errMsg) != nil {
 			return
 		}
 
@@ -169,7 +209,7 @@ func OAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	rc = http.StatusBadRequest
 	errMsg = fmt.Sprintf("unknown Oauth provider %s", providerName)
-	if weberrors.HandleError(w, logger, weberrors.OkToError(!exists), rc, errMsg) != nil {
+	if weberrors.HandleError(w, logger, weberrors.OkToError(exists), rc, errMsg) != nil {
 		return
 	}
 
@@ -219,7 +259,7 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 
 	rc = http.StatusBadRequest
 	errMsg = fmt.Sprintf("unknown Oauth provider %s", providerName)
-	if weberrors.HandleError(w, logger, weberrors.OkToError(!exists), rc, errMsg) != nil {
+	if weberrors.HandleError(w, logger, weberrors.OkToError(exists), rc, errMsg) != nil {
 		return
 	}
 
@@ -316,4 +356,31 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 
 func (rep OAuthReplyGithub) Token() string {
 	return rep.AccessToken
+}
+
+func FieldNames(v interface{}) []string {
+	r := reflect.ValueOf(v)
+	t := r.Type()
+	var fields []string
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if f.PkgPath == "" { // exported
+			fields = append(fields, f.Name)
+		}
+	}
+	return fields
+}
+
+func GetField(v interface{}, name string) interface{} {
+	r := reflect.ValueOf(v)
+	if r.Kind() == reflect.Ptr {
+		r = r.Elem() // dereference pointer
+	}
+	if r.Kind() == reflect.Struct {
+		f := r.FieldByName(name)
+		if f.IsValid() {
+			return f.Interface()
+		}
+	}
+	return nil
 }

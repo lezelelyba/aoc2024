@@ -1,11 +1,11 @@
 /**
- * Enables UI elements based on the authentication state
+ * Updates authentication related UI elements on the authentication state
  * 
  * if accessToken exists, session is authenticated
  * class .auth-reguired is enabled
  * elem auth-state is updated
  */
-function updateUI() {
+function updateAuthUI() {
   const accessToken = sessionStorage.getItem("accessToken");
   const authEls = document.querySelectorAll(".auth-required");
   authEls.forEach(el => {
@@ -19,6 +19,15 @@ function updateUI() {
   const statusEl = document.getElementById("auth-status");
   if (statusEl) {
     statusEl.textContent = accessToken ? "Authenticated" : "Not authenticated";
+  }
+  const loginButtonsDiv = document.getElementById("login-buttons-div");
+  if (loginButtonsDiv) {
+    loginButtonsDiv.hidden = accessToken ? true : false
+  }
+
+  const logoutButtonsDiv = document.getElementById("logout-buttons-div");
+  if (logoutButtonsDiv) {
+    logoutButtonsDiv.hidden = accessToken ? false : true
   }
 }
 
@@ -82,4 +91,13 @@ async function handleOAuthCallback(codeExchangeURL) {
   sessionStorage.removeItem("postAuthRedirect");
 
   window.location.href = redirectTarget;
+}
+
+function OAuthLogout() {
+  const accessToken = sessionStorage.getItem("accessToken");
+  if (accessToken) {
+    sessionStorage.removeItem("accessToken");
+  }
+
+  updateAuthUI();
 }

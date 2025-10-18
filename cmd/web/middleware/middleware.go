@@ -183,10 +183,14 @@ func ValidateToken(tokenStr string, cfg *config.Config) (bool, error) {
 			return []byte(cfg.JWTSecret), nil
 		})
 
-		return token.Valid, err
+		if token != nil {
+			return token.Valid, err
+		}
+
+		return false, err
 	}
 
-	return false, nil
+	return false, fmt.Errorf("token empty or cfg not available")
 }
 
 func GetConfig(r *http.Request) (*config.Config, bool) {

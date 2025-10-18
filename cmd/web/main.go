@@ -63,9 +63,24 @@ func main() {
 
 	// parse templates
 
-	indexTemplate := template.Must(template.ParseFiles("./templates/index.tmpl"))
-	uploadTemplate := template.Must(template.ParseFiles("./templates/upload.tmpl"))
+	funcMap := template.FuncMap{
+		"fieldNames": web.FieldNames,
+		"getField":   web.GetField,
+	}
+
+	indexTemplate := template.Must(template.New("").Funcs(funcMap).ParseFiles("./templates/index.tmpl"))
+	// uploadTemplate := template.Must(template.ParseFiles("./templates/upload.tmpl"))
 	callbackTemplate := template.Must(template.ParseFiles("./templates/callback.tmpl"))
+
+	// TODO: load all common templates
+	// TODO: create template for each page, including the common templates
+	// use those templates to render each page
+	//
+	// cannot load all templates at once and then reference just one of them
+	// as for the common blocks, the last template loaded which defines that block
+	// will be use
+	//
+	// templates := template.Must(template.ParseGlob("./templates/*.tmpl"))
 
 	// create logging middleware
 
@@ -74,15 +89,16 @@ func main() {
 	// web pages
 	webMux.Handle("GET /",
 		middleware.Chain(
-			http.HandlerFunc(web.ServerStatus),
+			http.HandlerFunc(web.ServerIndex),
+			middleware.WithConfig(&config),
 			middleware.WithTemplate(indexTemplate, middleware.ContextKeyIndexTemplate)))
 	webMux.HandleFunc("GET /list", web.SolverListing)
-	webMux.Handle("GET /solve/{day}/{part}",
-		middleware.Chain(
-			http.HandlerFunc(web.SolveWithUpload),
-			middleware.WithConfig(&config),
-			middleware.WithTemplate(uploadTemplate, middleware.ContextKeyUploadTemplate)))
 	webMux.HandleFunc("GET /healthcheck", web.HealthCheck)
+	// webMux.Handle("GET /solve/{day}/{part}",
+	// 	middleware.Chain(
+	// 		http.HandlerFunc(web.SolveWithUpload),
+	// 		middleware.WithConfig(&config),
+	// 		middleware.WithTemplate(uploadTemplate, middleware.ContextKeyUploadTemplate)))
 
 	// oauth
 	if config.OAuth {

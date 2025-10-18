@@ -29,7 +29,7 @@
   <script>
 {{if .Auth}}
     // updates UI based on authentication status
-    updateUI();
+    updateAuthUI();
     // modify authentication button to reflect provider
     const userAuthenticationURL = "{{.Provider.UserAuth}}"
     document.getElementById("authBtn").textContent = "Authenticate via {{.Provider.Name}}";

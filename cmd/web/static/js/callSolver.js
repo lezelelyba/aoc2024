@@ -12,14 +12,16 @@ async function sendToApi(apiEndpoint, payload) {
   
   console.log("Sending to:", apiEndpoint);
 
+  const headers = {"Content-Type": "application/json"};
+  if (accessToken) {
+    headers["Authorization"] = "Bearer " + accessToken
+  }
+
   try {
     // sends authorized request
     const res = await fetch(apiEndpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + accessToken,
-      },
+      headers,
       body: JSON.stringify(payload)
     });
 

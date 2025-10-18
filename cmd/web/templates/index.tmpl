@@ -1,5 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{block "title" .}}AoC 2024 Solver{{end}}</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/navigation.js"></script>
+  <script src="/static/js/helpers.js"></script>
+  <script src="/static/js/callSolver.js"></script>
+  {{block "head" .}}{{end}}
+</head>
+<body>
+  <header>
+    <h1>AoC 2024</h1>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/swagger">API Definition</a>
+    </nav>
+  </header>
+
+  <main>
+    {{block "content" .}}{{end}}
+    {{block "authentication" .}}{{end}}
+    {{block "table" .}}{{end}}
+    {{block "solverContent" .}}{{end}}
+  </main>
+
+  <footer>
+    <p>&copy; AoC Solver 2024</p>
+  </footer>
+</body>
+</html>
+
+{{ define "authentication"}}
+  {{- if .Config.OAuth -}}
+    <p>
+      <strong>Authentication status</strong>: <span id="auth-status">Not Authenticated</span>
+      <div id="login-buttons-div">
+      </div>
+    </p>
+    <div id="logout-buttons-div">
+      <button id="logoutBtn">Logout</button>
+    </div>
+    <script>
+      // updates UI based on authentication status
+      document.addEventListener("DOMContentLoaded", () => updateAuthUI());
+
+      // create OAuth authentication buttons
+      const loginButtons = new Map();
+      const loginButtonsDiv = document.getElementById("login-buttons-div");
+      {{- range .Config.OAuthProviders }}
+      loginButtons["{{.Name}}"] = document.createElement("button");
+      loginButtons["{{.Name}}"].textContent = "Authenticate via {{.Name}}"
+      loginButtons["{{.Name}}"].id = "login-button-{{.Name}}";
+      loginButtons["{{.Name}}"].addEventListener("click", () => startOAuth("{{.UserAuth}}"));
+
+      loginButtonsDiv.appendChild(loginButtons["{{.Name}}"]);
+      {{- end }}
+      document.getElementById("logoutBtn").addEventListener("click", () => OAuthLogout());
+    </script>
+  {{- end -}}
+{{end}}
+
 {{ define "title "}}Home{{end}}
+
 {{ define "content"}}
-    <h2>Welcome</h2>
     <p>Server {{.Hostname}} is up and running</p>
+{{end}}
+
+{{ define "table"}}
+    <h2>Table of Solvers</h2>
+    <div id="table-container">
+    <table>
+        <thead>
+        <tr>
+        {{- range $i, $f := fieldNames (index .RegistryItems 0 ) }}
+            <th>{{$f}}</th>
+        {{- end }}
+        </tr>
+        </thead>
+        <tbody>
+            {{- range $item := .RegistryItems }}
+            <tr>
+                {{- range $i, $f := fieldNames . }}
+                <td>
+                    {{- $v := getField $item $f -}}
+                    {{$v}}
+                    {{- if eq $f "Name" -}}
+                    <!-- <a href="/solve/{{$v}}/1">Part 1</a><a href="/solve/{{$v}}/2">Part 2</a> -->
+                    <a href="#" data-day="{{$v}}" data-part="1">Part 1</a>
+                    <a href="#" data-day="{{$v}}" data-part="2">Part 2</a>
+                    {{- end -}}
+                </td>
+                {{- end }}
+            </tr>
+            {{- end }}
+        </tbody>
+    </table>
+    </div>
+{{end}}
+
+{{define "solverContent"}}
+<div id="solver-selection" hidden>
+  <p>
+    <strong>Current solver selection:</strong> day: <span id="solver-day">None</span> part: <span id="solver-part">None</span>
+  </p>
+</div>
+
+<div id="solver-content">
+
+<h2>Select a file</h2>
+
+<label for="fileInput">Choose a file:</label>
+<input type="file" id="fileInput" class="auth-required"><br><br>
+
+<label for="textInput">Or paste text:</label>
+<textarea id="textInput" rows="4" cols="50" class="auth-required"></textarea><br><br>
+
+<button id="submitBtn" class="auth-required">Send to API</button>
+
+<pre id="result" style="margin-top:20px; background:#f4f4f4; padding:10px;"></pre>
+
+<script>
+  // sends request via API
+  document.getElementById("submitBtn").addEventListener("click", () => handleSubmitClick("/api/solvers/{day}/{part}"));
+</script>
+</div>
 {{end}}

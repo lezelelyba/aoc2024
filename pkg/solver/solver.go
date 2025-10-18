@@ -2,6 +2,7 @@ package solver
 
 import (
 	"io"
+	"sort"
 	"sync"
 )
 
@@ -25,6 +26,7 @@ type RegistryItemPublic struct {
 }
 
 var registry = map[string]RegistryItem{}
+var keys []string
 var mu sync.RWMutex
 
 func Register(name string, constructor func() PuzzleSolver) {
@@ -50,6 +52,10 @@ func Register(name string, constructor func() PuzzleSolver) {
 	}
 
 	registry[name] = item
+
+	// sort the keys
+	keys = append(keys, name)
+	sort.Strings(keys)
 }
 
 func ListRegistryItems() []RegistryItemPublic {
@@ -58,7 +64,8 @@ func ListRegistryItems() []RegistryItemPublic {
 
 	items := make([]RegistryItemPublic, 0, len(registry))
 
-	for _, v := range registry {
+	for _, k := range keys {
+		v := registry[k]
 		items = append(items, RegistryItemPublic{Name: v.Name, Next: v.Next})
 	}
 

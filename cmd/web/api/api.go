@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-type SolvePayload struct {
+type SolveRequest struct {
 	Input string `json:"input" format:"base64" example:"MyAgIDQKNCAgIDMKMiAgIDUKMSAgIDMKMyAgIDkKMyAgIDMK"`
 }
 
@@ -31,7 +31,7 @@ type SolveResult struct {
 //	@Security
 //	@Param		day						path		string				true	"Day, format d[0-9]*"	example(d1)
 //	@Param		part					path		int					true	"Problem part"			example(1)
-//	@Param		input					body		SolvePayload		true	"Solve Base64 encoded input"
+//	@Param		input					body		SolveRequest		true	"Solve Base64 encoded input"
 //	@Success	200						{object}	SolveResult			"Result"
 //	@Failure	400						{object}	weberrors.AoCError	"Bad Request"
 //	@Failure	401						{object}	weberrors.AoCError	"Unathorized"
@@ -69,7 +69,7 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var p SolvePayload
+	var p SolveRequest
 	err = json.Unmarshal(body, &p)
 
 	rc = http.StatusBadRequest
@@ -129,7 +129,7 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 //	@Accepts		json
 //	@Produces		json
 //	@Success		200			{array}		solver.RegistryItemPublic	"Result"
-//	@Failure		401			{object}	weberrors.AoCError						"Unathorized"
+//	@Failure		401			{object}	weberrors.AoCError			"Unathorized"
 //	@Failure		429			{object}	weberrors.AoCError			"Request was Rate limited"
 //	@Failure		500			{object}	weberrors.AoCError			"Internal Server Error"
 //	@Router			/solvers	[GET]
