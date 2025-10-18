@@ -70,6 +70,11 @@ func LoggingMiddleware(logger *log.Logger) func(http.Handler) http.Handler {
 
 			captureWriter := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
+			prefixedLogger.Printf("%s - S \"%s %s\"",
+				ip,
+				r.Method,
+				r.URL)
+
 			next.ServeHTTP(captureWriter, r.WithContext(ctx))
 
 			duration := time.Since(start)

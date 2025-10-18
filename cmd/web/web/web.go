@@ -311,6 +311,8 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (Token, e
 			provider.TokenURL,
 			strings.NewReader(data.Encode()))
 
+		fmt.Fprintf(os.Stderr, "token exchange: sending request: %s %s\n", req.Method, req.URL)
+
 		if err != nil {
 			return nil, fmt.Errorf("unable to create OAuth request")
 		}
@@ -319,6 +321,8 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (Token, e
 		req.Header.Set("Accept", "application/json")
 
 		resp, err := http.DefaultClient.Do(req)
+		fmt.Fprintf(os.Stderr, "token exchange: got response: %s from %s\n", resp.Status, resp.Request.URL)
+
 		defer resp.Body.Close()
 
 		if err != nil {
