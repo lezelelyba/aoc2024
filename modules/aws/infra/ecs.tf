@@ -46,6 +46,20 @@ resource "aws_ecs_task_definition" "ecs_task" {
                 }
             ]
 
+            environment = [
+                for k, v in var.ecs_app_env_map : {
+                    name = k
+                    value = v
+                }
+            ]
+
+            secrets = [
+                for i in var.ecs_app_env_map_secret_keys : {
+                    name = i
+                    valueFrom = aws_secretsmanager_secret.container_env_secret[i].arn
+                }
+            ]
+
             logConfiguration = {
                 logDriver = "awslogs"
                 options = {
@@ -76,4 +90,17 @@ resource "aws_ecs_service" "app" {
     }
 
     depends_on = [aws_alb.main]
+}
+
+resource "aws_secretsmanager_secret" "container_env_secret" {
+    for_each = { for k in var.ecs_app_env_map_secret_keys: k => k }
+
+    name = each.key
+}
+
+resource "aws_secretsmanager_secret_version" "container_env_secret_value" {
+    for_each = aws_secretsmanager_secret.container_env_secret
+
+    secret_id = each.value.id
+    secret_string = var.ecs_app_env_map_secret[each.key]
 }

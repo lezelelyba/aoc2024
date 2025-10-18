@@ -22,4 +22,22 @@ variable "env" {
     default = "dev"
 }
 
-# bump test
+variable "dns_zone" {
+    default = "lezeleprojects.org."
+}
+variable "alb_dns_name" {
+    default = "dev.aoc2024.lezeleprojects.org"
+}
+variable "ecs_app_env_map" {
+    type = map(string)
+    default = {}
+}
+variable "ecs_app_env_map_secret" {
+    type = map(string)
+    default = {}
+    sensitive = true
+}
+variable "ecs_app_env_map_secret_keys" {
+    type = list(string)
+    default = []
+}
