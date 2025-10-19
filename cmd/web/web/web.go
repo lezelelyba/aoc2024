@@ -13,18 +13,7 @@ import (
 	"reflect"
 	"strings"
 	"text/template"
-
-	"github.com/golang-jwt/jwt/v5"
 )
-
-type OAuthReplyGithub struct {
-	AccessToken string `json:"access_token"`
-	Scope       string `json:"scope"`
-	TokenType   string `json:"token_type"`
-}
-type Token interface {
-	Token() string
-}
 
 func ServerStatus(w http.ResponseWriter, r *http.Request) {
 
@@ -268,6 +257,14 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch provider.Name {
 	case "github":
+
+		rc = http.StatusBadRequest
+		errMsg = fmt.Sprintf("unable to exchange code for token with %s: code is missing", provider.Name)
+		ok := query.Get("code") != ""
+		if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
+			return
+		}
+
 		token, err := exchangeCodeForToken(&provider, query.Get("code"))
 
 		rc = http.StatusInternalServerError
@@ -279,10 +276,10 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		jwtToken, err := generateJWT(provider.Name, token.Token(), config.JWTSecret)
+		jwtToken, err := middleware.GenerateJWT(provider.Name, token.Token(), config.JWTSecret, config.JWTTokenValidity)
 
 		rc = http.StatusInternalServerError
-		errMsg = "uanble to create jwt token"
+		errMsg = "unable to create jwt token"
 		if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 			return
 		}
@@ -293,7 +290,7 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func exchangeCodeForToken(provider *config.OAuthProvider, code string) (Token, error) {
+func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middleware.Token, error) {
 	if provider == nil {
 		return nil, fmt.Errorf("unable to find empty provider")
 	}
@@ -327,11 +324,15 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (Token, e
 		// work only with non-nil response
 		defer resp.Body.Close()
 
-		var token OAuthReplyGithub
+		var token middleware.OAuthReplyGithub
 
 		err = json.NewDecoder(resp.Body).Decode(&token)
 		if err != nil {
 			return nil, fmt.Errorf("unable to unmarshal %s response", provider.Name)
+		}
+
+		if token.AccessToken == "" {
+			return nil, fmt.Errorf("no token retured from %s", provider.Name)
 		}
 
 		return token, nil
@@ -341,25 +342,12 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (Token, e
 	}
 }
 
-func generateJWT(provider, token, secret string) (string, error) {
-	claims := jwt.MapClaims{
-		"provider": provider,
-		"token":    token,
-	}
-
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return jwtToken.SignedString([]byte(secret))
-}
-
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
 
-func (rep OAuthReplyGithub) Token() string {
-	return rep.AccessToken
-}
-
+// helper functions for templates
 func FieldNames(v interface{}) []string {
 	r := reflect.ValueOf(v)
 	t := r.Type()

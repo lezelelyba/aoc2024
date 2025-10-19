@@ -7,18 +7,20 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"time"
 )
 
 type Config struct {
-	Port           int
-	EnableTLS      bool
-	CertFile       string
-	KeyFile        string
-	APIRate        int
-	APIBurst       int
-	OAuth          bool
-	JWTSecret      string
-	OAuthProviders map[string]OAuthProvider
+	Port             int
+	EnableTLS        bool
+	CertFile         string
+	KeyFile          string
+	APIRate          int
+	APIBurst         int
+	OAuth            bool
+	JWTSecret        string
+	JWTTokenValidity time.Duration
+	OAuthProviders   map[string]OAuthProvider
 }
 
 type OAuthProvider struct {
@@ -32,11 +34,13 @@ type OAuthProvider struct {
 
 func NewConfig() Config {
 	return Config{
-		Port:      8080,
-		EnableTLS: false,
-		OAuth:     false,
-		APIRate:   3,
-		APIBurst:  3,
+		Port:             8080,
+		EnableTLS:        false,
+		OAuth:            false,
+		APIRate:          3,
+		APIBurst:         3,
+		JWTTokenValidity: time.Duration(15 * time.Minute),
+		OAuthProviders:   make(map[string]OAuthProvider),
 	}
 }
 
@@ -64,7 +68,8 @@ func LoadConfig() (Config, []error) {
 
 	oAuth := flag.String("oauth", envOrDefault("ENABLE_OAUTH", fmt.Sprintf("%t", config.OAuth)), "Enables OAuth API authentication, requireds jwt secret and then requireds per provider callback url, token exhcnage url, client id and secret to be specified")
 	jwtSecret := flag.String("jwt-secret", envOrDefault("JWT_SECRET", ""), "JWT Secret")
-	oAuthGithubCallbackURL := flag.String("oauth-callback-url", envOrDefault("OAUTH_GITHUB_CALLBACK_URL", ""), "Github OAuth callback")
+	jwtTokenValidity := flag.String("jwt-token-validity", envOrDefault("JWT_TOKEN_VALIDITY", ""), "JWT Token Validity")
+	oAuthGithubCallbackURL := flag.String("oauth-github-callback-url", envOrDefault("OAUTH_GITHUB_CALLBACK_URL", ""), "Github OAuth callback")
 	oAuthGithubUserAuthURL := flag.String("oauth-github-user-auth-url", envOrDefault("OAUTH_GITHUB_USER_AUTH_URL", ""), "Github OAuth User auth URL")
 	oAuthGithubTokenURL := flag.String("oauth-github-token-url", envOrDefault("OAUTH_GITHUB_TOKEN_URL", ""), "Github OAuth Token exchange URL")
 	oAuthGithubId := flag.String("oauth-github-id", envOrDefault("OAUTH_GITHUB_CLIENT_ID", ""), "Github OAuth Client ID")
@@ -86,6 +91,10 @@ func LoadConfig() (Config, []error) {
 	parseInt("port", *port, &config.Port, config.Port)
 	parseInt("apiRate", *apiRate, &config.APIRate, config.APIRate)
 	parseInt("apiBurst", *apiBurst, &config.APIBurst, config.APIBurst)
+
+	var durationInt int
+	parseInt("jwtTokenValidity", *jwtTokenValidity, &durationInt, int(config.JWTTokenValidity.Seconds()))
+	config.JWTTokenValidity = time.Duration(time.Duration(durationInt) * time.Minute)
 
 	if *enableHttps == "true" {
 
@@ -125,7 +134,7 @@ func LoadConfig() (Config, []error) {
 	if *oAuth == "true" {
 
 		config.OAuth = true
-		config.OAuthProviders = map[string]OAuthProvider{}
+		// config.OAuthProviders = map[string]OAuthProvider{}
 		config.JWTSecret = *jwtSecret
 
 		provider := OAuthProvider{Name: "github"}
