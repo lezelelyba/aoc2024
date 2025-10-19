@@ -76,7 +76,12 @@ async function handleOAuthCallback(codeExchangeURL) {
       // exchange code for token
       const resp = await fetch(`${codeExchangeURL}?code=${code}`, { method: "POST" });
       const data = await resp.json();
-      sessionStorage.setItem("accessToken", data.access_token);
+
+      if (data.access_token) {
+          sessionStorage.setItem("accessToken", data.access_token);
+      } else {
+          console.warn("No access token returned from server");
+      }
     } catch (err) {
       console.error("Token exchange failed", err);
     }
