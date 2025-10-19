@@ -19,11 +19,6 @@ const (
 	LEFT  Orientation = 3
 )
 
-func (o Orientation) String() string {
-	strs := []string{"^", ">", "v", "<"}
-	return strs[o]
-}
-
 func (o Orientation) Byte() byte {
 	bytes := []byte{'^', '>', 'v', '<'}
 	return bytes[o]

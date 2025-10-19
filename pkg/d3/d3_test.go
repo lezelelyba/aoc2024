@@ -31,3 +31,14 @@ func TestPart2(t *testing.T) {
 		t.Errorf("Got %s expected %s", got, want)
 	}
 }
+
+func TestWrongPart(t *testing.T) {
+	input := `xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))`
+	puzzle := NewSolver()
+	_ = puzzle.Init(strings.NewReader(input))
+	_, err := puzzle.Solve(5)
+
+	if err == nil {
+		t.Errorf("Expected wrong part")
+	}
+}

@@ -86,3 +86,168 @@ func TestPart2(t *testing.T) {
 		t.Errorf("Got %s expected %s", got, want)
 	}
 }
+
+func TestWrongPart(t *testing.T) {
+	input := `47|53
+97|13
+97|61
+97|47
+75|29
+61|13
+75|53
+29|13
+97|29
+53|29
+61|53
+97|53
+61|29
+47|13
+75|47
+97|75
+47|61
+75|61
+47|29
+75|13
+53|13
+
+75,47,61,53,29
+97,61,53,29,13
+75,29,13
+75,97,47,61,53
+61,13,29
+97,13,75,29,47`
+
+	_ = "123"
+
+	puzzle := NewSolver()
+	_ = puzzle.Init(strings.NewReader(input))
+	_, err := puzzle.Solve(5)
+
+	if err == nil {
+		t.Errorf("Expected wrong part")
+	}
+
+}
+
+func TestBadInputSingleNumber(t *testing.T) {
+	input := `4753
+97|13
+97|61
+97|47
+75|29
+61|13
+75|53
+29|13
+97|29
+53|29
+61|53
+97|53
+61|29
+47|13
+75|47
+97|75
+47|61
+75|61
+47|29
+75|13
+53|13
+
+75,47,61,53,29
+97,61,53,29,13
+75,29,13
+75,97,47,61,53
+61,13,29
+97,13,75,29,47`
+
+	_ = "123"
+
+	puzzle := NewSolver()
+	err := puzzle.Init(strings.NewReader(input))
+
+	if err == nil {
+		t.Errorf("Expected wrong part")
+	}
+
+}
+
+func TestBadInputString(t *testing.T) {
+	input := `asdf|4753
+97|13
+97|61
+97|47
+75|29
+61|13
+75|53
+29|13
+97|29
+53|29
+61|53
+97|53
+61|29
+47|13
+75|47
+97|75
+47|61
+75|61
+47|29
+75|13
+53|13
+
+75,47,61,53,29
+97,61,53,29,13
+75,29,13
+75,97,47,61,53
+61,13,29
+97,13,75,29,47`
+
+	_ = "123"
+
+	puzzle := NewSolver()
+	err := puzzle.Init(strings.NewReader(input))
+
+	if err == nil {
+		t.Errorf("Expected wrong part")
+	}
+
+}
+
+func TestBadInputRecords(t *testing.T) {
+	input := `47|53
+97|13
+97|61
+97|47
+75|29
+61|13
+75|53
+29|13
+97|29
+53|29
+61|53
+97|53
+61|29
+47|13
+75|47
+97|75
+47|61
+75|61
+47|29
+75|13
+53|13
+
+75,47,61,53,asdf
+97,61,53,29,13
+75,29,13
+75,97,47,61,53
+61,13,29
+97,13,75,29,47`
+
+	_ = "123"
+
+	puzzle := NewSolver()
+	err := puzzle.Init(strings.NewReader(input))
+
+	if err == nil {
+		t.Errorf("Expected wrong part")
+	}
+
+}

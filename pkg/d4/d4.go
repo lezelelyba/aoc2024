@@ -138,14 +138,14 @@ func (p *PuzzleStruct) is(x, y int, c byte) bool {
 
 func neighbors(x, y int) [][2]int {
 	return [][2]int{
-		[2]int{x - 1, y - 1},
-		[2]int{x, y - 1},
-		[2]int{x + 1, y - 1},
-		[2]int{x - 1, y},
-		[2]int{x + 1, y},
-		[2]int{x - 1, y + 1},
-		[2]int{x, y + 1},
-		[2]int{x + 1, y + 1},
+		{x - 1, y - 1},
+		{x, y - 1},
+		{x + 1, y - 1},
+		{x - 1, y},
+		{x + 1, y},
+		{x - 1, y + 1},
+		{x, y + 1},
+		{x + 1, y + 1},
 	}
 }
 
@@ -154,15 +154,6 @@ func next(x1, y1, x2, y2 int) [2]int {
 	dy := y2 - y1
 
 	return [2]int{x2 + dx, y2 + dy}
-}
-
-func (p *PuzzleStruct) isSame(x1, y1, x2, y2 int) bool {
-	if (x1 >= 0 && x1 < p.dx && y1 >= 0 && y1 < p.dy) &&
-		(x2 >= 0 && x2 < p.dx && y2 >= 0 && y2 < p.dy) {
-		return p.input[y1][x1] == p.input[y2][x2]
-	}
-
-	return false
 }
 
 func parseInput(sc *bufio.Scanner) (*[][]byte, error) {

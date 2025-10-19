@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"slices"
 	"strconv"
 	"strings"
@@ -37,13 +36,12 @@ func NewSolver() *PuzzleStruct {
 func (p *PuzzleStruct) Init(reader io.Reader) error {
 	input, err := parseInput(bufio.NewScanner(reader))
 
-	p.rules = processRules(input[0])
-	p.updates = input[1]
-
 	if err != nil {
-		log.Print(err)
 		return err
 	}
+
+	p.rules = processRules(input[0])
+	p.updates = input[1]
 
 	return nil
 }
@@ -73,29 +71,6 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 
 	return "", fmt.Errorf("unknown Part %d", part)
 }
-
-// func (p *PuzzleStruct) updateInCorrectOrder(update []int) bool {
-// 	updateOk := true
-//
-// ruleOut:
-// 	for i := 0; i < len(update); i++ {
-// 		for j := i + 1; j < len(update); j++ {
-// 			updateOk = updateOk && p.pagesInCorrectOrder(update[i], update[j])
-// 			if !updateOk {
-// 				break ruleOut
-// 			}
-// 		}
-// 	}
-//
-// 	return updateOk
-// }
-//
-// func (p *PuzzleStruct) pagesInCorrectOrder(before, after int) bool {
-// 	_, afterOk := p.rules[before].after[after]
-// 	_, beforeOk := p.rules[after].before[before]
-//
-// 	return afterOk && beforeOk
-// }
 
 func (p *PuzzleStruct) sortFunc() func(a, b int) int {
 	return func(a, b int) int {
