@@ -321,13 +321,14 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (Token, e
 		req.Header.Set("Accept", "application/json")
 
 		resp, err := http.DefaultClient.Do(req)
-		fmt.Fprintf(os.Stderr, "token exchange: got response: %s from %s\n", resp.Status, resp.Request.URL)
-
-		defer resp.Body.Close()
 
 		if err != nil {
-			return nil, fmt.Errorf("unable to exchange code for token with %s", provider.Name)
+			return nil, fmt.Errorf("unable to exchange code for token with %s: %v", provider.Name, err)
 		}
+
+		// work only with non-nil response
+		defer resp.Body.Close()
+		fmt.Fprintf(os.Stderr, "token exchange: got response: %s from %s\n", resp.Status, resp.Request.URL)
 
 		var token OAuthReplyGithub
 
