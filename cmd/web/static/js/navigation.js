@@ -78,3 +78,7 @@ async function handleSubmitClick(endpointTemplate) {
     resultEl.textContent = 'Error: ' + error.message;
   }
 }
+
+function clearFileSelection(elementId) {
+  document.getElementById(elementId).value = "";
+}

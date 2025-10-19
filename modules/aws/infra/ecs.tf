@@ -112,8 +112,8 @@ resource "aws_secretsmanager_secret" "container_env_secret" {
     for_each = { for k in var.ecs_app_env_map_secret_keys: k => k }
 
     name = each.key
+    recovery_window_in_days = 0
 }
-
 resource "aws_secretsmanager_secret_version" "container_env_secret_value" {
     for_each = aws_secretsmanager_secret.container_env_secret
 
