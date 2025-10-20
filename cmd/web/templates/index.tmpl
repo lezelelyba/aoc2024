@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <title>{{block "title" .}}AoC 2024 Solver{{end}}</title>
   <link rel="stylesheet" href="/static/css/styles.css">
+  <script src="/static/js/navigation.js" defer></script>
   <script src="/static/js/auth.js"></script>
-  <script src="/static/js/navigation.js"></script>
   <script src="/static/js/helpers.js"></script>
   <script src="/static/js/callSolver.js"></script>
   {{block "head" .}}{{end}}
@@ -34,20 +34,18 @@
 </html>
 
 {{ define "authentication"}}
-<section>
 {{- if .Config.OAuth -}}
+<section class="auth active">
+  <div id="auth-enabled" data-enabled="true" hidden></div>
   <p>
     <strong>Authentication status</strong>: <span id="auth-status">Not Authenticated</span>
     <div id="login-buttons-div">
     </div>
   </p>
-  <div id="logout-buttons-div">
+  <div id="logout-buttons-div" hidden>
     <button id="logoutBtn">Logout</button>
   </div>
   <script>
-    // updates UI based on authentication status
-    document.addEventListener("DOMContentLoaded", () => updateAuthUI());
-
     // create OAuth authentication buttons
     const loginButtons = new Map();
     const loginButtonsDiv = document.getElementById("login-buttons-div");
@@ -55,18 +53,24 @@
     loginButtons["{{.Name}}"] = document.createElement("button");
     loginButtons["{{.Name}}"].textContent = "Authenticate via {{.Name}}"
     loginButtons["{{.Name}}"].id = "login-button-{{.Name}}";
+    loginButtons["{{.Name}}"].class = "login-button";
     loginButtons["{{.Name}}"].addEventListener("click", () => startOAuth("{{.UserAuth}}"));
 
     loginButtonsDiv.appendChild(loginButtons["{{.Name}}"]);
     {{- end }}
-    document.getElementById("logoutBtn").addEventListener("click", () => OAuthLogout());
   </script>
-{{- end -}}
 </section>
+{{- else -}}
+<div id="auth-enabled" data-enabled="false" hidden></div>
+{{- end -}}
 {{end}}
 
 {{ define "solverSelection"}}
-<section class="disabled">
+  {{- if .Config.OAuth -}}
+<section class="selection disabled">
+  {{- else -}}
+<section class="selection active">
+  {{- end -}}
   <h2>Table of Solvers</h2>
   <div id="solver-selection" hidden>
     <p>
@@ -77,24 +81,17 @@
     <table>
         <thead>
         <tr>
-        {{- range $i, $f := fieldNames (index .RegistryItems 0 ) }}
-            <th>{{$f}}</th>
-        {{- end }}
+          <th>Name</th>
+          <th>Parts 1</th>
+          <th>Parts 2</th>
         </tr>
         </thead>
         <tbody>
             {{- range $item := .RegistryItems }}
             <tr>
-                {{- range $i, $f := fieldNames . }}
-                <td>
-                    {{- $v := getField $item $f -}}
-                    {{$v}}
-                    {{- if eq $f "Name" -}}
-                    <a href="#" data-day="{{$v}}" data-part="1">Part 1</a>
-                    <a href="#" data-day="{{$v}}" data-part="2">Part 2</a>
-                    {{- end -}}
-                </td>
-                {{- end }}
+                <td>{{$item.Name}}</td>
+                <td><a href="#" data-day="{{$item.Name}}" data-part="1">Part 1</a></td>
+                <td><a href="#" data-day="{{$item.Name}}" data-part="2">Part 2</a></td>
             </tr>
             {{- end }}
         </tbody>
@@ -104,7 +101,7 @@
 {{end}}
 
 {{define "solverUpload"}}
-<section class="disabled">
+<section class="submission disabled">
 
   <div id="solver-content">
 
@@ -118,17 +115,13 @@
   <textarea id="textInput" rows="4" cols="50" class="auth-required"></textarea><br><br>
 
   <button id="submitBtn" class="auth-required">Send to API</button>
-
-  <script>
-    // sends request via API
-    document.getElementById("submitBtn").addEventListener("click", () => handleSubmitClick("/api/solvers/{day}/{part}"));
-  </script>
   </div>
 </section>
 {{end}}
 
 {{define "solverResult"}}
-<section class="disabled">
+<section class="result disabled">
   <pre id="result" style="margin-top:20px; background:#f4f4f4; padding:10px;"></pre>
+  <button id="seenBtn" hidden>Ok</button>
 </section>
 {{end}}
