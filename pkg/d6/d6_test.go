@@ -1,12 +1,14 @@
 package d6
 
 import (
+	"advent2024/pkg/solver"
+	"errors"
 	"strings"
 	"testing"
 )
 
-func TestPart1(t *testing.T) {
-	input := `....#.....
+var (
+	inputTest = `....#.....
 .........#
 ..........
 ..#.......
@@ -16,150 +18,109 @@ func TestPart1(t *testing.T) {
 ........#.
 #.........
 ......#...`
+)
 
-	want := "41"
+func TestPart1(t *testing.T) {
+	cases := []struct {
+		name, input, want string
+	}{
+		{name: "test input", input: inputTest, want: "41"},
+	}
 
-	puzzle := NewSolver()
-	_ = puzzle.Init(strings.NewReader(input))
-	got, _ := puzzle.Solve(1)
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolver()
+			_ = puzzle.Init(strings.NewReader(c.input))
+			got, _ := puzzle.Solve(1)
 
-	if got != want {
-		t.Errorf("Got %s expected %s", got, want)
+			if got != c.want {
+				t.Errorf("Got %s expected %s", got, c.want)
+			}
+		})
 	}
 }
 
 func TestPart2(t *testing.T) {
-	input := `....#.....
-.........#
-..........
-..#.......
-.......#..
-..........
-.#..^.....
-........#.
-#.........
-......#...`
-
-	want := "6"
-
-	puzzle := NewSolver()
-	_ = puzzle.Init(strings.NewReader(input))
-	got, _ := puzzle.Solve(2)
-
-	if got != want {
-		t.Errorf("Got %s expected %s", got, want)
+	cases := []struct {
+		name, input, want string
+	}{
+		{name: "test input", input: inputTest, want: "6"},
 	}
-}
-func TestPartWrongPart(t *testing.T) {
-	input := `....#.....
-.........#
-..........
-..#.......
-.......#..
-..........
-.#..^.....
-........#.
-#.........
-......#...`
 
-	_ = "6"
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolver()
+			_ = puzzle.Init(strings.NewReader(c.input))
+			got, _ := puzzle.Solve(2)
 
-	puzzle := NewSolver()
-	_ = puzzle.Init(strings.NewReader(input))
-	_, err := puzzle.Solve(5)
-
-	if err == nil {
-		t.Errorf("Expected wrong part")
+			if got != c.want {
+				t.Errorf("Got %s expected %s", got, c.want)
+			}
+		})
 	}
 }
 
-func TestPartWithoutGuard(t *testing.T) {
-	input := `....#.....
-.........#
-..........
-..#.......
-.......#..
-..........
-.#........
-........#.
-#.........
-......#...`
+func TestUnknownPart(t *testing.T) {
+	invalidPart := 3
 
-	_ = "6"
+	want := solver.ErrUnknownPart
 
 	puzzle := NewSolver()
-	err := puzzle.Init(strings.NewReader(input))
+	_ = puzzle.Init(strings.NewReader(inputTest))
+	_, got := puzzle.Solve(invalidPart)
 
-	if err == nil {
-		t.Errorf("Expected err")
+	if !errors.Is(got, want) {
+		t.Errorf("Got %v expected %v", got, want)
 	}
 }
 
-func TestPartGuardRotation(t *testing.T) {
-	input := `....#.....
-.........#
-..........
-..#.......
-.......#..
-..........
-.#..<.....
-........#.
-#.........
-......#...`
+func TestInvalidInput(t *testing.T) {
 
-	want := "26"
+	cases := []struct {
+		name  string
+		input string
+	}{
+		{"empty input", ``},
+		{"invalid input", `Invalid Input`},
+		{"missing guard", "..\n##\n"},
+		{"unequal rows", "..\n##\n.v.\n"},
+	}
 
-	puzzle := NewSolver()
-	_ = puzzle.Init(strings.NewReader(input))
-	got, _ := puzzle.Solve(1)
+	want := solver.ErrInvalidInput
 
-	if got != want {
-		t.Errorf("Got %s expected %s", got, want)
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolver()
+			got := puzzle.Init(strings.NewReader(c.input))
+
+			if !errors.Is(got, want) {
+				t.Errorf("Got %v expected %v", got, want)
+			}
+		})
 	}
 }
+func TestValidInput(t *testing.T) {
 
-func TestPartGuardRotation2(t *testing.T) {
-	input := `....#.....
-.........#
-..........
-..#.......
-.......#..
-..........
-.#..>.....
-........#.
-#.........
-......#...`
-
-	want := "6"
-
-	puzzle := NewSolver()
-	_ = puzzle.Init(strings.NewReader(input))
-	got, _ := puzzle.Solve(1)
-
-	if got != want {
-		t.Errorf("Got %s expected %s", got, want)
+	cases := []struct {
+		name  string
+		input string
+	}{
+		{"guard orientation 1", "..\n##\n^.\n"},
+		{"guard orientation 2", "..\n##\n>.\n"},
+		{"guard orientation 3", "..\n##\nv.\n"},
+		{"guard orientation 4", "..\n##\n<.\n"},
 	}
-}
 
-func TestPartGuardRotation3(t *testing.T) {
-	input := `....#.....
-.........#
-..........
-..#.......
-.......#..
-..........
-.#..v.....
-........#.
-#.........
-......#...`
+	var want error = nil
 
-	want := "4"
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolver()
+			got := puzzle.Init(strings.NewReader(c.input))
 
-	puzzle := NewSolver()
-	_ = puzzle.Init(strings.NewReader(input))
-	got, _ := puzzle.Solve(1)
-
-	if got != want {
-		t.Errorf("Got %s expected %s", got, want)
+			if !errors.Is(got, want) {
+				t.Errorf("Got %v expected %v", got, want)
+			}
+		})
 	}
 }

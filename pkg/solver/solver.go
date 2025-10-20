@@ -1,9 +1,16 @@
 package solver
 
 import (
+	"errors"
 	"io"
 	"sort"
 	"sync"
+)
+
+var (
+	ErrInvalidInput = errors.New("invalid input")
+	ErrTimeout      = errors.New("solver timeout")
+	ErrUnknownPart  = errors.New("unknown part")
 )
 
 type PuzzleSolver interface {

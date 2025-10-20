@@ -5,10 +5,19 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"slices"
 	"strconv"
 	"strings"
 )
+
+var day = "d5"
+
+func init() {
+	solver.Register(day, func() solver.PuzzleSolver {
+		return NewSolver()
+	})
+}
 
 type Rules struct {
 	before, after map[int]bool
@@ -21,12 +30,6 @@ func newRules() Rules {
 type PuzzleStruct struct {
 	rules   map[int]Rules
 	updates [][]int
-}
-
-func init() {
-	solver.Register("d5", func() solver.PuzzleSolver {
-		return NewSolver()
-	})
 }
 
 func NewSolver() *PuzzleStruct {
@@ -42,6 +45,11 @@ func (p *PuzzleStruct) Init(reader io.Reader) error {
 
 	p.rules = processRules(input[0])
 	p.updates = input[1]
+
+	if err := validateInput(&p.rules, &p.updates); err != nil {
+		log.Print(err)
+		return err
+	}
 
 	return nil
 }
@@ -69,7 +77,7 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 		return strconv.Itoa(sum), nil
 	}
 
-	return "", fmt.Errorf("unknown Part %d", part)
+	return "", fmt.Errorf("%s unknown part %d: %w", day, part, solver.ErrUnknownPart)
 }
 
 func (p *PuzzleStruct) sortFunc() func(a, b int) int {
@@ -78,15 +86,13 @@ func (p *PuzzleStruct) sortFunc() func(a, b int) int {
 		_, bBeforeA := p.rules[a].before[b]
 
 		switch {
-		case a == b:
-			return 0
 		case bAfterA:
 			return -1
 		case bBeforeA:
 			return 1
+		default:
+			return 0
 		}
-
-		return 0
 	}
 }
 
@@ -116,7 +122,7 @@ func parseInput(sc *bufio.Scanner) (*[2][][]int, error) {
 		case RULES:
 			rule_string := strings.Split(sc.Text(), "|")
 			if len(rule_string) != 2 {
-				return nil, fmt.Errorf("unable to parse %s", sc.Text())
+				return nil, fmt.Errorf("%s unable to parse rule \"%v\": %w", day, sc.Text(), solver.ErrInvalidInput)
 			}
 
 			rule := make([]int, 0)
@@ -124,7 +130,7 @@ func parseInput(sc *bufio.Scanner) (*[2][][]int, error) {
 			for _, si := range rule_string {
 				v, err := strconv.Atoi(si)
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("%s unable to parse rule \"%v\": %w", day, sc.Text(), solver.ErrInvalidInput)
 				}
 				rule = append(rule, v)
 			}
@@ -139,7 +145,7 @@ func parseInput(sc *bufio.Scanner) (*[2][][]int, error) {
 			for _, si := range update_string {
 				v, err := strconv.Atoi(si)
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("%s unable to parse record \"%v\": %w", day, sc.Text(), solver.ErrInvalidInput)
 				}
 				update = append(update, v)
 			}
@@ -179,6 +185,22 @@ func processRules(parsedRules [][]int) map[int]Rules {
 	}
 
 	return result
+}
+
+func validateInput(rules *map[int]Rules, updates *[][]int) error {
+	if rules == nil {
+		return fmt.Errorf("%s empty rules: %w", day, solver.ErrInvalidInput)
+	} else if len(*rules) == 0 {
+		return fmt.Errorf("%s empty rules: %w", day, solver.ErrInvalidInput)
+	}
+
+	if updates == nil {
+		return fmt.Errorf("%s empty updates: %w", day, solver.ErrInvalidInput)
+	} else if len(*updates) == 0 {
+		return fmt.Errorf("%s empty updates: %w", day, solver.ErrInvalidInput)
+	}
+
+	return nil
 }
 
 func (r *Rules) updateRules(before, after []int) {

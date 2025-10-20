@@ -12,6 +12,14 @@ import (
 	"advent2024/pkg/solver"
 )
 
+var day = "d9"
+
+func init() {
+	solver.Register(day, func() solver.PuzzleSolver {
+		return NewSolver()
+	})
+}
+
 type Block struct {
 	size    int
 	blockid int
@@ -20,16 +28,10 @@ type Block struct {
 }
 
 type PuzzleStruct struct {
-	input    string
-	intInput []int
+	inputStr  *string
+	inputInts *[]int
 
 	blockList list.List
-}
-
-func init() {
-	solver.Register("d9", func() solver.PuzzleSolver {
-		return NewSolver()
-	})
 }
 
 func NewSolver() *PuzzleStruct {
@@ -37,37 +39,32 @@ func NewSolver() *PuzzleStruct {
 }
 
 func (p *PuzzleStruct) Init(reader io.Reader) error {
-	input, err := parseInput(bufio.NewScanner(reader))
+	inputStr, inputInts, err := parseInput(bufio.NewScanner(reader))
 
 	if err != nil {
 		log.Print(err)
 		return err
 	}
 
-	p.input = input
-	intInput := make([]int, len(input))
+	p.inputStr = inputStr
+	p.inputInts = inputInts
 
-	for i, c := range input {
-		n, err := strconv.Atoi(string(c))
-		if err != nil {
-			log.Print(err)
-			return err
-		}
-		intInput[i] = n
+	if err := validateInput(inputInts); err != nil {
+		log.Print(err)
+		return err
 	}
 
-	p.intInput = intInput
 	space := false
 	blockid := 0
 
-	for i := 0; i < len(p.intInput); i++ {
+	for i := 0; i < len(*p.inputInts); i++ {
 		if !space {
-			p.blockList.PushBack(&Block{size: p.intInput[i],
+			p.blockList.PushBack(&Block{size: (*p.inputInts)[i],
 				blockid: blockid,
 				space:   false,
 				moved:   false})
 		} else {
-			p.blockList.PushBack(&Block{size: p.intInput[i],
+			p.blockList.PushBack(&Block{size: (*p.inputInts)[i],
 				blockid: 0,
 				space:   true,
 				moved:   false})
@@ -89,8 +86,8 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 
 		front_array_idx := 0
 		front_block_idx := 0
-		back_array_idx := len(p.intInput) - 1
-		back_block_idx := len(p.intInput) / 2
+		back_array_idx := len(*p.inputInts) - 1
+		back_block_idx := len(*p.inputInts) / 2
 
 		space := false
 
@@ -98,12 +95,12 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 		// go through the disk by index
 		for disk_idx := 0; ; disk_idx++ {
 			// until front is empty
-			for p.intInput[front_array_idx] == 0 {
+			for (*p.inputInts)[front_array_idx] == 0 {
 				// move to next block
 				front_array_idx++
 
 				// if block is out of bounds break
-				if front_array_idx >= len(p.intInput) {
+				if front_array_idx >= len(*p.inputInts) {
 					break outer
 				}
 
@@ -126,19 +123,19 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 				sum += disk_idx * front_block_idx
 
 				// lower the front block count
-				p.intInput[front_array_idx] = p.intInput[front_array_idx] - 1
+				(*p.inputInts)[front_array_idx] = (*p.inputInts)[front_array_idx] - 1
 				// if space
 			} else {
 				// increase the sum by the back block
 				sum += disk_idx * back_block_idx
 
 				// lower the back block count
-				p.intInput[back_array_idx] = p.intInput[back_array_idx] - 1
+				(*p.inputInts)[back_array_idx] = (*p.inputInts)[back_array_idx] - 1
 				// lower the front space count
-				p.intInput[front_array_idx] = p.intInput[front_array_idx] - 1
+				(*p.inputInts)[front_array_idx] = (*p.inputInts)[front_array_idx] - 1
 
 				// if we are out of block at the back move to next back block
-				if p.intInput[back_array_idx] == 0 {
+				if (*p.inputInts)[back_array_idx] == 0 {
 					// block < space < block
 					back_array_idx -= 2
 					// block id -1
@@ -167,18 +164,47 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 		return strconv.Itoa(sum), nil
 	}
 
-	return "", fmt.Errorf("unknown Part %d", part)
+	return "", fmt.Errorf("%s unknown part %d: %w", day, part, solver.ErrUnknownPart)
 }
 
-func parseInput(sc *bufio.Scanner) (string, error) {
+func parseInput(sc *bufio.Scanner) (*string, *[]int, error) {
 
 	var line string
+	var inputInts []int
 
+	// expecting only 1 line
 	for sc.Scan() {
 		line = strings.TrimSpace(sc.Text())
+
+		inputInts = make([]int, len(line))
+
+		for i, c := range line {
+			n, err := strconv.Atoi(string(c))
+			if err != nil {
+				log.Print(err)
+				return nil, nil, fmt.Errorf("%s unable to convert %s to int: %w", day, string(c), solver.ErrInvalidInput)
+			}
+			inputInts[i] = n
+		}
 	}
 
-	return line, nil
+	if sc.Err() != nil {
+		return nil, nil, fmt.Errorf("%s scan error %s: %w", day, sc.Err(), solver.ErrInvalidInput)
+	}
+
+	return &line, &inputInts, nil
+}
+
+func validateInput(ints *[]int) error {
+	if ints == nil {
+		return fmt.Errorf("%s empty rules: %w", day, solver.ErrInvalidInput)
+	} else if len(*ints) == 0 {
+		return fmt.Errorf("%s empty rules: %w", day, solver.ErrInvalidInput)
+	} else if len(*ints)%2 != 1 {
+		return fmt.Errorf("%s non odd input length: %w", day, solver.ErrInvalidInput)
+	}
+
+	return nil
 }
 
 func tryToMove(l *list.List, e *list.Element) (*list.Element, error) {

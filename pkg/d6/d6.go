@@ -10,6 +10,19 @@ import (
 	"strings"
 )
 
+var day = "d6"
+
+func init() {
+	solver.Register(day, func() solver.PuzzleSolver {
+		return NewSolver()
+	})
+}
+
+type PuzzleStruct struct {
+	field [][]byte
+	guard Guard
+}
+
 type Orientation int
 
 const (
@@ -18,6 +31,171 @@ const (
 	DOWN  Orientation = 2
 	LEFT  Orientation = 3
 )
+
+type Coords struct {
+	x, y int
+}
+
+type Guard struct {
+	c       Coords
+	o       Orientation
+	visited map[Coords][4]bool
+}
+
+type NotInFieldError struct {
+	Resource string
+}
+
+type LoopingError struct {
+	Resource string
+}
+
+func NewSolver() *PuzzleStruct {
+	return &PuzzleStruct{}
+}
+
+func (p *PuzzleStruct) Init(reader io.Reader) error {
+	field, err := parseInput(bufio.NewScanner(reader))
+
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+
+	p.field = *field
+
+	if err := validateInput(field); err != nil {
+		log.Print(err)
+		return err
+	}
+
+	// checked above
+	gx, gy, _ := findGuard(field)
+	orientation, _ := toOrientation(p.field[gy][gx])
+	p.guard = NewGuard(gx, gy, orientation)
+
+	p.field[gy][gx] = '.'
+
+	return nil
+}
+
+func (p *PuzzleStruct) Solve(part int) (string, error) {
+	switch part {
+	case 1:
+		sum := 0
+
+		for p.guard.Move(&p.field) == nil {
+		}
+
+		sum = len(p.guard.visited)
+
+		return strconv.Itoa(sum), nil
+	case 2:
+		sum := 0
+
+		og := NewGuard(p.guard.c.x, p.guard.c.y, p.guard.o)
+
+		for p.guard.Move(&p.field) == nil {
+		}
+
+		visited := p.guard.visited
+
+		for coord := range visited {
+			// get original guard
+			p.guard = NewGuard(og.c.x, og.c.y, og.o)
+
+			// skip initial field
+			if p.guard.c == coord {
+				continue
+			}
+
+			// put obstacle in place
+			p.field[coord.y][coord.x] = '#'
+
+			var err error
+			// loop
+			for err = p.guard.Move(&p.field); err == nil; err = p.guard.Move(&p.field) {
+			}
+
+			switch err.(type) {
+			case LoopingError:
+				sum += 1
+			default:
+			}
+
+			// remove obstacle
+			p.field[coord.y][coord.x] = '.'
+		}
+
+		return strconv.Itoa(sum), nil
+	}
+
+	return "", fmt.Errorf("%s unknown part %d: %w", day, part, solver.ErrUnknownPart)
+}
+
+func parseInput(sc *bufio.Scanner) (*[][]byte, error) {
+
+	result := make([][]byte, 0)
+
+	for sc.Scan() {
+		s := strings.TrimSpace(sc.Text())
+		bs := []byte(s)
+
+		result = append(result, bs)
+	}
+
+	return &result, nil
+}
+
+func validateInput(field *[][]byte) error {
+	if field == nil {
+		return fmt.Errorf("%s empty field: %w", day, solver.ErrInvalidInput)
+	} else if len(*field) == 0 {
+		return fmt.Errorf("%s empty field: %w", day, solver.ErrInvalidInput)
+	}
+
+	rowLength := len((*field)[0])
+	guardFound := false
+
+	for y := 0; y < len(*field); y++ {
+
+		if rowLength != len((*field)[y]) {
+			return fmt.Errorf("%s rows have unequal lengths: %w", day, solver.ErrInvalidInput)
+		}
+
+		for x := 0; x < rowLength; x++ {
+			switch (*field)[y][x] {
+			case '.', '#':
+				continue
+			case '^', '>', 'v', '<':
+				guardFound = true
+			default:
+				return fmt.Errorf("%s unknown character %s in input: %w", day, string((*field)[x][y]), solver.ErrInvalidInput)
+			}
+		}
+	}
+
+	if !guardFound {
+		return fmt.Errorf("%s unable to find guard in input: %w", day, solver.ErrInvalidInput)
+	}
+
+	return nil
+}
+
+func findGuard(field *[][]byte) (int, int, error) {
+	for y, line := range *field {
+		for x, c := range line {
+			switch c {
+			case UP.Byte(), LEFT.Byte(), DOWN.Byte(), RIGHT.Byte():
+				return x, y, nil
+			default:
+				continue
+			}
+		}
+	}
+
+	return -1, -1, fmt.Errorf("%s guard not found in input: %w", day, solver.ErrInvalidInput)
+}
 
 func (o Orientation) Byte() byte {
 	bytes := []byte{'^', '>', 'v', '<'}
@@ -39,34 +217,16 @@ func toOrientation(b byte) (Orientation, error) {
 	return UP, fmt.Errorf("unable to determine orientation %b", b)
 }
 
-type Coords struct {
-	x, y int
-}
-
-type Guard struct {
-	c       Coords
-	o       Orientation
-	visited map[Coords][4]bool
-}
-
 func NewGuard(x, y int, o Orientation) Guard {
 	return Guard{Coords{x, y}, o, map[Coords][4]bool{}}
 }
 
-type NotInFieldError struct {
-	Resource string
+func (e LoopingError) Error() string {
+	return fmt.Sprintf("Guard is looping")
 }
 
 func (e NotInFieldError) Error() string {
 	return fmt.Sprintf("Guard out of field")
-}
-
-type LoopingError struct {
-	Resource string
-}
-
-func (e LoopingError) Error() string {
-	return fmt.Sprintf("Guard is looping")
 }
 
 func (g *Guard) Move(field *[][]byte) error {
@@ -125,133 +285,4 @@ func (g *Guard) Move(field *[][]byte) error {
 	}
 
 	return NotInFieldError{}
-}
-
-type PuzzleStruct struct {
-	field [][]byte
-	guard Guard
-}
-
-func init() {
-	solver.Register("d6", func() solver.PuzzleSolver {
-		return NewSolver()
-	})
-}
-
-func NewSolver() *PuzzleStruct {
-	return &PuzzleStruct{}
-}
-
-func (p *PuzzleStruct) Init(reader io.Reader) error {
-	field, err := parseInput(bufio.NewScanner(reader))
-
-	if err != nil {
-		log.Print(err)
-		return err
-	}
-
-	p.field = *field
-
-	gx, gy, err := findGuard(field)
-
-	if err != nil {
-		log.Print(err)
-		return err
-	}
-
-	orientation, err := toOrientation(p.field[gy][gx])
-
-	if err != nil {
-		log.Print(err)
-		return err
-	}
-
-	p.field[gy][gx] = '.'
-
-	p.guard = NewGuard(gx, gy, orientation)
-
-	return nil
-}
-
-func (p *PuzzleStruct) Solve(part int) (string, error) {
-	switch part {
-	case 1:
-		sum := 0
-
-		for p.guard.Move(&p.field) == nil {
-		}
-
-		sum = len(p.guard.visited)
-
-		return strconv.Itoa(sum), nil
-	case 2:
-		sum := 0
-
-		og := NewGuard(p.guard.c.x, p.guard.c.y, p.guard.o)
-
-		for p.guard.Move(&p.field) == nil {
-		}
-
-		visited := p.guard.visited
-
-		for coord := range visited {
-			// get original guard
-			p.guard = NewGuard(og.c.x, og.c.y, og.o)
-
-			// skip initial field
-			if p.guard.c == coord {
-				continue
-			}
-
-			// put obstacle in place
-			p.field[coord.y][coord.x] = '#'
-
-			var err error
-			// loop
-			for err = p.guard.Move(&p.field); err == nil; err = p.guard.Move(&p.field) {
-			}
-
-			switch err.(type) {
-			case LoopingError:
-				sum += 1
-			default:
-			}
-
-			// remove obstacle
-			p.field[coord.y][coord.x] = '.'
-		}
-
-		return strconv.Itoa(sum), nil
-	}
-
-	return "", fmt.Errorf("unknown Part %d", part)
-}
-
-func parseInput(sc *bufio.Scanner) (*[][]byte, error) {
-
-	result := make([][]byte, 0)
-
-	for sc.Scan() {
-		s := strings.TrimSpace(sc.Text())
-		bs := []byte(s)
-
-		result = append(result, bs)
-	}
-
-	return &result, nil
-}
-
-func findGuard(field *[][]byte) (int, int, error) {
-	for y, line := range *field {
-		for x, c := range line {
-			switch c {
-			case UP.Byte(), LEFT.Byte(), DOWN.Byte(), RIGHT.Byte():
-				return x, y, nil
-			default:
-				continue
-			}
-		}
-	}
-
-	return -1, -1, fmt.Errorf("Guard not found")
 }

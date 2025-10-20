@@ -1,98 +1,97 @@
 package d1
 
 import (
+	"advent2024/pkg/solver"
+	"errors"
 	"strings"
 	"testing"
 )
 
-func TestDifference(t *testing.T) {
-
-	tests := []struct {
-		i, j, expected int
-	}{
-		{1, 1, 0},
-		{1, 2, 1},
-		{2, 1, 1},
-		{2, 4, 2},
-	}
-
-	for _, test := range tests {
-		if got := difference(test.i, test.j); got != test.expected {
-			t.Errorf("Got %d expected %d. Test: %v", got, test.expected, test)
-		}
-	}
-}
+var (
+	inputTest = `3   4
+4   3
+2   5
+1   3
+3   9
+3   3`
+)
 
 func TestPart1(t *testing.T) {
-	input := `3   4
-4   3
-2   5
-1   3
-3   9
-3   3`
+	cases := []struct {
+		name, input, want string
+	}{
+		{name: "test input", input: inputTest, want: "11"},
+	}
 
-	want := "11"
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolver()
+			_ = puzzle.Init(strings.NewReader(c.input))
+			got, _ := puzzle.Solve(1)
 
-	puzzle := NewSolver()
-	_ = puzzle.Init(strings.NewReader(input))
-	got, _ := puzzle.Solve(1)
-
-	if got != want {
-		t.Errorf("Got %s expected %s", got, want)
+			if got != c.want {
+				t.Errorf("Got %s expected %s", got, c.want)
+			}
+		})
 	}
 }
-
 func TestPart2(t *testing.T) {
-	input := `3   4
-4   3
-2   5
-1   3
-3   9
-3   3`
+	cases := []struct {
+		name, input, want string
+	}{
+		{name: "test input", input: inputTest, want: "31"},
+	}
 
-	want := "31"
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolver()
+			_ = puzzle.Init(strings.NewReader(c.input))
+			got, _ := puzzle.Solve(2)
 
-	puzzle := NewSolver()
-	_ = puzzle.Init(strings.NewReader(input))
-	got, _ := puzzle.Solve(2)
-
-	if got != want {
-		t.Errorf("Got %s expected %s", got, want)
+			if got != c.want {
+				t.Errorf("Got %s expected %s", got, c.want)
+			}
+		})
 	}
 }
 
 func TestUnknownPart(t *testing.T) {
-	input := `
-3   4
-4   3
-2   5
-1   3
-3   9
-3   3`
+	invalidPart := 3
+
+	want := solver.ErrUnknownPart
 
 	puzzle := NewSolver()
-	_ = puzzle.Init(strings.NewReader(input))
-	_, err := puzzle.Solve(5)
+	_ = puzzle.Init(strings.NewReader(inputTest))
+	_, got := puzzle.Solve(invalidPart)
 
-	if err == nil {
-		t.Errorf("No Error received")
+	if !errors.Is(got, want) {
+		t.Errorf("Got %v expected %v", got, want)
 	}
 }
 
-func TestParsing(t *testing.T) {
-	tests := []string{
-		`1 2 3`,
-		`1 2
-a 12`,
+func TestInvalidInput(t *testing.T) {
+	invalidInput2 := `1 2
+a 3`
+
+	cases := []struct {
+		name  string
+		input string
+	}{
+		{"empty input", ``},
+		{"invalid input 1", `1 2 3`},
+		{"invalid input 2", invalidInput2},
 	}
 
-	for _, test := range tests {
-		puzzle := NewSolver()
-		err := puzzle.Init(strings.NewReader(test))
+	want := solver.ErrInvalidInput
 
-		if err == nil {
-			t.Errorf("No Error received")
-		}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolver()
+			got := puzzle.Init(strings.NewReader(c.input))
 
+			if !errors.Is(got, want) {
+				t.Errorf("Got %v expected %v", got, want)
+			}
+		})
 	}
 }

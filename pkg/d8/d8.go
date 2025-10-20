@@ -13,6 +13,14 @@ import (
 	"advent2024/pkg/solver"
 )
 
+var day = "d8"
+
+func init() {
+	solver.Register("d8", func() solver.PuzzleSolver {
+		return NewSolver()
+	})
+}
+
 type PuzzleStruct struct {
 	field    [][]byte
 	antennas map[byte][]Coords
@@ -21,11 +29,8 @@ type PuzzleStruct struct {
 type Coords struct {
 	x, y int
 }
-
-func init() {
-	solver.Register("d8", func() solver.PuzzleSolver {
-		return NewSolver()
-	})
+type LineIter struct {
+	curr, delta Coords
 }
 
 func NewSolver() *PuzzleStruct {
@@ -36,6 +41,11 @@ func (p *PuzzleStruct) Init(reader io.Reader) error {
 	field, err := parseInput(bufio.NewScanner(reader))
 
 	if err != nil {
+		log.Print(err)
+		return err
+	}
+
+	if err := validateInput(field); err != nil {
 		log.Print(err)
 		return err
 	}
@@ -182,7 +192,7 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 		return strconv.Itoa(sum), nil
 	}
 
-	return "", fmt.Errorf("unknown Part %d", part)
+	return "", fmt.Errorf("%s unknown part %d: %w", day, part, solver.ErrUnknownPart)
 }
 
 func parseInput(sc *bufio.Scanner) (*[][]byte, error) {
@@ -197,6 +207,24 @@ func parseInput(sc *bufio.Scanner) (*[][]byte, error) {
 	}
 
 	return &result, nil
+}
+
+func validateInput(field *[][]byte) error {
+	if field == nil {
+		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
+	} else if len(*field) == 0 {
+		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
+	}
+
+	rowLength := len((*field)[0])
+
+	for y := 0; y < len(*field); y++ {
+		if rowLength != len((*field)[y]) {
+			return fmt.Errorf("%s rows have unequal lengths: %w", day, solver.ErrInvalidInput)
+		}
+	}
+
+	return nil
 }
 
 func (p *PuzzleStruct) findAntennas() {
@@ -253,10 +281,6 @@ func Eq(this, other Coords) bool {
 
 func Invert(this Coords) Coords {
 	return Coords{x: -this.x, y: -this.y}
-}
-
-type LineIter struct {
-	curr, delta Coords
 }
 
 func NewLineIter(this, other Coords) LineIter {
