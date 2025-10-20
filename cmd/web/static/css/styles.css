@@ -1,7 +1,9 @@
 html {
   height: 100%;
   margin: 0;
+  padding: 0;
   background-color: #000;
+  font-family: 'Courier New', Courier, monospace;
 }
 
 header, footer {
@@ -16,6 +18,9 @@ header, footer {
 body {
   display: flex;
   flex-direction: column;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 720px;
 }
 
 body section {
@@ -25,6 +30,8 @@ body section {
   border: 10px solid #000;
   border-radius: 25px;
   margin: 10px;
+  transition: border 1s ease;
+  transition: opacity 2s ease;
 }
 
 section.active {
@@ -56,6 +63,12 @@ a:hover {
 }
 
 /* Table styling */
+#table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
@@ -71,6 +84,12 @@ th, td {
 button {
   padding: 6px 12px;
   cursor: pointer;
+}
+
+#submit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* Simple spacing for sections */

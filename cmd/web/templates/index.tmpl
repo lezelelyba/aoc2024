@@ -71,11 +71,11 @@
   {{- else -}}
 <section class="selection active">
   {{- end -}}
-  <h2>Table of Solvers</h2>
-  <div id="solver-selection" hidden>
-    <p>
-      <strong>Current solver selection:</strong> day: <span id="solver-day">None</span> part: <span id="solver-part">None</span>
-    </p>
+  <div id="table-header">
+    <h2>Table of Solvers</h2>
+    <div id="solver-selection" hidden>
+        <strong>Current solver selection: </strong><span id="solver-day">None</span> part <span id="solver-part">None</span>
+    </div>
   </div>
   <div id="table-container">
     <table>
@@ -105,14 +105,18 @@
 
   <div id="solver-content">
 
-  <h2>Select a file</h2>
+  <div id="submit-header">
+    <h2>Select a file</h2>
+    <button id="fileInputClear" class="auth-required" onclick="clearSelection()">Clear Selection</button>
+  </div>
 
   <label for="fileInput">Choose a file:</label>
   <input type="file" id="fileInput" class="auth-required"><br><br>
-  <button id="fileInputClear" class="auth-required" onclick="clearFileSelection('fileInput')">Clear file selection</button><br><br>
 
   <label for="textInput">Or paste text:</label>
-  <textarea id="textInput" rows="4" cols="50" class="auth-required"></textarea><br><br>
+  <textarea id="textInput" rows="4" cols="50" class="auth-required"></textarea>
+
+  <br><br>
 
   <button id="submitBtn" class="auth-required">Send to API</button>
   </div>

@@ -324,26 +324,19 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
   }
 });
 
-// document.getElementById("seenBtn").addEventListener("click", () => {
-//   UIHandler.transition('SEEN');
-//   
-//   const configEl = document.getElementById("auth-enabled");
-//   const authEnabled = configEl.dataset.enabled;
-//   
-//   if (authEnabled === "true") {
-//     const accessToken = sessionStorage.getItem("accessToken");
+// document.getElementById("textInput").addEventListener("input", e => {
+//   fileInput = document.getElementById("fileInput")
+//   submitBtn = document.getElementById("submitBtn")
 // 
-//     // authenticated
-//     if (accessToken) {
-//       UIHandler.transition('AUTHENTICATE');
-//       UIHandler.transition('AUTHOK');
-//     }
-//   } else {
-//       accessToken = sessionStorage.removeItem("accessToken");
-//       UIHandler.transition('SKIPAUTH');
-//   }
+//   submitBtn.disabled = (e.target.value.trim() === "" ) && (fileInput.value === "");
 // });
-
+// 
+// document.getElementById("fileInput").addEventListener("change", e => {
+//   textInput = document.getElementById("textInput")
+//   submitBtn = document.getElementById("submitBtn")
+// 
+//   submitBtn.disabled = (textInput.value.trim() === "" ) && (e.target.value === "");
+// });
 
 /**
  * Handles Submit button click
@@ -395,6 +388,11 @@ async function handleSubmitClick(endpointTemplate) {
   }
 }
 
-function clearFileSelection(elementId) {
-  document.getElementById(elementId).value = "";
+// function clearFileSelection(elementId) {
+//   document.getElementById(elementId).value = "";
+// }
+
+function clearSelection() {
+  document.getElementById("fileInput").value = "";
+  document.getElementById("textInput").value = "";
 }
