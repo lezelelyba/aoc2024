@@ -13,6 +13,7 @@
 <body>
   <header>
     <h1>AoC 2024</h1>
+    <p>Server {{.Hostname}} is up and running</p>
     <nav>
       <a href="/">Home</a>
       <a href="/swagger">API Definition</a>
@@ -20,10 +21,10 @@
   </header>
 
   <main>
-    {{block "content" .}}{{end}}
     {{block "authentication" .}}{{end}}
-    {{block "table" .}}{{end}}
-    {{block "solverContent" .}}{{end}}
+    {{block "solverSelection" .}}{{end}}
+    {{block "solverUpload" .}}{{end}}
+    {{block "solverResult" .}}{{end}}
   </main>
 
   <footer>
@@ -33,44 +34,46 @@
 </html>
 
 {{ define "authentication"}}
-  {{- if .Config.OAuth -}}
-    <p>
-      <strong>Authentication status</strong>: <span id="auth-status">Not Authenticated</span>
-      <div id="login-buttons-div">
-      </div>
-    </p>
-    <div id="logout-buttons-div">
-      <button id="logoutBtn">Logout</button>
+<section>
+{{- if .Config.OAuth -}}
+  <p>
+    <strong>Authentication status</strong>: <span id="auth-status">Not Authenticated</span>
+    <div id="login-buttons-div">
     </div>
-    <script>
-      // updates UI based on authentication status
-      document.addEventListener("DOMContentLoaded", () => updateAuthUI());
+  </p>
+  <div id="logout-buttons-div">
+    <button id="logoutBtn">Logout</button>
+  </div>
+  <script>
+    // updates UI based on authentication status
+    document.addEventListener("DOMContentLoaded", () => updateAuthUI());
 
-      // create OAuth authentication buttons
-      const loginButtons = new Map();
-      const loginButtonsDiv = document.getElementById("login-buttons-div");
-      {{- range .Config.OAuthProviders }}
-      loginButtons["{{.Name}}"] = document.createElement("button");
-      loginButtons["{{.Name}}"].textContent = "Authenticate via {{.Name}}"
-      loginButtons["{{.Name}}"].id = "login-button-{{.Name}}";
-      loginButtons["{{.Name}}"].addEventListener("click", () => startOAuth("{{.UserAuth}}"));
+    // create OAuth authentication buttons
+    const loginButtons = new Map();
+    const loginButtonsDiv = document.getElementById("login-buttons-div");
+    {{- range .Config.OAuthProviders }}
+    loginButtons["{{.Name}}"] = document.createElement("button");
+    loginButtons["{{.Name}}"].textContent = "Authenticate via {{.Name}}"
+    loginButtons["{{.Name}}"].id = "login-button-{{.Name}}";
+    loginButtons["{{.Name}}"].addEventListener("click", () => startOAuth("{{.UserAuth}}"));
 
-      loginButtonsDiv.appendChild(loginButtons["{{.Name}}"]);
-      {{- end }}
-      document.getElementById("logoutBtn").addEventListener("click", () => OAuthLogout());
-    </script>
-  {{- end -}}
+    loginButtonsDiv.appendChild(loginButtons["{{.Name}}"]);
+    {{- end }}
+    document.getElementById("logoutBtn").addEventListener("click", () => OAuthLogout());
+  </script>
+{{- end -}}
+</section>
 {{end}}
 
-{{ define "title "}}Home{{end}}
-
-{{ define "content"}}
-    <p>Server {{.Hostname}} is up and running</p>
-{{end}}
-
-{{ define "table"}}
-    <h2>Table of Solvers</h2>
-    <div id="table-container">
+{{ define "solverSelection"}}
+<section class="disabled">
+  <h2>Table of Solvers</h2>
+  <div id="solver-selection" hidden>
+    <p>
+      <strong>Current solver selection:</strong> day: <span id="solver-day">None</span> part: <span id="solver-part">None</span>
+    </p>
+  </div>
+  <div id="table-container">
     <table>
         <thead>
         <tr>
@@ -96,34 +99,36 @@
             {{- end }}
         </tbody>
     </table>
-    </div>
+  </div>
+</section>
 {{end}}
 
-{{define "solverContent"}}
-<div id="solver-selection" hidden>
-  <p>
-    <strong>Current solver selection:</strong> day: <span id="solver-day">None</span> part: <span id="solver-part">None</span>
-  </p>
-</div>
+{{define "solverUpload"}}
+<section class="disabled">
 
-<div id="solver-content">
+  <div id="solver-content">
 
-<h2>Select a file</h2>
+  <h2>Select a file</h2>
 
-<label for="fileInput">Choose a file:</label>
-<input type="file" id="fileInput" class="auth-required"><br><br>
-<button id="fileInputClear" class="auth-required" onclick="clearFileSelection('fileInput')">Clear file selection</button><br><br>
+  <label for="fileInput">Choose a file:</label>
+  <input type="file" id="fileInput" class="auth-required"><br><br>
+  <button id="fileInputClear" class="auth-required" onclick="clearFileSelection('fileInput')">Clear file selection</button><br><br>
 
-<label for="textInput">Or paste text:</label>
-<textarea id="textInput" rows="4" cols="50" class="auth-required"></textarea><br><br>
+  <label for="textInput">Or paste text:</label>
+  <textarea id="textInput" rows="4" cols="50" class="auth-required"></textarea><br><br>
 
-<button id="submitBtn" class="auth-required">Send to API</button>
+  <button id="submitBtn" class="auth-required">Send to API</button>
 
-<pre id="result" style="margin-top:20px; background:#f4f4f4; padding:10px;"></pre>
+  <script>
+    // sends request via API
+    document.getElementById("submitBtn").addEventListener("click", () => handleSubmitClick("/api/solvers/{day}/{part}"));
+  </script>
+  </div>
+</section>
+{{end}}
 
-<script>
-  // sends request via API
-  document.getElementById("submitBtn").addEventListener("click", () => handleSubmitClick("/api/solvers/{day}/{part}"));
-</script>
-</div>
+{{define "solverResult"}}
+<section class="disabled">
+  <pre id="result" style="margin-top:20px; background:#f4f4f4; padding:10px;"></pre>
+</section>
 {{end}}
