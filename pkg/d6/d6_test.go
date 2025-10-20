@@ -2,9 +2,11 @@ package d6
 
 import (
 	"advent2024/pkg/solver"
+	"context"
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 var (
@@ -120,6 +122,55 @@ func TestValidInput(t *testing.T) {
 
 			if !errors.Is(got, want) {
 				t.Errorf("Got %v expected %v", got, want)
+			}
+		})
+	}
+}
+
+func TestLoop(t *testing.T) {
+	// it won't loop due to part2 already implemented
+	inputLoop := `..........
+..........
+..........
+...#......
+.......#..
+..........
+..#^......
+......#...
+..........
+..........`
+
+	cases := []struct {
+		name  string
+		input string
+		want  error
+	}{
+		{"loop", inputLoop, solver.ErrTimeout},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolver()
+			adapter := solver.NewSolverAdapter(puzzle)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+
+			_ = adapter.Init(ctx, strings.NewReader(c.input))
+
+			ch := make(chan error)
+
+			go func() {
+				// simulate loop
+				time.Sleep(2 * time.Second)
+				_, got := adapter.Solve(ctx, 1)
+				ch <- got
+			}()
+
+			got := <-ch
+
+			if !errors.Is(got, c.want) {
+				t.Errorf("Got %v expected %v", got, c.want)
 			}
 		})
 	}

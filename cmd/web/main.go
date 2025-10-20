@@ -54,7 +54,7 @@ func main() {
 
 	// parse config
 
-	config, errors := config.LoadConfig()
+	cfg, errors := config.LoadConfig()
 
 	if len(errors) != 0 {
 		for _, e := range errors {
@@ -85,13 +85,13 @@ func main() {
 
 	// create logging middleware
 
-	logger := middleware.NewLogger(&config)
+	logger := middleware.NewLogger(&cfg)
 
 	// web pages
 	webMux.Handle("GET /",
 		middleware.Chain(
 			http.HandlerFunc(web.ServerIndex),
-			middleware.WithConfig(&config),
+			middleware.WithConfig(&cfg),
 			middleware.WithTemplate(indexTemplate, middleware.ContextKeyIndexTemplate)))
 	webMux.HandleFunc("GET /list", web.SolverListing)
 	webMux.HandleFunc("GET /healthcheck", web.HealthCheck)
@@ -102,16 +102,16 @@ func main() {
 	// 		middleware.WithTemplate(uploadTemplate, middleware.ContextKeyUploadTemplate)))
 
 	// oauth
-	if config.OAuth {
+	if cfg.OAuth {
 		webMux.Handle("GET /callback/{provider}",
 			middleware.Chain(
 				http.HandlerFunc(web.OAuthCallback),
-				middleware.WithConfig(&config),
+				middleware.WithConfig(&cfg),
 				middleware.WithTemplate(callbackTemplate, middleware.ContextKeyCallbackTemplate)))
 		webMux.Handle("POST /oauth/{provider}/token",
 			middleware.Chain(
 				http.HandlerFunc(web.OAuthHandler),
-				middleware.WithConfig(&config)))
+				middleware.WithConfig(&cfg)))
 	}
 
 	// swagger docs
@@ -126,11 +126,11 @@ func main() {
 	apiMux.HandleFunc("POST /solvers/{day}/{part}", api.Solve)
 
 	// combine muxes
-	apiHandler := middleware.RateLimitMiddleware(config.APIRate, config.APIBurst)(apiMux)
-	if config.OAuth {
+	apiHandler := middleware.RateLimitMiddleware(cfg.APIRate, cfg.APIBurst)(apiMux)
+	if cfg.OAuth {
 		apiHandler = middleware.Chain(
 			apiHandler,
-			middleware.WithConfig(&config),
+			middleware.WithConfig(&cfg),
 			middleware.AuthenticationMiddleware())
 	}
 
@@ -139,15 +139,17 @@ func main() {
 
 	// add logging middleware
 	finalMux := middleware.LoggingMiddleware(logger)(globalMux)
+	// add config
+	finalMux = middleware.WithConfig(&cfg)(finalMux)
 
 	// start server
-	addr := fmt.Sprintf(":%d", config.Port)
+	addr := fmt.Sprintf(":%d", cfg.Port)
 
-	if !config.EnableTLS {
-		log.Printf("Starting Server on : %d\n", config.Port)
+	if !cfg.EnableTLS {
+		log.Printf("Starting Server on : %d\n", cfg.Port)
 		log.Fatal(http.ListenAndServe(addr, finalMux))
 	} else {
-		log.Printf("Starting TLS Server on : %d\n", config.Port)
-		log.Fatal(http.ListenAndServeTLS(addr, config.CertFile, config.KeyFile, finalMux))
+		log.Printf("Starting TLS Server on : %d\n", cfg.Port)
+		log.Fatal(http.ListenAndServeTLS(addr, cfg.CertFile, cfg.KeyFile, finalMux))
 	}
 }
