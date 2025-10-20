@@ -4,8 +4,10 @@ import (
 	"advent2024/pkg/solver"
 	"advent2024/web/middleware"
 	"advent2024/web/weberrors"
+	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -32,13 +34,14 @@ type SolveResult struct {
 //	@Param		day						path		string				true	"Day, format d[0-9]*"	example(d1)
 //	@Param		part					path		int					true	"Problem part"			example(1)
 //	@Param		input					body		SolveRequest		true	"Solve Base64 encoded input"
-//	@Param		Authorization			header		string				true	"Bearer format, prefix with Bearerrmat"
+//	@Param		Authorization			header		string				true	"Bearer format, prefix with Bearer"
 //	@Success	200						{object}	SolveResult			"Result"
 //	@Failure	400						{object}	weberrors.AoCError	"Bad Request"
 //	@Failure	401						{object}	weberrors.AoCError	"Unathorized"
 //	@Failure	404						{object}	weberrors.AoCError	"Solver for the day not found"
 //	@Failure	429						{object}	weberrors.AoCError	"Request was Rate limited"
 //	@Failure	500						{object}	weberrors.AoCError	"Internal Server Error"
+//	@Failure	504						{object}	weberrors.AoCError	"Request took too long to compute"
 //	@Router		/solvers/{day}/{part}	[post]
 //	@Security	OAuth2AccessCode [read]
 func Solve(w http.ResponseWriter, r *http.Request) {
@@ -47,6 +50,13 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 	var errMsg string
 
 	logger := middleware.GetLogger(r)
+	cfg, ok := middleware.GetConfig(r)
+
+	rc = http.StatusInternalServerError
+	errMsg = "configuration error: index: unable to get config"
+	if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -89,7 +99,7 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	solver, ok := solver.New(day)
+	slvr, ok := solver.New(day)
 
 	rc = http.StatusNotFound
 	errMsg = fmt.Sprintf("Solver for day %s part %s not implemented: day not implemented", day, part)
@@ -97,17 +107,31 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = solver.Init(strings.NewReader(string(decoded_body)))
+	adapter := solver.NewSolverAdapter(slvr)
+	ctx, cancel := context.WithTimeout(r.Context(), cfg.SolverTimeout)
+	defer cancel()
 
-	rc = http.StatusBadRequest
+	err = adapter.Init(ctx, strings.NewReader(string(decoded_body)))
+
+	if errors.Is(err, solver.ErrTimeout) {
+		rc = http.StatusGatewayTimeout
+	} else {
+		rc = http.StatusBadRequest
+	}
+
 	errMsg = fmt.Sprintf("Unable to intialize Solver for day %s", day)
 	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
 
-	result, err := solver.Solve(part_converted)
+	result, err := adapter.Solve(ctx, part_converted)
 
-	rc = http.StatusInternalServerError
+	if errors.Is(err, solver.ErrTimeout) {
+		rc = http.StatusGatewayTimeout
+	} else {
+		rc = http.StatusInternalServerError
+	}
+
 	errMsg = fmt.Sprintf("Unable to solve for day %s part %s", day, part)
 	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
@@ -130,12 +154,12 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 //	@Tags			solverList
 //	@Accepts		json
 //	@Produces		json
-//	@Param			Authorization	header		string						true	"Bearer format, prefix with Bearerrmat"
+//	@Param			Authorization	header		string						true	"Bearer format, prefix with Bearer"
 //	@Success		200				{array}		solver.RegistryItemPublic	"Result"
 //	@Failure		401				{object}	weberrors.AoCError			"Unathorized"
 //	@Failure		429				{object}	weberrors.AoCError			"Request was Rate limited"
 //	@Failure		500				{object}	weberrors.AoCError			"Internal Server Error"
-//	@Router			/solvers					[GET]
+//	@Router			/solvers														[GET]
 //	@Security		OAuth2AccessCode [read]
 func SolverListing(w http.ResponseWriter, r *http.Request) {
 	logger := middleware.GetLogger(r)

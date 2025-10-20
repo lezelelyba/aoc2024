@@ -159,6 +159,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/Error"
                         }
+                    },
+                    "504": {
+                        "description": "Request took too long to compute",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
                     }
                 }
             }

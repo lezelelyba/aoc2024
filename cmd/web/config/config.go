@@ -17,6 +17,7 @@ type Config struct {
 	KeyFile          string
 	APIRate          int
 	APIBurst         int
+	SolverTimeout    time.Duration
 	OAuth            bool
 	JWTSecret        string
 	JWTTokenValidity time.Duration
@@ -39,6 +40,7 @@ func NewConfig() Config {
 		OAuth:            false,
 		APIRate:          3,
 		APIBurst:         3,
+		SolverTimeout:    time.Duration(5 * time.Second),
 		JWTTokenValidity: time.Duration(15 * time.Minute),
 		OAuthProviders:   make(map[string]OAuthProvider),
 	}
@@ -65,10 +67,11 @@ func LoadConfig() (Config, []error) {
 
 	apiRate := flag.String("apirate", envOrDefault("API_RATE", strconv.Itoa(config.APIRate)), "API rate limit per second, default 3")
 	apiBurst := flag.String("apiburst", envOrDefault("API_BURST", strconv.Itoa(config.APIBurst)), "API rate burst size, default 3")
+	solverTimeout := flag.String("solver-timeout", envOrDefault("API_SOLVER_TIMEOUT", ""), "Solver timeout in seconds")
 
 	oAuth := flag.String("oauth", envOrDefault("ENABLE_OAUTH", fmt.Sprintf("%t", config.OAuth)), "Enables OAuth API authentication, requireds jwt secret and then requireds per provider callback url, token exhcnage url, client id and secret to be specified")
 	jwtSecret := flag.String("jwt-secret", envOrDefault("JWT_SECRET", ""), "JWT Secret")
-	jwtTokenValidity := flag.String("jwt-token-validity", envOrDefault("JWT_TOKEN_VALIDITY", ""), "JWT Token Validity")
+	jwtTokenValidity := flag.String("jwt-token-validity", envOrDefault("JWT_TOKEN_VALIDITY", ""), "JWT Token Validity in minutes")
 	oAuthGithubCallbackURL := flag.String("oauth-github-callback-url", envOrDefault("OAUTH_GITHUB_CALLBACK_URL", ""), "Github OAuth callback")
 	oAuthGithubUserAuthURL := flag.String("oauth-github-user-auth-url", envOrDefault("OAUTH_GITHUB_USER_AUTH_URL", ""), "Github OAuth User auth URL")
 	oAuthGithubTokenURL := flag.String("oauth-github-token-url", envOrDefault("OAUTH_GITHUB_TOKEN_URL", ""), "Github OAuth Token exchange URL")
@@ -95,6 +98,9 @@ func LoadConfig() (Config, []error) {
 	var durationInt int
 	parseInt("jwtTokenValidity", *jwtTokenValidity, &durationInt, int(config.JWTTokenValidity.Seconds()))
 	config.JWTTokenValidity = time.Duration(time.Duration(durationInt) * time.Minute)
+
+	parseInt("solverTimeout", *solverTimeout, &durationInt, int(config.SolverTimeout.Seconds()))
+	config.SolverTimeout = time.Duration(time.Duration(durationInt) * time.Second)
 
 	if *enableHttps == "true" {
 

@@ -54,7 +54,7 @@ func main() {
 
 	// parse config
 
-	config, errors := config.LoadConfig()
+	cfg, errors := config.LoadConfig()
 
 	if len(errors) != 0 {
 		for _, e := range errors {
@@ -70,7 +70,6 @@ func main() {
 	}
 
 	indexTemplate := template.Must(template.New("").Funcs(funcMap).ParseFiles("./templates/index.tmpl"))
-	// uploadTemplate := template.Must(template.ParseFiles("./templates/upload.tmpl"))
 	callbackTemplate := template.Must(template.ParseFiles("./templates/callback.tmpl"))
 
 	// TODO: load all common templates
@@ -85,33 +84,23 @@ func main() {
 
 	// create logging middleware
 
-	logger := middleware.NewLogger(&config)
+	logger := middleware.NewLogger(&cfg)
 
 	// web pages
 	webMux.Handle("GET /",
 		middleware.Chain(
 			http.HandlerFunc(web.ServerIndex),
-			middleware.WithConfig(&config),
 			middleware.WithTemplate(indexTemplate, middleware.ContextKeyIndexTemplate)))
 	webMux.HandleFunc("GET /list", web.SolverListing)
 	webMux.HandleFunc("GET /healthcheck", web.HealthCheck)
-	// webMux.Handle("GET /solve/{day}/{part}",
-	// 	middleware.Chain(
-	// 		http.HandlerFunc(web.SolveWithUpload),
-	// 		middleware.WithConfig(&config),
-	// 		middleware.WithTemplate(uploadTemplate, middleware.ContextKeyUploadTemplate)))
 
 	// oauth
-	if config.OAuth {
+	if cfg.OAuth {
 		webMux.Handle("GET /callback/{provider}",
 			middleware.Chain(
 				http.HandlerFunc(web.OAuthCallback),
-				middleware.WithConfig(&config),
 				middleware.WithTemplate(callbackTemplate, middleware.ContextKeyCallbackTemplate)))
-		webMux.Handle("POST /oauth/{provider}/token",
-			middleware.Chain(
-				http.HandlerFunc(web.OAuthHandler),
-				middleware.WithConfig(&config)))
+		webMux.HandleFunc("POST /oauth/{provider}/token", web.OAuthHandler)
 	}
 
 	// swagger docs
@@ -125,29 +114,34 @@ func main() {
 	apiMux.HandleFunc("GET /solvers", api.SolverListing)
 	apiMux.HandleFunc("POST /solvers/{day}/{part}", api.Solve)
 
-	// combine muxes
-	apiHandler := middleware.RateLimitMiddleware(config.APIRate, config.APIBurst)(apiMux)
-	if config.OAuth {
+	// add api rate limiter
+	apiHandler := middleware.RateLimitMiddleware(cfg.APIRate, cfg.APIBurst)(apiMux)
+
+	// add authentication if enabled
+	if cfg.OAuth {
 		apiHandler = middleware.Chain(
 			apiHandler,
-			middleware.WithConfig(&config),
 			middleware.AuthenticationMiddleware())
 	}
 
+	// combine muxes
 	globalMux.Handle("/api/", http.StripPrefix("/api", apiHandler))
 	globalMux.Handle("/", webMux)
 
 	// add logging middleware
 	finalMux := middleware.LoggingMiddleware(logger)(globalMux)
+	// add config
+	finalMux = middleware.WithConfig(&cfg)(finalMux)
+	// TODO add recovery middleware
 
 	// start server
-	addr := fmt.Sprintf(":%d", config.Port)
+	addr := fmt.Sprintf(":%d", cfg.Port)
 
-	if !config.EnableTLS {
-		log.Printf("Starting Server on : %d\n", config.Port)
+	if !cfg.EnableTLS {
+		log.Printf("Starting Server on : %d\n", cfg.Port)
 		log.Fatal(http.ListenAndServe(addr, finalMux))
 	} else {
-		log.Printf("Starting TLS Server on : %d\n", config.Port)
-		log.Fatal(http.ListenAndServeTLS(addr, config.CertFile, config.KeyFile, finalMux))
+		log.Printf("Starting TLS Server on : %d\n", cfg.Port)
+		log.Fatal(http.ListenAndServeTLS(addr, cfg.CertFile, cfg.KeyFile, finalMux))
 	}
 }
