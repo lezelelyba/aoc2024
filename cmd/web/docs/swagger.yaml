@@ -1,29 +1,29 @@
 basePath: /api
 definitions:
-  api.SolveRequest:
+  Error:
     properties:
-      input:
-        example: MyAgIDQKNCAgIDMKMiAgIDUKMSAgIDMKMyAgIDkKMyAgIDMK
-        format: base64
+      errorcode:
+        type: integer
+      errormessage:
         type: string
     type: object
-  api.SolveResult:
-    properties:
-      output:
-        type: string
-    type: object
-  solver.RegistryItemPublic:
+  RegistryItem:
     properties:
       name:
         type: string
       next:
         type: boolean
     type: object
-  weberrors.AoCError:
+  Request:
     properties:
-      errorcode:
-        type: integer
-      errormessage:
+      input:
+        example: MyAgIDQKNCAgIDMKMiAgIDUKMSAgIDMKMyAgIDkKMyAgIDMK
+        format: base64
+        type: string
+    type: object
+  Response:
+    properties:
+      output:
         type: string
     type: object
 externalDocs:
@@ -42,25 +42,31 @@ paths:
   /solvers:
     get:
       description: Lists days which the solver can solve
+      parameters:
+      - description: Bearer format, prefix with Bearerrmat
+        in: header
+        name: Authorization
+        required: true
+        type: string
       responses:
         "200":
           description: Result
           schema:
             items:
-              $ref: '#/definitions/solver.RegistryItemPublic'
+              $ref: '#/definitions/RegistryItem'
             type: array
         "401":
           description: Unathorized
           schema:
-            $ref: '#/definitions/weberrors.AoCError'
+            $ref: '#/definitions/Error'
         "429":
           description: Request was Rate limited
           schema:
-            $ref: '#/definitions/weberrors.AoCError'
+            $ref: '#/definitions/Error'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/weberrors.AoCError'
+            $ref: '#/definitions/Error'
       security:
       - 'OAuth2AccessCode ':
         - read
@@ -88,32 +94,37 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/api.SolveRequest'
+          $ref: '#/definitions/Request'
+      - description: Bearer format, prefix with Bearerrmat
+        in: header
+        name: Authorization
+        required: true
+        type: string
       responses:
         "200":
           description: Result
           schema:
-            $ref: '#/definitions/api.SolveResult'
+            $ref: '#/definitions/Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/weberrors.AoCError'
+            $ref: '#/definitions/Error'
         "401":
           description: Unathorized
           schema:
-            $ref: '#/definitions/weberrors.AoCError'
+            $ref: '#/definitions/Error'
         "404":
           description: Solver for the day not found
           schema:
-            $ref: '#/definitions/weberrors.AoCError'
+            $ref: '#/definitions/Error'
         "429":
           description: Request was Rate limited
           schema:
-            $ref: '#/definitions/weberrors.AoCError'
+            $ref: '#/definitions/Error'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/weberrors.AoCError'
+            $ref: '#/definitions/Error'
       security:
       - 'OAuth2AccessCode ':
         - read
@@ -127,6 +138,6 @@ securityDefinitions:
     flow: accessCode
     scopes:
       read: Grants read access
-    tokenUrl: https://github.com/login/oauth/access_token
+    tokenUrl: http://localhost:8080/oauth/github/token
     type: oauth2
 swagger: "2.0"

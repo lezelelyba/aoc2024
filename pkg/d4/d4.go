@@ -10,13 +10,15 @@ import (
 	"strings"
 )
 
+var day = "d4"
+
 type PuzzleStruct struct {
 	dx, dy int
 	input  [][]byte
 }
 
 func init() {
-	solver.Register("d4", func() solver.PuzzleSolver {
+	solver.Register(day, func() solver.PuzzleSolver {
 		return NewSolver()
 	})
 }
@@ -29,6 +31,11 @@ func (p *PuzzleStruct) Init(reader io.Reader) error {
 	input, err := parseInput(bufio.NewScanner(reader))
 
 	if err != nil {
+		log.Print(err)
+		return err
+	}
+
+	if err := validateInput(input); err != nil {
 		log.Print(err)
 		return err
 	}
@@ -69,7 +76,7 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 		return strconv.Itoa(sum), nil
 	}
 
-	return "", fmt.Errorf("unknown Part %d", part)
+	return "", fmt.Errorf("%s unknown part %d: %w", day, part, solver.ErrUnknownPart)
 }
 
 func (p *PuzzleStruct) xmas(x, y int) int {
@@ -138,14 +145,14 @@ func (p *PuzzleStruct) is(x, y int, c byte) bool {
 
 func neighbors(x, y int) [][2]int {
 	return [][2]int{
-		[2]int{x - 1, y - 1},
-		[2]int{x, y - 1},
-		[2]int{x + 1, y - 1},
-		[2]int{x - 1, y},
-		[2]int{x + 1, y},
-		[2]int{x - 1, y + 1},
-		[2]int{x, y + 1},
-		[2]int{x + 1, y + 1},
+		{x - 1, y - 1},
+		{x, y - 1},
+		{x + 1, y - 1},
+		{x - 1, y},
+		{x + 1, y},
+		{x - 1, y + 1},
+		{x, y + 1},
+		{x + 1, y + 1},
 	}
 }
 
@@ -154,15 +161,6 @@ func next(x1, y1, x2, y2 int) [2]int {
 	dy := y2 - y1
 
 	return [2]int{x2 + dx, y2 + dy}
-}
-
-func (p *PuzzleStruct) isSame(x1, y1, x2, y2 int) bool {
-	if (x1 >= 0 && x1 < p.dx && y1 >= 0 && y1 < p.dy) &&
-		(x2 >= 0 && x2 < p.dx && y2 >= 0 && y2 < p.dy) {
-		return p.input[y1][x1] == p.input[y2][x2]
-	}
-
-	return false
 }
 
 func parseInput(sc *bufio.Scanner) (*[][]byte, error) {
@@ -180,4 +178,32 @@ func parseInput(sc *bufio.Scanner) (*[][]byte, error) {
 	}
 
 	return &crossword, nil
+}
+
+func validateInput(field *[][]byte) error {
+	if field == nil {
+		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
+	} else if len(*field) == 0 {
+		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
+	}
+
+	rowLength := len((*field)[0])
+
+	for y := 0; y < len(*field); y++ {
+
+		if rowLength != len((*field)[y]) {
+			return fmt.Errorf("%s rows have unequal lengths: %w", day, solver.ErrInvalidInput)
+		}
+
+		for x := 0; x < rowLength; x++ {
+			switch (*field)[y][x] {
+			case 'X', 'M', 'A', 'S':
+				continue
+			default:
+				return fmt.Errorf("%s unknown character %s in input: %w", day, string((*field)[x][y]), solver.ErrInvalidInput)
+			}
+		}
+	}
+
+	return nil
 }

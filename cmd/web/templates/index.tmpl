@@ -87,7 +87,6 @@
                     {{- $v := getField $item $f -}}
                     {{$v}}
                     {{- if eq $f "Name" -}}
-                    <!-- <a href="/solve/{{$v}}/1">Part 1</a><a href="/solve/{{$v}}/2">Part 2</a> -->
                     <a href="#" data-day="{{$v}}" data-part="1">Part 1</a>
                     <a href="#" data-day="{{$v}}" data-part="2">Part 2</a>
                     {{- end -}}

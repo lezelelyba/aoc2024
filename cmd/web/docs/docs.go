@@ -35,32 +35,41 @@ const docTemplate = `{
                     "solverList"
                 ],
                 "summary": "Solve List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer format, prefix with Bearerrmat",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Result",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/solver.RegistryItemPublic"
+                                "$ref": "#/definitions/RegistryItem"
                             }
                         }
                     },
                     "401": {
                         "description": "Unathorized",
                         "schema": {
-                            "$ref": "#/definitions/weberrors.AoCError"
+                            "$ref": "#/definitions/Error"
                         }
                     },
                     "429": {
                         "description": "Request was Rate limited",
                         "schema": {
-                            "$ref": "#/definitions/weberrors.AoCError"
+                            "$ref": "#/definitions/Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/weberrors.AoCError"
+                            "$ref": "#/definitions/Error"
                         }
                     }
                 }
@@ -103,45 +112,52 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.SolveRequest"
+                            "$ref": "#/definitions/Request"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer format, prefix with Bearerrmat",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "Result",
                         "schema": {
-                            "$ref": "#/definitions/api.SolveResult"
+                            "$ref": "#/definitions/Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/weberrors.AoCError"
+                            "$ref": "#/definitions/Error"
                         }
                     },
                     "401": {
                         "description": "Unathorized",
                         "schema": {
-                            "$ref": "#/definitions/weberrors.AoCError"
+                            "$ref": "#/definitions/Error"
                         }
                     },
                     "404": {
                         "description": "Solver for the day not found",
                         "schema": {
-                            "$ref": "#/definitions/weberrors.AoCError"
+                            "$ref": "#/definitions/Error"
                         }
                     },
                     "429": {
                         "description": "Request was Rate limited",
                         "schema": {
-                            "$ref": "#/definitions/weberrors.AoCError"
+                            "$ref": "#/definitions/Error"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/weberrors.AoCError"
+                            "$ref": "#/definitions/Error"
                         }
                     }
                 }
@@ -149,25 +165,18 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api.SolveRequest": {
+        "Error": {
             "type": "object",
             "properties": {
-                "input": {
-                    "type": "string",
-                    "format": "base64",
-                    "example": "MyAgIDQKNCAgIDMKMiAgIDUKMSAgIDMKMyAgIDkKMyAgIDMK"
-                }
-            }
-        },
-        "api.SolveResult": {
-            "type": "object",
-            "properties": {
-                "output": {
+                "errorcode": {
+                    "type": "integer"
+                },
+                "errormessage": {
                     "type": "string"
                 }
             }
         },
-        "solver.RegistryItemPublic": {
+        "RegistryItem": {
             "type": "object",
             "properties": {
                 "name": {
@@ -178,13 +187,20 @@ const docTemplate = `{
                 }
             }
         },
-        "weberrors.AoCError": {
+        "Request": {
             "type": "object",
             "properties": {
-                "errorcode": {
-                    "type": "integer"
-                },
-                "errormessage": {
+                "input": {
+                    "type": "string",
+                    "format": "base64",
+                    "example": "MyAgIDQKNCAgIDMKMiAgIDUKMSAgIDMKMyAgIDkKMyAgIDMK"
+                }
+            }
+        },
+        "Response": {
+            "type": "object",
+            "properties": {
+                "output": {
                     "type": "string"
                 }
             }
@@ -196,7 +212,7 @@ const docTemplate = `{
             "type": "oauth2",
             "flow": "accessCode",
             "authorizationUrl": "https://github.com/login/oauth/authorize",
-            "tokenUrl": "https://github.com/login/oauth/access_token",
+            "tokenUrl": "http://localhost:8080/oauth/github/token",
             "scopes": {
                 "read": "Grants read access"
             }

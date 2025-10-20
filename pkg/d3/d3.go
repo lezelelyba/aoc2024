@@ -4,12 +4,15 @@ import (
 	"advent2024/pkg/solver"
 	"fmt"
 	"io"
+	"log"
 	"regexp"
 	"strconv"
 )
 
+var day = "d3"
+
 func init() {
-	solver.Register("d3", func() solver.PuzzleSolver {
+	solver.Register(day, func() solver.PuzzleSolver {
 		return NewSolver()
 	})
 }
@@ -36,6 +39,11 @@ func (p *PuzzleStruct) Init(reader io.Reader) error {
 	}
 
 	p.entries = parseInput(string(s))
+
+	if err := validateInput(p.entries); err != nil {
+		log.Print(err)
+		return err
+	}
 
 	return nil
 }
@@ -69,7 +77,7 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 		return strconv.Itoa(sum), nil
 	}
 
-	return "", fmt.Errorf("unknown Part %d", part)
+	return "", fmt.Errorf("%s unknown part %d: %w", day, part, solver.ErrUnknownPart)
 }
 
 func parseInput(s string) *[]puzzleEntry {
@@ -98,4 +106,14 @@ func parseInput(s string) *[]puzzleEntry {
 	}
 
 	return &entries
+}
+
+func validateInput(entries *[]puzzleEntry) error {
+	if entries == nil {
+		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
+	} else if len(*entries) == 0 {
+		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
+	}
+
+	return nil
 }

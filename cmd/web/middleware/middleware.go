@@ -12,7 +12,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/time/rate"
 )
@@ -70,10 +69,11 @@ func LoggingMiddleware(logger *log.Logger) func(http.Handler) http.Handler {
 
 			captureWriter := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
-			prefixedLogger.Printf("%s - S \"%s %s\"",
-				ip,
-				r.Method,
-				r.URL)
+			// print start of the request
+			// prefixedLogger.Printf("%s - S \"%s %s\"",
+			// 	ip,
+			// 	r.Method,
+			// 	r.URL)
 
 			next.ServeHTTP(captureWriter, r.WithContext(ctx))
 
@@ -158,18 +158,18 @@ func AuthenticationMiddleware() func(http.Handler) http.Handler {
 			ok = strings.HasPrefix(auth, "Bearer ")
 
 			rc = http.StatusUnauthorized
-			errMsg = fmt.Sprintf("unauthorized %s", auth)
+			errMsg = fmt.Sprintf("unauthorized")
 			if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
 				return
 			}
 
 			tokenStr := strings.TrimPrefix(auth, "Bearer ")
-			tokenValid, err := ValidateToken(tokenStr, cfg)
+			token, _ := ParseToken(tokenStr, []byte(cfg.JWTSecret))
 
-			ok = (err == nil && tokenValid)
+			ok = TokenValid(token)
 
 			rc = http.StatusUnauthorized
-			errMsg = fmt.Sprintf("unauthorized: invalid token %s", auth)
+			errMsg = fmt.Sprintf("unauthorized: invalid token")
 			if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
 				return
 			}
@@ -179,27 +179,11 @@ func AuthenticationMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
-func ValidateToken(tokenStr string, cfg *config.Config) (bool, error) {
-	if tokenStr != "" && cfg != nil {
-		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method")
-			}
-			return []byte(cfg.JWTSecret), nil
-		})
-
-		if token != nil {
-			return token.Valid, err
-		}
-
-		return false, err
-	}
-
-	return false, fmt.Errorf("token empty or cfg not available")
-}
-
 func GetConfig(r *http.Request) (*config.Config, bool) {
 	cfg, ok := r.Context().Value(ContextConfig).(*config.Config)
+	if cfg == nil {
+		return cfg, false
+	}
 	return cfg, ok
 }
 

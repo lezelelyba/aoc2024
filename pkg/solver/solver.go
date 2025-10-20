@@ -1,9 +1,16 @@
 package solver
 
 import (
+	"errors"
 	"io"
 	"sort"
 	"sync"
+)
+
+var (
+	ErrInvalidInput = errors.New("invalid input")
+	ErrTimeout      = errors.New("solver timeout")
+	ErrUnknownPart  = errors.New("unknown part")
 )
 
 type PuzzleSolver interface {
@@ -23,7 +30,7 @@ type RegistryItem struct {
 type RegistryItemPublic struct {
 	Name string `json:"name"`
 	Next bool   `json:"next"`
-}
+} //@name RegistryItem
 
 var registry = map[string]RegistryItem{}
 var keys []string

@@ -40,11 +40,12 @@ import (
 //	@externalDocs.description	OpenAPI
 //	@externalDocs.url			https://swagger.io/resources/open-api/
 
-// @securitydefinitions.oauth2.accessCode	OAuth2AccessCode
-// @authorizationURL						https://github.com/login/oauth/authorize
-// @tokenURL								https://github.com/login/oauth/access_token
-// @scope.read								Grants read access
-// @description							GitHub OAuth
+//	@securitydefinitions.oauth2.accessCode	OAuth2AccessCode
+//	@authorizationURL						https://github.com/login/oauth/authorize
+//	@tokenURL								http://localhost:8080/oauth/github/token
+//	@scope.read								Grants read access
+//	@description							GitHub OAuth
+
 func main() {
 	// create new mux
 	webMux := http.NewServeMux()

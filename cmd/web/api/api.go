@@ -15,11 +15,11 @@ import (
 
 type SolveRequest struct {
 	Input string `json:"input" format:"base64" example:"MyAgIDQKNCAgIDMKMiAgIDUKMSAgIDMKMyAgIDkKMyAgIDMK"`
-}
+} //@name Request
 
 type SolveResult struct {
 	Output string `json:"output"`
-}
+} //@name Response
 
 // Solve godoc
 //
@@ -32,6 +32,7 @@ type SolveResult struct {
 //	@Param		day						path		string				true	"Day, format d[0-9]*"	example(d1)
 //	@Param		part					path		int					true	"Problem part"			example(1)
 //	@Param		input					body		SolveRequest		true	"Solve Base64 encoded input"
+//	@Param		Authorization			header		string				true	"Bearer format, prefix with Bearerrmat"
 //	@Success	200						{object}	SolveResult			"Result"
 //	@Failure	400						{object}	weberrors.AoCError	"Bad Request"
 //	@Failure	401						{object}	weberrors.AoCError	"Unathorized"
@@ -42,15 +43,17 @@ type SolveResult struct {
 //	@Security	OAuth2AccessCode [read]
 func Solve(w http.ResponseWriter, r *http.Request) {
 
+	var rc int
+	var errMsg string
+
 	logger := middleware.GetLogger(r)
+
+	w.Header().Set("Content-Type", "application/json")
 
 	day := r.PathValue("day")
 	part := r.PathValue("part")
 
 	part_converted, err := strconv.Atoi(part)
-
-	var rc int
-	var errMsg string
 
 	rc = http.StatusBadRequest
 	errMsg = fmt.Sprintf("Solver for day %s part %s not implemented: part is not numerical", day, part)
@@ -116,7 +119,6 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
-
 	w.WriteHeader(http.StatusOK)
 	w.Write(b)
 }
@@ -128,14 +130,17 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 //	@Tags			solverList
 //	@Accepts		json
 //	@Produces		json
-//	@Success		200			{array}		solver.RegistryItemPublic	"Result"
-//	@Failure		401			{object}	weberrors.AoCError			"Unathorized"
-//	@Failure		429			{object}	weberrors.AoCError			"Request was Rate limited"
-//	@Failure		500			{object}	weberrors.AoCError			"Internal Server Error"
-//	@Router			/solvers	[GET]
+//	@Param			Authorization	header		string						true	"Bearer format, prefix with Bearerrmat"
+//	@Success		200				{array}		solver.RegistryItemPublic	"Result"
+//	@Failure		401				{object}	weberrors.AoCError			"Unathorized"
+//	@Failure		429				{object}	weberrors.AoCError			"Request was Rate limited"
+//	@Failure		500				{object}	weberrors.AoCError			"Internal Server Error"
+//	@Router			/solvers					[GET]
 //	@Security		OAuth2AccessCode [read]
 func SolverListing(w http.ResponseWriter, r *http.Request) {
 	logger := middleware.GetLogger(r)
+
+	w.Header().Set("Content-Type", "application/json")
 
 	registryItems := solver.ListRegistryItems()
 

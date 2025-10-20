@@ -11,18 +11,20 @@ import (
 	"advent2024/pkg/solver"
 )
 
+var day = "d7"
+
+func init() {
+	solver.Register(day, func() solver.PuzzleSolver {
+		return NewSolver()
+	})
+}
+
 type Equation struct {
 	result  int
 	numbers []int
 }
 type PuzzleStruct struct {
-	equations []Equation
-}
-
-func init() {
-	solver.Register("d7", func() solver.PuzzleSolver {
-		return NewSolver()
-	})
+	equations *[]Equation
 }
 
 func NewSolver() *PuzzleStruct {
@@ -37,6 +39,11 @@ func (p *PuzzleStruct) Init(reader io.Reader) error {
 		return err
 	}
 
+	if err := validateInput(equations); err != nil {
+		log.Print(err)
+		return err
+	}
+
 	p.equations = equations
 
 	return nil
@@ -47,7 +54,7 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 	case 1:
 		sum := 0
 
-		for _, e := range p.equations {
+		for _, e := range *p.equations {
 			if solvable(e) {
 				sum += e.result
 			}
@@ -56,7 +63,7 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 	case 2:
 		sum := 0
 
-		for _, e := range p.equations {
+		for _, e := range *p.equations {
 			if solvablePart2(e) {
 				sum += e.result
 			}
@@ -65,10 +72,10 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 		return strconv.Itoa(sum), nil
 	}
 
-	return "", fmt.Errorf("unknown Part %d", part)
+	return "", fmt.Errorf("%s unknown part %d: %w", day, part, solver.ErrUnknownPart)
 }
 
-func parseInput(sc *bufio.Scanner) ([]Equation, error) {
+func parseInput(sc *bufio.Scanner) (*[]Equation, error) {
 
 	input := make([]Equation, 0)
 
@@ -81,7 +88,7 @@ func parseInput(sc *bufio.Scanner) ([]Equation, error) {
 		result_numbers := strings.Split(strings.TrimSpace(sc.Text()), ":")
 
 		if len(result_numbers) != 2 {
-			return []Equation{}, fmt.Errorf("unable to parse %s", sc.Text())
+			return nil, fmt.Errorf("%s unable to parse equation \"%v\": %w", day, sc.Text(), solver.ErrInvalidInput)
 		}
 
 		result := strings.TrimSpace(result_numbers[0])
@@ -90,7 +97,7 @@ func parseInput(sc *bufio.Scanner) ([]Equation, error) {
 		r, err := strconv.Atoi(result)
 
 		if err != nil {
-			return []Equation{}, fmt.Errorf("unable to parse %s", sc.Text())
+			return nil, fmt.Errorf("%s unable to parse equation \"%v\": %w", day, sc.Text(), solver.ErrInvalidInput)
 		}
 
 		ints := make([]int, len(numbers))
@@ -99,7 +106,7 @@ func parseInput(sc *bufio.Scanner) ([]Equation, error) {
 			n, err := strconv.Atoi(numbers[i])
 
 			if err != nil {
-				return []Equation{}, fmt.Errorf("unable to parse %s", sc.Text())
+				return nil, fmt.Errorf("%s unable to parse equation \"%v\": %w", day, sc.Text(), solver.ErrInvalidInput)
 			}
 
 			ints[i] = n
@@ -109,7 +116,17 @@ func parseInput(sc *bufio.Scanner) ([]Equation, error) {
 
 	}
 
-	return input, nil
+	return &input, nil
+}
+
+func validateInput(equations *[]Equation) error {
+	if equations == nil {
+		return fmt.Errorf("%s empty equations: %w", day, solver.ErrInvalidInput)
+	} else if len(*equations) == 0 {
+		return fmt.Errorf("%s empty equations: %w", day, solver.ErrInvalidInput)
+	}
+
+	return nil
 }
 
 func solvable(e Equation) bool {
