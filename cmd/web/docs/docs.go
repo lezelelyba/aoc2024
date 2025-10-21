@@ -38,7 +38,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer format, prefix with Bearerrmat",
+                        "description": "Bearer format, prefix with Bearer",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -117,7 +117,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Bearer format, prefix with Bearerrmat",
+                        "description": "Bearer format, prefix with Bearer",
                         "name": "Authorization",
                         "in": "header",
                         "required": true

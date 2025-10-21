@@ -43,7 +43,7 @@ paths:
     get:
       description: Lists days which the solver can solve
       parameters:
-      - description: Bearer format, prefix with Bearerrmat
+      - description: Bearer format, prefix with Bearer
         in: header
         name: Authorization
         required: true
@@ -95,7 +95,7 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/Request'
-      - description: Bearer format, prefix with Bearerrmat
+      - description: Bearer format, prefix with Bearer
         in: header
         name: Authorization
         required: true

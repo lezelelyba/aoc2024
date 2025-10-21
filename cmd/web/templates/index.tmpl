@@ -4,126 +4,135 @@
   <meta charset="UTF-8">
   <title>{{block "title" .}}AoC 2024 Solver{{end}}</title>
   <link rel="stylesheet" href="/static/css/styles.css">
+  <script src="/static/js/navigation.js" defer></script>
   <script src="/static/js/auth.js"></script>
-  <script src="/static/js/navigation.js"></script>
   <script src="/static/js/helpers.js"></script>
   <script src="/static/js/callSolver.js"></script>
   {{block "head" .}}{{end}}
 </head>
 <body>
   <header>
-    <h1>AoC 2024</h1>
+    <h1>Advent of Code 2024 Solver</h1>
     <nav>
-      <a href="/">Home</a>
-      <a href="/swagger">API Definition</a>
+      |
+      <a href="https://adventofcode.com/2024" target="_blank">Advent of Code</a>
+      |
+      <a href="https://github.com/lezelelyba/aoc2024/" target="_blank">GitHub</a>
+      |
+      <a href="/swagger" target="_blank">API Definition</a>
+      |
     </nav>
   </header>
 
   <main>
-    {{block "content" .}}{{end}}
     {{block "authentication" .}}{{end}}
-    {{block "table" .}}{{end}}
-    {{block "solverContent" .}}{{end}}
+    {{block "solverSelection" .}}{{end}}
+    {{block "solverUpload" .}}{{end}}
+    {{block "solverResult" .}}{{end}}
   </main>
 
   <footer>
-    <p>&copy; AoC Solver 2024</p>
+    <div class="footer">
+      <div class="server-info">
+        <span>Server info: {{.Hostname}}</span>
+        <span>Version: latest</span>
+      </div>
+    </div>
   </footer>
 </body>
 </html>
 
 {{ define "authentication"}}
-  {{- if .Config.OAuth -}}
-    <p>
+{{- if .Config.OAuth -}}
+<section class="auth active">
+  <div id="auth-enabled" data-enabled="true" hidden></div>
+
+  <div class="auth-status-logout">
+    <div>
       <strong>Authentication status</strong>: <span id="auth-status">Not Authenticated</span>
-      <div id="login-buttons-div">
-      </div>
-    </p>
-    <div id="logout-buttons-div">
+    </div>
+    <div id="logout-buttons-div" hidden>
       <button id="logoutBtn">Logout</button>
     </div>
-    <script>
-      // updates UI based on authentication status
-      document.addEventListener("DOMContentLoaded", () => updateAuthUI());
+  </div> 
+  <div id="login-buttons-div">
+  </div>
+  <script>
+    // create OAuth authentication buttons
+    const loginButtons = new Map();
+    const loginButtonsDiv = document.getElementById("login-buttons-div");
+    {{- range .Config.OAuthProviders }}
+    loginButtons["{{.Name}}"] = document.createElement("button");
+    loginButtons["{{.Name}}"].textContent = "Authenticate via {{.Name}}"
+    loginButtons["{{.Name}}"].id = "login-button-{{.Name}}";
+    loginButtons["{{.Name}}"].class = "login-button";
+    loginButtons["{{.Name}}"].addEventListener("click", () => startOAuth("{{.UserAuth}}"));
 
-      // create OAuth authentication buttons
-      const loginButtons = new Map();
-      const loginButtonsDiv = document.getElementById("login-buttons-div");
-      {{- range .Config.OAuthProviders }}
-      loginButtons["{{.Name}}"] = document.createElement("button");
-      loginButtons["{{.Name}}"].textContent = "Authenticate via {{.Name}}"
-      loginButtons["{{.Name}}"].id = "login-button-{{.Name}}";
-      loginButtons["{{.Name}}"].addEventListener("click", () => startOAuth("{{.UserAuth}}"));
+    loginButtonsDiv.appendChild(loginButtons["{{.Name}}"]);
+    {{- end }}
+  </script>
+</section>
+{{- else -}}
+<div id="auth-enabled" data-enabled="false" hidden></div>
+{{- end -}}
+{{end}}
 
-      loginButtonsDiv.appendChild(loginButtons["{{.Name}}"]);
-      {{- end }}
-      document.getElementById("logoutBtn").addEventListener("click", () => OAuthLogout());
-    </script>
+{{ define "solverSelection"}}
+  {{- if .Config.OAuth -}}
+<section class="selection disabled">
+  {{- else -}}
+<section class="selection active">
   {{- end -}}
-{{end}}
-
-{{ define "title "}}Home{{end}}
-
-{{ define "content"}}
-    <p>Server {{.Hostname}} is up and running</p>
-{{end}}
-
-{{ define "table"}}
+  <div id="table-header">
     <h2>Table of Solvers</h2>
-    <div id="table-container">
+    <div id="solver-selection" hidden>
+        <strong>Current solver selection: </strong><span id="solver-day">None</span> part <span id="solver-part">None</span>
+    </div>
+  </div>
+  <div id="table-container">
     <table>
         <thead>
         <tr>
-        {{- range $i, $f := fieldNames (index .RegistryItems 0 ) }}
-            <th>{{$f}}</th>
-        {{- end }}
+          <th>Name</th>
+          <th>Parts 1</th>
+          <th>Parts 2</th>
         </tr>
         </thead>
         <tbody>
             {{- range $item := .RegistryItems }}
             <tr>
-                {{- range $i, $f := fieldNames . }}
-                <td>
-                    {{- $v := getField $item $f -}}
-                    {{$v}}
-                    {{- if eq $f "Name" -}}
-                    <a href="#" data-day="{{$v}}" data-part="1">Part 1</a>
-                    <a href="#" data-day="{{$v}}" data-part="2">Part 2</a>
-                    {{- end -}}
-                </td>
-                {{- end }}
+                <td class="row-key">{{$item.Name}}</td>
+                <td><a href="#" data-day="{{$item.Name}}" data-part="1">Part 1</a></td>
+                <td><a href="#" data-day="{{$item.Name}}" data-part="2">Part 2</a></td>
             </tr>
             {{- end }}
         </tbody>
     </table>
-    </div>
+  </div>
+</section>
 {{end}}
 
-{{define "solverContent"}}
-<div id="solver-selection" hidden>
-  <p>
-    <strong>Current solver selection:</strong> day: <span id="solver-day">None</span> part: <span id="solver-part">None</span>
-  </p>
-</div>
+{{define "solverUpload"}}
+<section class="submission disabled">
+  <div id="submit-header">
+    <label for="fileInput" class="file-btn">Choose a file</label>
+    <span id="fileName" data-default="No file selected">No file selected</span>
+    <input type="file" id="fileInput" hidden>
+    <button id="inputClear">Clear selection</button>
+  </div>
+  <div>
+    <label for="textInput">Or paste text </label>
+    <textarea id="textInput" rows="4" cols="50" style="resize: none;"></textarea>
+  </div>
+  <div id="submit-btn-div">
+    <button id="submitBtn">Send to API</button>
+  </div>
+</section>
+{{end}}
 
-<div id="solver-content">
-
-<h2>Select a file</h2>
-
-<label for="fileInput">Choose a file:</label>
-<input type="file" id="fileInput" class="auth-required"><br><br>
-<button id="fileInputClear" class="auth-required" onclick="clearFileSelection('fileInput')">Clear file selection</button><br><br>
-
-<label for="textInput">Or paste text:</label>
-<textarea id="textInput" rows="4" cols="50" class="auth-required"></textarea><br><br>
-
-<button id="submitBtn" class="auth-required">Send to API</button>
-
-<pre id="result" style="margin-top:20px; background:#f4f4f4; padding:10px;"></pre>
-
-<script>
-  // sends request via API
-  document.getElementById("submitBtn").addEventListener("click", () => handleSubmitClick("/api/solvers/{day}/{part}"));
-</script>
-</div>
+{{define "solverResult"}}
+<section class="result disabled">
+  <pre id="result"></pre>
+  <button id="seenBtn" hidden>Ok</button>
+</section>
 {{end}}
