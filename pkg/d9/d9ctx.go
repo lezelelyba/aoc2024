@@ -31,28 +31,6 @@ func (p *PuzzleStructWithCtx) SolveCtx(ctx context.Context, part int) (string, e
 	case 1:
 		sum := 0
 
-		select {
-		case <-ctx.Done():
-			return "", solver.ErrTimeout
-		default:
-		}
-
-		return strconv.Itoa(sum), nil
-	case 2:
-		sum := 0
-
-		select {
-		case <-ctx.Done():
-			return "", solver.ErrTimeout
-		default:
-		}
-
-		return strconv.Itoa(sum), nil
-	}
-	switch part {
-	case 1:
-		sum := 0
-
 		front_array_idx := 0
 		front_block_idx := 0
 		back_array_idx := len(*p.inputInts) - 1
