@@ -10,7 +10,7 @@ on:
       - '.github/workflows/cmd-web-release.yml'
       - 'build/ci/docker/web.Dockerfile'
       - 'cmd/web/**'
-      - '/pkg/**'
+      - 'pkg/**'
 
 permissions:
   contents: write
