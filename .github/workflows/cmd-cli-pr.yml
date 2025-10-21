@@ -6,10 +6,10 @@ on:
       - '.github/workflows/cmd-cli-pr.yml'
       - 'build/ci/docker/cli.Dockerfile'
       - 'cmd/cli/**'
-      - '/pkg/**'
+      - 'pkg/**'
 
 jobs:
-  bump_version:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
