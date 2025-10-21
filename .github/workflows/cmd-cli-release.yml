@@ -10,7 +10,7 @@ on:
       - '.github/workflows/cmd-cli-release.yml'
       - 'build/ci/docker/cli.Dockerfile'
       - 'cmd/cli/**'
-      - '/pkg/**'
+      - 'pkg/**'
 
 permissions:
   contents: write
