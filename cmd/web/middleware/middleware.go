@@ -129,15 +129,6 @@ func RateLimitMiddleware(tokenRate, burst int) func(http.Handler) http.Handler {
 	}
 }
 
-func WithConfig(cfg *config.Config) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), ContextConfig, cfg)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
-}
-
 func AuthenticationMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -179,12 +170,43 @@ func AuthenticationMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
+func WithConfig(cfg *config.Config) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(r.Context(), ContextConfig, cfg)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
 func GetConfig(r *http.Request) (*config.Config, bool) {
 	cfg, ok := r.Context().Value(ContextConfig).(*config.Config)
 	if cfg == nil {
 		return cfg, false
 	}
 	return cfg, ok
+}
+
+func RecoveryMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				if rec := recover(); rec != nil {
+					var rc int
+					var errMsg string
+
+					logger := GetLogger(r)
+
+					rc = http.StatusInternalServerError
+					errMsg = "internal server error: recovered"
+					if weberrors.HandleError(w, logger, weberrors.OkToError(false), rc, errMsg) != nil {
+						return
+					}
+				}
+			}()
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func clientIP(r *http.Request) string {
