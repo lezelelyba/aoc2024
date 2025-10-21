@@ -7,6 +7,7 @@ import (
 	"text/template"
 
 	_ "advent2024/pkg/d1"
+	_ "advent2024/pkg/d10"
 	_ "advent2024/pkg/d2"
 	_ "advent2024/pkg/d3"
 	_ "advent2024/pkg/d4"

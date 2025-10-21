@@ -359,6 +359,7 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
   // if submit threw error -> modify seen button to allow fix and resubmit
   // if submit was ok -> keep original to go to init state
   try {
+    document.body.classList.add("busy");
     await handleSubmitClick("/api/solvers/{day}/{part}");
   } catch(error) {
     // setup seenBtn to return to submit state
@@ -369,6 +370,8 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
     document.getElementById("seenBtn").addEventListener("click", () => {
       UIHandler.transition('SUBMITERROR');
     });
+  } finally {
+    document.body.classList.remove("busy");
   }
 });
 

@@ -99,7 +99,7 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slvr, ok := solver.New(day)
+	slvr, ok := solver.NewWithCtx(day)
 
 	rc = http.StatusNotFound
 	errMsg = fmt.Sprintf("Solver for day %s part %s not implemented: day not implemented", day, part)
@@ -107,11 +107,10 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	adapter := solver.NewSolverAdapter(slvr)
 	ctx, cancel := context.WithTimeout(r.Context(), cfg.SolverTimeout)
 	defer cancel()
 
-	err = adapter.Init(ctx, strings.NewReader(string(decoded_body)))
+	err = slvr.InitCtx(ctx, strings.NewReader(string(decoded_body)))
 
 	if errors.Is(err, solver.ErrTimeout) {
 		rc = http.StatusGatewayTimeout
@@ -124,7 +123,7 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := adapter.Solve(ctx, part_converted)
+	result, err := slvr.SolveCtx(ctx, part_converted)
 
 	if errors.Is(err, solver.ErrTimeout) {
 		rc = http.StatusGatewayTimeout

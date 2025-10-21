@@ -22,7 +22,7 @@ func ServerStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	registeredKeys := solver.ListRegistryItems()
+	registeredKeys := solver.ListRegistryItemsWithCtx()
 	var keyNames []string
 
 	for _, i := range registeredKeys {
@@ -72,7 +72,7 @@ func ServerIndex(w http.ResponseWriter, r *http.Request) {
 		hostname = "UnknownHostname"
 	}
 
-	registryItems := solver.ListRegistryItems()
+	registryItems := solver.ListRegistryItemsWithCtx()
 
 	data := struct {
 		Hostname      string
@@ -96,7 +96,7 @@ func ServerIndex(w http.ResponseWriter, r *http.Request) {
 func SolverListing(w http.ResponseWriter, r *http.Request) {
 	logger := middleware.GetLogger(r)
 
-	registryItems := solver.ListRegistryItems()
+	registryItems := solver.ListRegistryItemsWithCtx()
 
 	b, err := json.Marshal(registryItems)
 
