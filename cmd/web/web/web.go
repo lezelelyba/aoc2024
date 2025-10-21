@@ -301,7 +301,7 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middlewa
 		data.Set("client_id", provider.ClientId)
 		data.Set("client_secret", provider.ClientSecret)
 		data.Set("code", code)
-		// TODO: redirect_uri
+		// TODO: send redirect_uri to github
 
 		req, err := http.NewRequest(
 			"POST",

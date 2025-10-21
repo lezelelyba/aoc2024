@@ -94,3 +94,9 @@ test:
 			go test "$$mod/..."; \
 		fi \
 	done
+	
+	@echo "Running cli tests..."
+	go test ./cmd/cli/...
+
+	@echo "Running web tests..."
+	go test ./cmd/web/...

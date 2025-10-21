@@ -8,8 +8,8 @@ WORKDIR /release.web/cmd/web
 
 RUN go mod download
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /advent2024.webserver
-
+ARG VERSION
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-X 'main.Version=${VERSION}'" -o /advent2024.webserver
 
 FROM scratch
 

@@ -122,10 +122,10 @@ func TestCtxTimeout(t *testing.T) {
 			puzzle := NewSolverWithCtx()
 			_ = puzzle.InitCtx(context.Background(), strings.NewReader(c.input))
 
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 250 * time.Millisecond)
 			defer cancel()
 
-			time.Sleep(2 * time.Second)
+			time.Sleep(500 * time.Millisecond)
 
 			_, got := puzzle.SolveCtx(ctx, c.part)
 

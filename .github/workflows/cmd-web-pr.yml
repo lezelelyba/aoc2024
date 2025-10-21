@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Tests
+      - name: Run Unit Tests
         run: |
           for mod in ./pkg/*/; do
             if [ -f "$mod/go.mod" ]; then
@@ -22,4 +22,8 @@ jobs:
               go test "$mod/..."
             fi
           done
+      - name: Run Web Tests
+        run : |
+          echo "Running web tests..."
+          go test ./cmd/web/...
           

@@ -63,7 +63,7 @@ jobs:
           
       - name: Build Docker images
         run: |
-          docker build -f build/ci/docker/web.Dockerfile -t jsafar/advent2024.web:${NEXT_VER} .
+          docker build -f build/ci/docker/web.Dockerfile --build-arg VERSION="${NEXT_VER}" -t jsafar/advent2024.web:${NEXT_VER} .
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2

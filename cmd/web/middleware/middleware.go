@@ -4,6 +4,7 @@ import (
 	"advent2024/web/config"
 	"advent2024/web/weberrors"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -121,7 +122,7 @@ func RateLimitMiddleware(tokenRate, burst int) func(http.Handler) http.Handler {
 			} else {
 				rc := http.StatusTooManyRequests
 				errMsg := "too many requests"
-				weberrors.HandleError(w, logger, fmt.Errorf(errMsg), rc, errMsg)
+				_ = weberrors.HandleError(w, logger, errors.New(errMsg), rc, errMsg)
 
 				return
 			}
