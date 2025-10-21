@@ -6,7 +6,7 @@ on:
       - '.github/workflows/cmd-web-pr.yml'
       - 'build/ci/docker/web.Dockerfile'
       - 'cmd/web/**'
-      - '/pkg/**'
+      - 'pkg/**'
 
 jobs:
   bump_version:
