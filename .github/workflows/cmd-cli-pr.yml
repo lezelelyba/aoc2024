@@ -9,7 +9,7 @@ on:
       - 'pkg/**'
 
 jobs:
-  bump_version:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

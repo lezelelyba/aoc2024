@@ -11,7 +11,7 @@ defaults:
     working-directory: ./environments/aws/dev
 
 jobs:
-  bump_version:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
