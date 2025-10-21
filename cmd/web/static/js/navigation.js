@@ -37,12 +37,14 @@ function createMachine(stateMachineDefinition) {
  */
 const UIMachine = {
   initialState: 'start',
+  // beginning state, cannot be revisited
   states : {
     start: {
       transitions: {
         START: 'idle'
       },
     },
+  // resets all elements to default state
     idle: {
       transitions: {
         AUTHENTICATE: 'startAuth',
@@ -50,15 +52,18 @@ const UIMachine = {
       },
       onEntry: function(prevState, thisState, payload) {
 
+        // auth
         const authEls = document.getElementsByClassName("auth");
-
         Array.from(authEls).forEach(el => {
           el.classList.add("active");
           el.classList.remove("done");
         });
         
         const statusEl = document.getElementById("auth-status");
-        if(statusEl) statusEl.textContent = "Not Authenticated";
+        if(statusEl) {
+          statusEl.textContent = "Not Authenticated";
+          statusEl.classList.remove("authenticated");
+        }
         
         const loginButtonsDiv = document.getElementById("login-buttons-div");
         if(loginButtonsDiv) loginButtonsDiv.hidden = false;
@@ -66,12 +71,12 @@ const UIMachine = {
         const logoutButtonsDiv = document.getElementById("logout-buttons-div");
         if(logoutButtonsDiv) logoutButtonsDiv.hidden = true;
 
+        // selection
         const selectionEls = document.getElementsByClassName("selection");
         Array.from(selectionEls).forEach(el => {
           el.classList.add("disabled");
           el.classList.remove("active");
           el.classList.remove("done");
-          el.classList.remove("donedisabled");
         });
         
         sessionStorage.removeItem("day");
@@ -85,60 +90,70 @@ const UIMachine = {
         if (partEl) partEl.textContent = "None";
         if (solverSelectionDiv) solverSelectionDiv.hidden = true;
 
+        // submission
         const submissionEls= document.getElementsByClassName("submission");
         Array.from(submissionEls).forEach(el => {
           el.classList.add("disabled");
           el.classList.remove("active");
           el.classList.remove("done");
-          el.classList.remove("donedisabled");
         });
 
         document.getElementById("fileInput").value = "";
         document.getElementById("textInput").value = "";
+        const fileNameEl = document.getElementById('fileName')
+        fileNameEl.textContent = fileNameEl.dataset.default;
 
+        // result
         const resultEls = document.getElementsByClassName("result");
         Array.from(resultEls).forEach(el => {
           el.classList.add("disabled");
           el.classList.remove("active");
           el.classList.remove("done");
-          el.classList.remove("donedisabled");
         });
 
-        const seenBtn = document.getElementById("seenBtn");
-        seenBtn.hidden = true;
-        
-        const resultEl = document.getElementById('result');
-        resultEl.textContent = "";
-        
+        const seenBtn = document.getElementById("seenBtn").hidden = true;
+        const resultEl = document.getElementById('result').textContent = "";
       }
     },
+    // starts authentication - currently only a transition state
     startAuth: {
       transitions: {
         AUTHOK: 'authenticated',
         AUTHFAIL: 'idle'
       }
     },
+    // user is authenticated
     authenticated: {
       transitions: {
         SELECT: 'selected',
         TIMEOUTLOGOUT: 'idle'
       },
       onEntry: function(prevState, thisState, payload) {
+        // auth
+
+        // display authenticated message
         const statusEl = document.getElementById("auth-status");
-        if(statusEl) statusEl.textContent = "Authenticated";
-        
+        if(statusEl) {
+          statusEl.textContent = "Authenticated";
+          statusEl.classList.add("authenticated");
+        }
+       
+        // hide login buttons
         const loginButtonsDiv = document.getElementById("login-buttons-div");
         if(loginButtonsDiv) loginButtonsDiv.hidden = true;
 
+        // show logout button
         const logoutButtonsDiv = document.getElementById("logout-buttons-div");
         if(logoutButtonsDiv) logoutButtonsDiv.hidden = false;
 
+        // mark authentication sections as done
         const authEls = document.getElementsByClassName("auth");
         Array.from(authEls).forEach(el => {
           el.classList.remove("active");
           el.classList.add("done");
         });
 
+        // activate selection section
         const selectionEls = document.getElementsByClassName("selection");
         Array.from(selectionEls).forEach(el => {
           el.classList.remove("disabled");
@@ -146,6 +161,7 @@ const UIMachine = {
         });
       },
     },
+    // file is selected
     selected: {
       transitions: {
         SUBMIT: 'submitted',
@@ -153,9 +169,11 @@ const UIMachine = {
         TIMEOUTLOGOUT: 'idle'
       },
       onEntry: function(prevState, thisState, payload) {
+        // get selected day and part from storage (reselect)
         let day = sessionStorage.getItem("day");
         let part = sessionStorage.getItem("part");
 
+        // get day and part from payload
         if (payload !== undefined && ("day" in payload && "part" in payload)) {
           sessionStorage.setItem("day", payload.day);
           sessionStorage.setItem("part", payload.part);
@@ -163,7 +181,8 @@ const UIMachine = {
           day = payload.day;
           part = payload.part;
         }
-        
+       
+        // update selection display
         const dayEl = document.getElementById("solver-day");
         const partEl = document.getElementById("solver-part");
         const solverSelectionDiv = document.getElementById("solver-selection");
@@ -171,22 +190,23 @@ const UIMachine = {
         if (dayEl) dayEl.textContent = day || "None";
         if (partEl) partEl.textContent = part || "None";
         if (solverSelectionDiv) solverSelectionDiv.hidden = day && part ? false : true;
-  
+ 
+        // mark selection as done
         const selectionEls = document.getElementsByClassName("selection");
         Array.from(selectionEls).forEach(el => {
           el.classList.remove("active");
-          el.classList.remove("donedisabled");
           el.classList.add("done");
         });
 
+        // activate submit section
         const submissionEls = document.getElementsByClassName("submission");
         Array.from(submissionEls).forEach(el => {
           el.classList.remove("disabled");
-          el.classList.remove("donedisabled");
           el.classList.add("active");
         });
       },
     },
+    // show result
     submitted: {
       transitions: {
         SEEN: 'idle',
@@ -194,41 +214,62 @@ const UIMachine = {
         SUBMITERROR: 'selected'
       },
       onEntry: function(prevState, thisState, payload) {
+        // disable selection until result is acknowledged
         const selectionEls = document.getElementsByClassName("selection");
         Array.from(selectionEls).forEach(el => {
           el.classList.remove("active");
-          el.classList.remove("done");
-          el.classList.add("donedisabled");
+          el.classList.add("done");
+          el.classList.add("disabled");
         });
 
+        // disable submit section until result is acknowledged
         const submissionEls = document.getElementsByClassName("submission");
         Array.from(submissionEls).forEach(el => {
           el.classList.remove("active");
-          el.classList.add("donedisabled");
+          el.classList.add("done");
+          el.classList.add("disabled");
         });
 
+        // activate result section
         const resultEls = document.getElementsByClassName("result");
         Array.from(resultEls).forEach(el => {
           el.classList.remove("disabled");
           el.classList.add("active");
         });
 
+        // show seen button
         const seenBtn = document.getElementById("seenBtn");
         seenBtn.hidden = false;
       },
       onExit: function(thisState, nextState, payload) {
+        // local submit error (wrong file, no input)
+        // init would reset everything
+        // 
         if (nextState === "selected") {
+
+          // hide seen button
           const seenBtn = document.getElementById("seenBtn");
           seenBtn.hidden = true ;
 
-          const resultEls = document.getElementsByClassName("result");
-          Array.from(resultEls).forEach(el => {
-            el.classList.add("disabled");
-            el.classList.remove("active");
-          });
-          
+          // clan up result
           const resultEl = document.getElementById('result');
           resultEl.textContent = "";
+
+          // disable result
+          const resultEls = document.getElementsByClassName("result");
+          Array.from(resultEls).forEach(el => {
+            el.classList.remove("active");
+            el.classList.add("disabled");
+          });
+
+          // reenable selection, keep the day/part
+          const selectionEls = document.getElementsByClassName("selection");
+          Array.from(selectionEls).forEach(el => {
+            el.classList.remove("disabled");
+            el.classList.add("done");
+            el.classList.add("active");
+          });
+          
         }
       }
     }
@@ -239,6 +280,8 @@ const UIMachine = {
 const UIHandler = createMachine(UIMachine);
 
 // register events
+
+// on load check authentication state, as we can be redirected from callback
 document.addEventListener("DOMContentLoaded", function() {
     console.log("DOM fully loaded and parsed");
 
@@ -261,6 +304,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
+// logout button
 // might not exist if auth is disabled
 const logoutBtn = document.getElementById("logoutBtn")
 if(logoutBtn) {
@@ -270,8 +314,9 @@ if(logoutBtn) {
   });
 }
 
+// day/part selection table
 document.querySelectorAll('a[data-day]').forEach(link => {
-  link.addEventListener('click', async e => {
+  link.addEventListener('click', e => {
     e.preventDefault();
     const { day, part } = e.target.dataset;
 
@@ -279,9 +324,11 @@ document.querySelectorAll('a[data-day]').forEach(link => {
   });
 });
 
+// submit button
+// has to be async
 document.getElementById("submitBtn").addEventListener("click", async () => {
-  // setup seenBtn
-
+  // reset seenBtn
+  // clicking goes to init and resets display
   // remove old listener
   const seenBtn = document.getElementById("seenBtn");
   seenBtn.replaceWith(seenBtn.cloneNode(true));
@@ -309,7 +356,8 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
  
   // submit
   UIHandler.transition('SUBMIT');
-  // check if submit failed
+  // if submit threw error -> modify seen button to allow fix and resubmit
+  // if submit was ok -> keep original to go to init state
   try {
     await handleSubmitClick("/api/solvers/{day}/{part}");
   } catch(error) {
@@ -324,19 +372,22 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
   }
 });
 
-// document.getElementById("textInput").addEventListener("input", e => {
-//   fileInput = document.getElementById("fileInput")
-//   submitBtn = document.getElementById("submitBtn")
-// 
-//   submitBtn.disabled = (e.target.value.trim() === "" ) && (fileInput.value === "");
-// });
-// 
-// document.getElementById("fileInput").addEventListener("change", e => {
-//   textInput = document.getElementById("textInput")
-//   submitBtn = document.getElementById("submitBtn")
-// 
-//   submitBtn.disabled = (textInput.value.trim() === "" ) && (e.target.value === "");
-// });
+// file input change
+// modifies selected file display
+document.getElementById("fileInput").addEventListener("change", e => {
+  fileNameEl = document.getElementById('fileName')
+  const fileName = e.target.files[0]?.name || fileNameEl.dataset.default;
+  fileNameEl.textContent = fileName;
+});
+
+// input clear button
+// clears file and text inputs, sets text input to default
+document.getElementById("inputClear").addEventListener("click", () => {
+  document.getElementById("fileInput").value = "";
+  document.getElementById("textInput").value = "";
+  fileNameEl = document.getElementById('fileName')
+  fileNameEl.textContent = fileNameEl.dataset.default;
+});
 
 /**
  * Handles Submit button click
@@ -386,13 +437,4 @@ async function handleSubmitClick(endpointTemplate) {
     resultEl.textContent = 'Error: ' + error.message;
     throw(error);
   }
-}
-
-// function clearFileSelection(elementId) {
-//   document.getElementById(elementId).value = "";
-// }
-
-function clearSelection() {
-  document.getElementById("fileInput").value = "";
-  document.getElementById("textInput").value = "";
 }

@@ -41,7 +41,7 @@ func NewConfig() Config {
 		APIRate:          3,
 		APIBurst:         3,
 		SolverTimeout:    time.Duration(5 * time.Second),
-		JWTTokenValidity: time.Duration(15 * time.Minute),
+		JWTTokenValidity: time.Duration(900 * time.Second),
 		OAuthProviders:   make(map[string]OAuthProvider),
 	}
 }
@@ -71,7 +71,7 @@ func LoadConfig() (Config, []error) {
 
 	oAuth := flag.String("oauth", envOrDefault("ENABLE_OAUTH", fmt.Sprintf("%t", config.OAuth)), "Enables OAuth API authentication, requireds jwt secret and then requireds per provider callback url, token exhcnage url, client id and secret to be specified")
 	jwtSecret := flag.String("jwt-secret", envOrDefault("JWT_SECRET", ""), "JWT Secret")
-	jwtTokenValidity := flag.String("jwt-token-validity", envOrDefault("JWT_TOKEN_VALIDITY", ""), "JWT Token Validity in minutes")
+	jwtTokenValidity := flag.String("jwt-token-validity", envOrDefault("JWT_TOKEN_VALIDITY", ""), "JWT Token Validity in seconds")
 	oAuthGithubCallbackURL := flag.String("oauth-github-callback-url", envOrDefault("OAUTH_GITHUB_CALLBACK_URL", ""), "Github OAuth callback")
 	oAuthGithubUserAuthURL := flag.String("oauth-github-user-auth-url", envOrDefault("OAUTH_GITHUB_USER_AUTH_URL", ""), "Github OAuth User auth URL")
 	oAuthGithubTokenURL := flag.String("oauth-github-token-url", envOrDefault("OAUTH_GITHUB_TOKEN_URL", ""), "Github OAuth Token exchange URL")
@@ -97,7 +97,7 @@ func LoadConfig() (Config, []error) {
 
 	var durationInt int
 	parseInt("jwtTokenValidity", *jwtTokenValidity, &durationInt, int(config.JWTTokenValidity.Seconds()))
-	config.JWTTokenValidity = time.Duration(time.Duration(durationInt) * time.Minute)
+	config.JWTTokenValidity = time.Duration(time.Duration(durationInt) * time.Second)
 
 	parseInt("solverTimeout", *solverTimeout, &durationInt, int(config.SolverTimeout.Seconds()))
 	config.SolverTimeout = time.Duration(time.Duration(durationInt) * time.Second)
