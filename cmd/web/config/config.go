@@ -11,6 +11,7 @@ import (
 )
 
 type Config struct {
+	Version          string
 	Port             int
 	EnableTLS        bool
 	CertFile         string

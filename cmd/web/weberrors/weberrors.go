@@ -2,7 +2,7 @@ package weberrors
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
 	"net/http"
 )
@@ -36,5 +36,5 @@ func OkToError(ok bool) error {
 		return nil
 	}
 
-	return fmt.Errorf("false")
+	return errors.New("false")
 }

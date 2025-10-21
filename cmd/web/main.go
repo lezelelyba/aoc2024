@@ -27,6 +27,8 @@ import (
 	_ "advent2024/web/docs"
 )
 
+var Version string = "dev"
+
 //	@title			Advent of Code 2024 Solver API
 //	@version		1.0
 //	@description	Solver for AoC 2024 written in Go
@@ -62,6 +64,8 @@ func main() {
 			log.Println(e)
 		}
 	}
+
+	cfg.Version = Version
 
 	// parse templates
 

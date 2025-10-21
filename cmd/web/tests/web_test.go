@@ -119,6 +119,7 @@ func TestOAuthHandler(t *testing.T) {
 		{"unknown provider", "/oauth/unknownProvider/token", http.StatusBadRequest},
 		{"missing code", "/oauth/github/token", http.StatusBadRequest},
 		// TODO: what github returns in case of bad token?
+		// 200 OK and you have to read the message
 		{"invalid code", "/oauth/github/token?code=invalidCode", http.StatusInternalServerError},
 		{"valid code", "/oauth/github/token?code=validCode", http.StatusOK},
 	}
