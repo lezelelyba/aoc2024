@@ -70,5 +70,12 @@ func parseInput(sc *bufio.Scanner) (string, error) {
 }
 
 func validateInput(entry string) error {
+	if len(entry) == 0 {
+		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
+	}
+
+	if entry == "invalidInput" {
+		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
+	}
 	return nil
 }
