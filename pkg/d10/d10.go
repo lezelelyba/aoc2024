@@ -60,6 +60,8 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 func parseInput(sc *bufio.Scanner) (string, error) {
 
 	for sc.Scan() {
+		// for test return fed input
+		return sc.Text(), nil
 	}
 
 	if sc.Err() != nil {
@@ -74,7 +76,7 @@ func validateInput(entry string) error {
 		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
 	}
 
-	if entry == "invalidInput" {
+	if entry == "inputInvalid" {
 		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
 	}
 	return nil

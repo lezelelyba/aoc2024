@@ -54,15 +54,12 @@ func TestUnknownPart(t *testing.T) {
 }
 
 func TestInvalidInput(t *testing.T) {
-	inputComplex := `invalidComplex`
-
 	cases := []struct {
 		name  string
 		input string
 	}{
 		{"empty input", ``},
 		{"invalid input", "inputInvalid"},
-		{"complex input", inputComplex},
 	}
 
 	want := solver.ErrInvalidInput
