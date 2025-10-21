@@ -120,9 +120,7 @@ func main() {
 
 	// add authentication if enabled
 	if cfg.OAuth {
-		apiHandler = middleware.Chain(
-			apiHandler,
-			middleware.AuthenticationMiddleware())
+		apiHandler = middleware.AuthenticationMiddleware()(apiHandler)
 	}
 
 	// combine muxes
@@ -130,10 +128,10 @@ func main() {
 	globalMux.Handle("/", webMux)
 
 	// add logging middleware
-	finalMux := middleware.LoggingMiddleware(logger)(globalMux)
-	// add config
+	var finalMux http.Handler = globalMux
+	finalMux = middleware.RecoveryMiddleware()(finalMux)
+	finalMux = middleware.LoggingMiddleware(logger)(finalMux)
 	finalMux = middleware.WithConfig(&cfg)(finalMux)
-	// TODO add recovery middleware
 
 	// start server
 	addr := fmt.Sprintf(":%d", cfg.Port)

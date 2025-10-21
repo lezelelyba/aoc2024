@@ -184,3 +184,41 @@ func TestToken(t *testing.T) {
 		}
 	})
 }
+
+func TestPanic(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("function didn't panic")
+		}
+	}()
+
+	mux := http.NewServeMux()
+	f := func(w http.ResponseWriter, r *http.Request) {
+		panic("problem")
+	}
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+
+	mux.Handle("/", http.HandlerFunc(f))
+	mux.ServeHTTP(w, req)
+}
+
+func TestRecovery(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("function paniced")
+		}
+	}()
+
+	mux := http.NewServeMux()
+	f := func(w http.ResponseWriter, r *http.Request) {
+		panic("problem")
+	}
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+
+	mux.Handle("/", middleware.RecoveryMiddleware()(http.HandlerFunc(f)))
+	mux.ServeHTTP(w, req)
+}
