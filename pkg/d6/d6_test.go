@@ -22,41 +22,24 @@ var (
 ......#...`
 )
 
-func TestPart1(t *testing.T) {
+func TestValid(t *testing.T) {
 	cases := []struct {
-		name, input, want string
+		name, input string
+		part        int
+		want        string
 	}{
-		{name: "test input", input: inputTest, want: "41"},
+		{"test input part 1", inputTest, 1, "41"},
+		{"test input part 2", inputTest, 2, "6"},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			puzzle := NewSolver()
 			_ = puzzle.Init(strings.NewReader(c.input))
-			got, _ := puzzle.Solve(1)
+			got, _ := puzzle.Solve(c.part)
 
 			if got != c.want {
-				t.Errorf("Got %s expected %s", got, c.want)
-			}
-		})
-	}
-}
-
-func TestPart2(t *testing.T) {
-	cases := []struct {
-		name, input, want string
-	}{
-		{name: "test input", input: inputTest, want: "6"},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			puzzle := NewSolver()
-			_ = puzzle.Init(strings.NewReader(c.input))
-			got, _ := puzzle.Solve(2)
-
-			if got != c.want {
-				t.Errorf("Got %s expected %s", got, c.want)
+				t.Errorf("part %d: got %s expected %s", c.part, got, c.want)
 			}
 		})
 	}
@@ -101,6 +84,7 @@ func TestInvalidInput(t *testing.T) {
 		})
 	}
 }
+
 func TestValidInput(t *testing.T) {
 
 	cases := []struct {
@@ -127,50 +111,54 @@ func TestValidInput(t *testing.T) {
 	}
 }
 
-func TestLoop(t *testing.T) {
-	// it won't loop due to part2 already implemented
-	inputLoop := `..........
-..........
-..........
-...#......
-.......#..
-..........
-..#^......
-......#...
-..........
-..........`
-
+func TestValidWithCtx(t *testing.T) {
 	cases := []struct {
-		name  string
-		input string
-		want  error
+		name, input string
+		part        int
+		want        string
 	}{
-		{"loop", inputLoop, solver.ErrTimeout},
+		{"test input part 1", inputTest, 1, "41"},
+		{"test input part 2", inputTest, 2, "6"},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			puzzle := NewSolver()
-			adapter := solver.NewSolverAdapter(puzzle)
+			puzzle := NewSolverWithCtx()
+			_ = puzzle.InitCtx(context.Background(), strings.NewReader(c.input))
+			got, _ := puzzle.SolveCtx(context.Background(), c.part)
+
+			if got != c.want {
+				t.Errorf("part %d: got %s expected %s", c.part, got, c.want)
+			}
+		})
+	}
+}
+
+func TestCtxTimeout(t *testing.T) {
+	cases := []struct {
+		name, input string
+		part        int
+	}{
+		{"test input part 1", inputTest, 1},
+		{"test input part 2", inputTest, 2},
+	}
+
+	want := solver.ErrTimeout
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolverWithCtx()
+			_ = puzzle.InitCtx(context.Background(), strings.NewReader(c.input))
 
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
 
-			_ = adapter.Init(ctx, strings.NewReader(c.input))
+			time.Sleep(2 * time.Second)
 
-			ch := make(chan error)
+			_, got := puzzle.SolveCtx(ctx, c.part)
 
-			go func() {
-				// simulate loop
-				time.Sleep(2 * time.Second)
-				_, got := adapter.Solve(ctx, 1)
-				ch <- got
-			}()
-
-			got := <-ch
-
-			if !errors.Is(got, c.want) {
-				t.Errorf("Got %v expected %v", got, c.want)
+			if got != want {
+				t.Errorf("Got %v expected %v", got, want)
 			}
 		})
 	}

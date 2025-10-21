@@ -65,6 +65,15 @@ section.disabled {
   opacity: 0.5;
 }
 
+.busy { 
+  cursor: wait;
+}
+
+.busy * { 
+  pointer-events: none;
+}
+
+
 /* Links */
 a {
   color: #0066cc;

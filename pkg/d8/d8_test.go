@@ -2,9 +2,11 @@ package d8
 
 import (
 	"advent2024/pkg/solver"
+	"context"
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 var (
@@ -22,60 +24,25 @@ var (
 ............`
 )
 
-func TestPart1(t *testing.T) {
+func TestValid(t *testing.T) {
 	cases := []struct {
-		name, input, want string
+		name, input string
+		part        int
+		want        string
 	}{
-		{name: "test input", input: inputTest, want: "14"},
+		{"test input part 1", inputTest, 1, "14"},
+		{"test input part 2", inputTest, 2, "34"},
+		{"test input part 21", inputTest, 21, "34"},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			puzzle := NewSolver()
 			_ = puzzle.Init(strings.NewReader(c.input))
-			got, _ := puzzle.Solve(1)
+			got, _ := puzzle.Solve(c.part)
 
 			if got != c.want {
-				t.Errorf("Got %s expected %s", got, c.want)
-			}
-		})
-	}
-}
-
-func TestPart2(t *testing.T) {
-	cases := []struct {
-		name, input, want string
-	}{
-		{name: "test input", input: inputTest, want: "34"},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			puzzle := NewSolver()
-			_ = puzzle.Init(strings.NewReader(c.input))
-			got, _ := puzzle.Solve(2)
-
-			if got != c.want {
-				t.Errorf("Got %s expected %s", got, c.want)
-			}
-		})
-	}
-}
-func TestPart21(t *testing.T) {
-	cases := []struct {
-		name, input, want string
-	}{
-		{name: "test input", input: inputTest, want: "34"},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			puzzle := NewSolver()
-			_ = puzzle.Init(strings.NewReader(c.input))
-			got, _ := puzzle.Solve(21)
-
-			if got != c.want {
-				t.Errorf("Got %s expected %s", got, c.want)
+				t.Errorf("part %d: got %s expected %s", c.part, got, c.want)
 			}
 		})
 	}
@@ -205,7 +172,7 @@ l.....w...........q..6............V...............`
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		puzzle.Solve(2)
+		_, _ = puzzle.Solve(2)
 	}
 }
 
@@ -267,6 +234,59 @@ l.....w...........q..6............V...............`
 	_ = puzzle.Init(strings.NewReader(input))
 
 	for i := 0; i < b.N; i++ {
-		puzzle.Solve(21)
+		_, _ = puzzle.Solve(21)
+	}
+}
+
+func TestValidWithCtx(t *testing.T) {
+	cases := []struct {
+		name, input string
+		part        int
+		want        string
+	}{
+		{"test input part 1", inputTest, 1, "14"},
+		{"test input part 2", inputTest, 2, "34"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolverWithCtx()
+			_ = puzzle.InitCtx(context.Background(), strings.NewReader(c.input))
+			got, _ := puzzle.SolveCtx(context.Background(), c.part)
+
+			if got != c.want {
+				t.Errorf("part %d: got %s expected %s", c.part, got, c.want)
+			}
+		})
+	}
+}
+
+func TestCtxTimeout(t *testing.T) {
+	cases := []struct {
+		name, input string
+		part        int
+	}{
+		{"test input part 1", inputTest, 1},
+		{"test input part 2", inputTest, 2},
+	}
+
+	want := solver.ErrTimeout
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolverWithCtx()
+			_ = puzzle.InitCtx(context.Background(), strings.NewReader(c.input))
+
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+
+			time.Sleep(2 * time.Second)
+
+			_, got := puzzle.SolveCtx(ctx, c.part)
+
+			if got != want {
+				t.Errorf("Got %v expected %v", got, want)
+			}
+		})
 	}
 }

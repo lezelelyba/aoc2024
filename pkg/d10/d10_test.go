@@ -1,4 +1,4 @@
-package d3
+package d10
 
 import (
 	"advent2024/pkg/solver"
@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	inputTest = `xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))`
+	inputTest  = ``
+	inputEntry = ``
 )
 
 func TestValid(t *testing.T) {
@@ -19,8 +20,10 @@ func TestValid(t *testing.T) {
 		part        int
 		want        string
 	}{
-		{"test input part 1", inputTest, 1, "161"},
-		{"test input part 2", inputTest, 2, "48"},
+		{"test input part 1", inputTest, 1, "0"},
+		{"entry input part 1", inputEntry, 1, "0"},
+		{"test input part 2", inputTest, 2, "0"},
+		{"entry input part 2", inputEntry, 2, "0"},
 	}
 
 	for _, c := range cases {
@@ -51,12 +54,15 @@ func TestUnknownPart(t *testing.T) {
 }
 
 func TestInvalidInput(t *testing.T) {
+	inputComplex := `invalidComplex`
+
 	cases := []struct {
 		name  string
 		input string
 	}{
 		{"empty input", ``},
-		{"invalid input", `Invalid Input`},
+		{"invalid input", "inputInvalid"},
+		{"complex input", inputComplex},
 	}
 
 	want := solver.ErrInvalidInput
@@ -79,8 +85,10 @@ func TestValidWithCtx(t *testing.T) {
 		part        int
 		want        string
 	}{
-		{"test input part 1", inputTest, 1, "161"},
-		{"test input part 2", inputTest, 2, "48"},
+		{"test input part 1", inputTest, 1, "0"},
+		{"entry input part 1", inputEntry, 1, "0"},
+		{"test input part 2", inputTest, 2, "0"},
+		{"entry input part 2", inputEntry, 2, "0"},
 	}
 
 	for _, c := range cases {
@@ -114,13 +122,12 @@ func TestCtxTimeout(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
-
 			time.Sleep(2 * time.Second)
 
 			_, got := puzzle.SolveCtx(ctx, c.part)
 
 			if got != want {
-				t.Errorf("Got %v expected %v", got, want)
+				t.Errorf("Got %s expected %s", got, want)
 			}
 		})
 	}

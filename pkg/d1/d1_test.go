@@ -2,9 +2,11 @@ package d1
 
 import (
 	"advent2024/pkg/solver"
+	"context"
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 var (
@@ -91,6 +93,73 @@ a 3`
 
 			if !errors.Is(got, want) {
 				t.Errorf("Got %v expected %v", got, want)
+			}
+		})
+	}
+}
+
+func TestPart1WithCtx(t *testing.T) {
+	cases := []struct {
+		name, input, want string
+	}{
+		{name: "test input", input: inputTest, want: "11"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolverWithCtx()
+			_ = puzzle.InitCtx(context.Background(), strings.NewReader(c.input))
+			got, _ := puzzle.SolveCtx(context.Background(), 1)
+
+			if got != c.want {
+				t.Errorf("Got %s expected %s", got, c.want)
+			}
+		})
+	}
+}
+
+func TestPart2WithCtx(t *testing.T) {
+	cases := []struct {
+		name, input, want string
+	}{
+		{name: "test input", input: inputTest, want: "31"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolverWithCtx()
+			_ = puzzle.InitCtx(context.Background(), strings.NewReader(c.input))
+			got, _ := puzzle.SolveCtx(context.Background(), 2)
+
+			if got != c.want {
+				t.Errorf("Got %s expected %s", got, c.want)
+			}
+		})
+	}
+}
+
+func TestCtxCancel(t *testing.T) {
+	cases := []struct {
+		name, input string
+	}{
+		{name: "test input", input: inputTest},
+	}
+
+	want := solver.ErrTimeout
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			puzzle := NewSolverWithCtx()
+			_ = puzzle.InitCtx(context.Background(), strings.NewReader(c.input))
+
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+			time.Sleep(2 * time.Second)
+
+			_, got := puzzle.SolveCtx(ctx, 1)
+
+			if got != want {
+				t.Errorf("Got %s expected %s", got, want)
 			}
 		})
 	}
