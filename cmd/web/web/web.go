@@ -56,7 +56,7 @@ func ServerIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templateVal := r.Context().Value(middleware.ContextKeyIndexTemplate)
+	templateVal := r.Context().Value(middleware.ContextKeyTemplates)
 	tmpl, ok := templateVal.(*template.Template)
 
 	ok = ok && tmpl != nil
@@ -123,7 +123,7 @@ func SolveWithUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templateVal := r.Context().Value(middleware.ContextKeyUploadTemplate)
+	templateVal := r.Context().Value(middleware.ContextKeyTemplates)
 	template, ok := templateVal.(*template.Template)
 
 	ok = ok && template != nil
@@ -202,7 +202,7 @@ func OAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templateVal := r.Context().Value(middleware.ContextKeyCallbackTemplate)
+	templateVal := r.Context().Value(middleware.ContextKeyTemplates)
 	template, ok := templateVal.(*template.Template)
 
 	ok = ok && template != nil

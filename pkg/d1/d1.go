@@ -90,14 +90,16 @@ func parseInput(sc *bufio.Scanner) (*[2][]int, error) {
 		vs := strings.Fields(sc.Text())
 
 		if len(vs) != 2 {
-			return nil, fmt.Errorf("%s unable to parse \"%v\": %w", day, sc.Text(), solver.ErrInvalidInput)
+			maxOutput := min(len(sc.Text()), 80)
+			return nil, fmt.Errorf("%s unable to parse \"%v\": %w", day, sc.Text()[:maxOutput], solver.ErrInvalidInput)
 		}
 
 		l, lerr := strconv.Atoi(vs[0])
 		r, rerr := strconv.Atoi(vs[1])
 
 		if lerr != nil || rerr != nil {
-			return nil, fmt.Errorf("%s unable to parse \"%v\": %w", day, sc.Text(), solver.ErrInvalidInput)
+			maxOutput := min(len(sc.Text()), 80)
+			return nil, fmt.Errorf("%s unable to parse \"%v\": %w", day, sc.Text()[:maxOutput], solver.ErrInvalidInput)
 		}
 
 		left = append(left, l)

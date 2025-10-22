@@ -28,7 +28,7 @@ func TestOAuthCallback(t *testing.T) {
 		middleware.Chain(
 			http.HandlerFunc(web.OAuthCallback),
 			middleware.WithConfig(&cfg),
-			middleware.WithTemplate(callbackTemplate, middleware.ContextKeyCallbackTemplate)))
+			middleware.WithTemplate(callbackTemplate)))
 
 	// casses
 	cases := []struct {

@@ -122,7 +122,8 @@ func parseInput(sc *bufio.Scanner) (*[2][][]int, error) {
 		case RULES:
 			rule_string := strings.Split(sc.Text(), "|")
 			if len(rule_string) != 2 {
-				return nil, fmt.Errorf("%s unable to parse rule \"%v\": %w", day, sc.Text(), solver.ErrInvalidInput)
+				maxOutput := min(len(sc.Text()), 80)
+				return nil, fmt.Errorf("%s unable to parse \"%v\": %w", day, sc.Text()[:maxOutput], solver.ErrInvalidInput)
 			}
 
 			rule := make([]int, 0)
@@ -130,7 +131,8 @@ func parseInput(sc *bufio.Scanner) (*[2][][]int, error) {
 			for _, si := range rule_string {
 				v, err := strconv.Atoi(si)
 				if err != nil {
-					return nil, fmt.Errorf("%s unable to parse rule \"%v\": %w", day, sc.Text(), solver.ErrInvalidInput)
+					maxOutput := min(len(sc.Text()), 80)
+					return nil, fmt.Errorf("%s unable to parse \"%v\": %w", day, sc.Text()[:maxOutput], solver.ErrInvalidInput)
 				}
 				rule = append(rule, v)
 			}
@@ -145,7 +147,8 @@ func parseInput(sc *bufio.Scanner) (*[2][][]int, error) {
 			for _, si := range update_string {
 				v, err := strconv.Atoi(si)
 				if err != nil {
-					return nil, fmt.Errorf("%s unable to parse record \"%v\": %w", day, sc.Text(), solver.ErrInvalidInput)
+					maxOutput := min(len(sc.Text()), 80)
+					return nil, fmt.Errorf("%s unable to parse \"%v\": %w", day, sc.Text()[:maxOutput], solver.ErrInvalidInput)
 				}
 				update = append(update, v)
 			}
