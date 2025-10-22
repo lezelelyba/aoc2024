@@ -92,19 +92,13 @@ func main() {
 	logger := middleware.NewLogger(&cfg)
 
 	// web pages
-	webMux.Handle("GET /",
-		middleware.Chain(
-			http.HandlerFunc(web.ServerIndex),
-			middleware.WithTemplate(indexTemplate, middleware.ContextKeyIndexTemplate)))
+	webMux.Handle("GET /", middleware.WithTemplate(indexTemplate)(http.HandlerFunc(web.ServerIndex)))
 	webMux.HandleFunc("GET /list", web.SolverListing)
 	webMux.HandleFunc("GET /healthcheck", web.HealthCheck)
 
 	// oauth
 	if cfg.OAuth {
-		webMux.Handle("GET /callback/{provider}",
-			middleware.Chain(
-				http.HandlerFunc(web.OAuthCallback),
-				middleware.WithTemplate(callbackTemplate, middleware.ContextKeyCallbackTemplate)))
+		webMux.Handle("GET /callback/{provider}", middleware.WithTemplate(callbackTemplate)(http.HandlerFunc(web.OAuthCallback)))
 		webMux.HandleFunc("POST /oauth/{provider}/token", web.OAuthHandler)
 	}
 

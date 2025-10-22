@@ -101,7 +101,8 @@ func parseInput(sc *bufio.Scanner) (*[][]int, error) {
 			i, err := strconv.Atoi(v)
 
 			if err != nil {
-				return nil, fmt.Errorf("%s unable to parse \"%v\": %w", day, sc.Text(), solver.ErrInvalidInput)
+				maxOutput := min(len(sc.Text()), 80)
+				return nil, fmt.Errorf("%s unable to parse \"%v\": %w", day, sc.Text()[:maxOutput], solver.ErrInvalidInput)
 			}
 
 			report = append(report, i)

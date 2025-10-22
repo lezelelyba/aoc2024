@@ -18,12 +18,10 @@ import (
 )
 
 const (
-	ContextConfig              contextKey = "config"
-	ContextKeyLogger           contextKey = "logger"
-	ContextKeyRequestID        contextKey = "requestID"
-	ContextKeyUploadTemplate   contextKey = "uploadTemplate"
-	ContextKeyCallbackTemplate contextKey = "callbackTemplate"
-	ContextKeyIndexTemplate    contextKey = "indexTemplate"
+	ContextConfig       contextKey = "config"
+	ContextKeyLogger    contextKey = "logger"
+	ContextKeyRequestID contextKey = "requestID"
+	ContextKeyTemplates contextKey = "uploadTemplate"
 )
 
 type contextKey string
@@ -101,10 +99,10 @@ func GetLogger(r *http.Request) *log.Logger {
 	return logger
 }
 
-func WithTemplate(template *template.Template, key contextKey) func(http.Handler) http.Handler {
+func WithTemplate(template *template.Template) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), key, template)
+			ctx := context.WithValue(r.Context(), ContextKeyTemplates, template)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
