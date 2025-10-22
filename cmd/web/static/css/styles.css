@@ -17,6 +17,10 @@ header, footer {
   margin-bottom: 8px;
 }
 
+footer {
+  font-size: x-small;
+}
+
 body {
   display: flex;
   flex-direction: column;

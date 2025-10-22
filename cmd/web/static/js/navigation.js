@@ -111,8 +111,9 @@ const UIMachine = {
           el.classList.remove("done");
         });
 
-        const seenBtn = document.getElementById("seenBtn").hidden = true;
-        const resultEl = document.getElementById('result').textContent = "";
+        document.getElementById("seenBtn").hidden = true;
+        document.getElementById("resubmitBtn").hidden = true;
+        document.getElementById('result').textContent = "";
       }
     },
     // starts authentication - currently only a transition state
@@ -206,12 +207,10 @@ const UIMachine = {
         });
       },
     },
-    // show result
+    // transition state to show different elements based on the results from the api
     submitted: {
       transitions: {
-        SEEN: 'idle',
-        TIMEOUTLOGOUT: 'idle',
-        SUBMITERROR: 'selected'
+        SHOWRESULT: 'showingResult',
       },
       onEntry: function(prevState, thisState, payload) {
         // disable selection until result is acknowledged
@@ -237,9 +236,29 @@ const UIMachine = {
           el.classList.add("active");
         });
 
-        // show seen button
-        const seenBtn = document.getElementById("seenBtn");
-        seenBtn.hidden = false;
+        // disable body until result is shown
+        document.body.classList.add("busy");
+        
+      },
+    },
+    // show result
+    showingResult: {
+      transitions: {
+        SEEN: 'idle',
+        TIMEOUTLOGOUT: 'idle',
+        SUBMITERROR: 'selected'
+      },
+      onEntry: function(prevState, thisState, payload) {
+        // enable body
+        document.body.classList.remove("busy");
+
+        // show button depending on error
+        // TODO: different state for each SUBMITOK, SUBMITERROR transition
+        if (payload !== null && payload.error == true) {
+            document.getElementById("resubmitBtn").hidden = false;
+        } else {
+            document.getElementById("seenBtn").hidden = false;
+        }
       },
       onExit: function(thisState, nextState, payload) {
         // local submit error (wrong file, no input)
@@ -248,10 +267,10 @@ const UIMachine = {
         if (nextState === "selected") {
 
           // hide seen button
-          const seenBtn = document.getElementById("seenBtn");
-          seenBtn.hidden = true ;
+          document.getElementById("seenBtn").hidden = true;
+          document.getElementById("resubmitBtn").hidden = true;
 
-          // clan up result
+          // clean up result
           const resultEl = document.getElementById('result');
           resultEl.textContent = "";
 
@@ -269,10 +288,9 @@ const UIMachine = {
             el.classList.add("done");
             el.classList.add("active");
           });
-          
         }
       }
-    }
+    },
   }
 }
 
@@ -324,54 +342,42 @@ document.querySelectorAll('a[data-day]').forEach(link => {
   });
 });
 
+document.getElementById("seenBtn").addEventListener("click", () => {
+  UIHandler.transition('SEEN');
+  
+  const configEl = document.getElementById("auth-enabled");
+  const authEnabled = configEl.dataset.enabled;
+  
+  if (authEnabled === "true") {
+    const accessToken = sessionStorage.getItem("accessToken");
+
+    // authenticated
+    if (accessToken) {
+      UIHandler.transition('AUTHENTICATE');
+      UIHandler.transition('AUTHOK');
+    }
+  } else {
+      accessToken = sessionStorage.removeItem("accessToken");
+      UIHandler.transition('SKIPAUTH');
+  }
+});
+
+document.getElementById("resubmitBtn").addEventListener("click", () => {
+  UIHandler.transition('SUBMITERROR');
+});
+
+
 // submit button
 // has to be async
 document.getElementById("submitBtn").addEventListener("click", async () => {
-  // reset seenBtn
-  // clicking goes to init and resets display
-  // remove old listener
-  const seenBtn = document.getElementById("seenBtn");
-  seenBtn.replaceWith(seenBtn.cloneNode(true));
-
-  // put in a new one
-  document.getElementById("seenBtn").addEventListener("click", () => {
-    UIHandler.transition('SEEN');
-    
-    const configEl = document.getElementById("auth-enabled");
-    const authEnabled = configEl.dataset.enabled;
-    
-    if (authEnabled === "true") {
-      const accessToken = sessionStorage.getItem("accessToken");
-
-      // authenticated
-      if (accessToken) {
-        UIHandler.transition('AUTHENTICATE');
-        UIHandler.transition('AUTHOK');
-      }
-    } else {
-        accessToken = sessionStorage.removeItem("accessToken");
-        UIHandler.transition('SKIPAUTH');
-    }
-  });
- 
   // submit
   UIHandler.transition('SUBMIT');
-  // if submit threw error -> modify seen button to allow fix and resubmit
-  // if submit was ok -> keep original to go to init state
-  try {
-    document.body.classList.add("busy");
-    await handleSubmitClick("/api/solvers/{day}/{part}");
-  } catch(error) {
-    // setup seenBtn to return to submit state
-    // remove old listener
-    const seenBtn = document.getElementById("seenBtn");
-    seenBtn.replaceWith(seenBtn.cloneNode(true));
 
-    document.getElementById("seenBtn").addEventListener("click", () => {
-      UIHandler.transition('SUBMITERROR');
-    });
-  } finally {
-    document.body.classList.remove("busy");
+  try {
+    await handleSubmitClick("/api/solvers/{day}/{part}");
+    UIHandler.transition('SHOWRESULT', {error: false});
+  } catch(error) {
+    UIHandler.transition('SHOWRESULT', {error: true});
   }
 });
 
