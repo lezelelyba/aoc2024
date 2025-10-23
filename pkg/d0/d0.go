@@ -1,3 +1,4 @@
+// Skeleton Package for new days
 package d0
 
 import (
@@ -10,22 +11,28 @@ import (
 	"advent2024/pkg/solver"
 )
 
+// Solver name
 var day = "d0"
 
+// PuzzleStruct
 type PuzzleStruct struct {
 	input string
 }
 
+// Registers day wih the registry
 func init() {
 	solver.Register(day, func() solver.PuzzleSolver {
 		return NewSolver()
 	})
 }
 
+// Constructor
 func NewSolver() *PuzzleStruct {
 	return &PuzzleStruct{}
 }
 
+// Initializes the PuzzleStruct with input
+// Return nil on success
 func (p *PuzzleStruct) Init(reader io.Reader) error {
 	input, err := parseInput(bufio.NewScanner(reader))
 
@@ -42,6 +49,9 @@ func (p *PuzzleStruct) Init(reader io.Reader) error {
 	return nil
 }
 
+// Solves the puzzle
+// Accepts part as parameter
+// Returns string containing the solution of the puzzle
 func (p *PuzzleStruct) Solve(part int) (string, error) {
 	switch part {
 	case 1:
@@ -57,6 +67,8 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 	return "", fmt.Errorf("%s unknown part %d: %w", day, part, solver.ErrUnknownPart)
 }
 
+// Parses provided input
+// Returns parsed string
 func parseInput(sc *bufio.Scanner) (string, error) {
 
 	for sc.Scan() {
@@ -69,6 +81,8 @@ func parseInput(sc *bufio.Scanner) (string, error) {
 	return "", nil
 }
 
+// Validates parsed input
+// Returns nil in case of successfull validation
 func validateInput(entry string) error {
 	if len(entry) == 0 {
 		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)

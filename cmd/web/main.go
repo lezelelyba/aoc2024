@@ -1,3 +1,4 @@
+// Solver for Advent of Code 2024
 package main
 
 import (
@@ -29,7 +30,7 @@ import (
 var Version string = "dev"
 
 //	@title			Advent of Code 2024 Solver API
-//	@version		1.0
+//	@version		2.0
 //	@description	Solver for AoC 2024 written in Go
 
 //	@contact.name	None
@@ -42,12 +43,11 @@ var Version string = "dev"
 //	@externalDocs.description	OpenAPI
 //	@externalDocs.url			https://swagger.io/resources/open-api/
 
-//	@securitydefinitions.oauth2.accessCode	OAuth2AccessCode
-//	@authorizationURL						https://github.com/login/oauth/authorize
-//	@tokenURL								http://localhost:8080/oauth/github/token
-//	@scope.read								Grants read access
-//	@description							GitHub OAuth
-
+// @securitydefinitions.oauth2.accessCode	OAuth2AccessCode
+// @authorizationURL						https://github.com/login/oauth/authorize
+// @tokenURL								http://localhost:8080/oauth/github/token
+// @scope.read								Grants read access
+// @description							GitHub OAuth
 func main() {
 	// create new mux
 	webMux := http.NewServeMux()
@@ -110,7 +110,7 @@ func main() {
 	webMux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 
 	// godoc
-	godocs := http.FileServer(http.Dir("/docs/"))
+	godocs := http.FileServer(http.Dir("godocs"))
 	webMux.Handle("GET /godocs/", http.StripPrefix("/godocs/", godocs))
 
 	// api

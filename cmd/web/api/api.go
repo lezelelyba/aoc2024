@@ -1,3 +1,4 @@
+// API http Handlers
 package api
 
 import (
@@ -15,10 +16,12 @@ import (
 	"strings"
 )
 
+// API Request
 type SolveRequest struct {
 	Input string `json:"input" format:"base64" example:"MyAgIDQKNCAgIDMKMiAgIDUKMSAgIDMKMyAgIDkKMyAgIDMK"`
 } //@name Request
 
+// API Response
 type SolveResult struct {
 	Output string `json:"output"`
 } //@name Response

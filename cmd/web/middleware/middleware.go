@@ -1,3 +1,4 @@
+// Collection of Middlewares
 package middleware
 
 import (
@@ -17,6 +18,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// Context Keys
 const (
 	ContextConfig       contextKey = "config"
 	ContextKeyLogger    contextKey = "logger"
@@ -24,19 +26,23 @@ const (
 	ContextKeyTemplates contextKey = "uploadTemplate"
 )
 
+// Context key type
 type contextKey string
 
+// Logger to capture status code and written bytes
 type loggingResponseWriter struct {
 	http.ResponseWriter
 	statusCode   int
 	bytesWritten int
 }
 
+// Writes header and saves the code
 func (lrw *loggingResponseWriter) WriteHeader(code int) {
 	lrw.statusCode = code
 	lrw.ResponseWriter.WriteHeader(code)
 }
 
+// Writes the response and saves the amount of bytes
 func (lrw *loggingResponseWriter) Write(b []byte) (int, error) {
 	n, err := lrw.ResponseWriter.Write(b)
 	lrw.bytesWritten += n
@@ -44,40 +50,47 @@ func (lrw *loggingResponseWriter) Write(b []byte) (int, error) {
 	return n, err
 }
 
+// Creates new longer based on the configuration
+// TODO: add more options
 func NewLogger(c *config.Config) *log.Logger {
 	return log.New(os.Stderr, "advent2024.web ", log.Ldate|log.Ltime|log.LUTC|log.Lmsgprefix)
 }
 
+// Logs return code, written bytes and duration of the request
+// Generates unique request ID
+// TODO: separate middleware with stat tracking?
+// Logs are prefixed with timestamp and project name
 func LoggingMiddleware(logger *log.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+			// mark start time
 			start := time.Now()
 
+			// get user IP
 			ip := clientIP(r)
 
+			// generate new request id
 			requestID := uuid.New().String()
 
+			// add request ID to the logger prefix
 			oldPrefix := logger.Prefix()
 			newPrefix := oldPrefix + ": " + requestID + " : "
-
 			prefixedLogger := log.New(logger.Writer(), newPrefix, logger.Flags())
 
+			// insert logger into context
 			ctx := context.WithValue(r.Context(), ContextKeyLogger, prefixedLogger)
 			ctx = context.WithValue(ctx, ContextKeyRequestID, requestID)
 
+			// insert capture writter into the handler chain
 			captureWriter := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-
-			// print start of the request
-			// prefixedLogger.Printf("%s - S \"%s %s\"",
-			// 	ip,
-			// 	r.Method,
-			// 	r.URL)
 
 			next.ServeHTTP(captureWriter, r.WithContext(ctx))
 
+			// capture request duration
 			duration := time.Since(start)
 
+			// write response
 			prefixedLogger.Printf("%s - - \"%s %s\" %d %d duration %s",
 				ip,
 				r.Method,
@@ -89,6 +102,7 @@ func LoggingMiddleware(logger *log.Logger) func(http.Handler) http.Handler {
 	}
 }
 
+// Gets logger from context or provides a default one
 func GetLogger(r *http.Request) *log.Logger {
 	loggerVal := r.Context().Value(ContextKeyLogger)
 	logger, ok := loggerVal.(*log.Logger)
@@ -99,6 +113,7 @@ func GetLogger(r *http.Request) *log.Logger {
 	return logger
 }
 
+// Specifies templates to be used by the Handler
 func WithTemplate(template *template.Template) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -108,13 +123,14 @@ func WithTemplate(template *template.Template) func(http.Handler) http.Handler {
 	}
 }
 
+// Rate Limits the request to Handler
 func RateLimitMiddleware(tokenRate, burst int) func(http.Handler) http.Handler {
+	// create new limiter based on params
 	limiter := rate.NewLimiter(rate.Limit(tokenRate), burst)
-
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger := GetLogger(r)
-
+			// if allowed serve, otherwise reply with TooManyRequests
 			if limiter.Allow() {
 				next.ServeHTTP(w, r)
 			} else {
@@ -128,6 +144,7 @@ func RateLimitMiddleware(tokenRate, burst int) func(http.Handler) http.Handler {
 	}
 }
 
+// Checks user authentication
 func AuthenticationMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -135,6 +152,7 @@ func AuthenticationMiddleware() func(http.Handler) http.Handler {
 			var rc int
 			var errMsg string
 
+			// get config and logger
 			logger := GetLogger(r)
 			cfg, ok := GetConfig(r)
 
@@ -144,20 +162,26 @@ func AuthenticationMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
+			// TODO: add other forms of authentication
+
+			// Check if bearer token is present
 			auth := r.Header.Get("Authorization")
 			ok = strings.HasPrefix(auth, "Bearer ")
 
+			// if missing or wrong format => unauthorized
 			rc = http.StatusUnauthorized
 			errMsg = fmt.Sprintf("unauthorized")
 			if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
 				return
 			}
 
+			// parse and validate token
 			tokenStr := strings.TrimPrefix(auth, "Bearer ")
 			token, _ := ParseToken(tokenStr, []byte(cfg.JWTSecret))
 
 			ok = TokenValid(token)
 
+			// if token is invalid or expired => unauthorized
 			rc = http.StatusUnauthorized
 			errMsg = fmt.Sprintf("unauthorized: invalid token")
 			if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
@@ -169,6 +193,7 @@ func AuthenticationMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
+// Injects configuration to Handler chain
 func WithConfig(cfg *config.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -178,6 +203,8 @@ func WithConfig(cfg *config.Config) func(http.Handler) http.Handler {
 	}
 }
 
+// Gets Configuration from context
+// TODO: provide default configuration if missing? Similar to logger?
 func GetConfig(r *http.Request) (*config.Config, bool) {
 	cfg, ok := r.Context().Value(ContextConfig).(*config.Config)
 	if cfg == nil {
@@ -186,6 +213,7 @@ func GetConfig(r *http.Request) (*config.Config, bool) {
 	return cfg, ok
 }
 
+// Recovers from panics within the Handler chain
 func RecoveryMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -208,6 +236,8 @@ func RecoveryMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
+// Extracts client IP from the request
+// X-Real-Ip header > X-Forwarded-For header > src IP of request
 func clientIP(r *http.Request) string {
 	ip := r.Header.Get("X-Real-Ip")
 
@@ -222,6 +252,7 @@ func clientIP(r *http.Request) string {
 	return ip
 }
 
+// Chains Middlewares
 func Chain(h http.Handler, mws ...func(http.Handler) http.Handler) http.Handler {
 	for i := len(mws) - 1; i >= 0; i-- {
 		h = mws[i](h)
