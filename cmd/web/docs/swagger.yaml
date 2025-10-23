@@ -1,0 +1,147 @@
+basePath: /api
+definitions:
+  Error:
+    properties:
+      errorcode:
+        type: integer
+      errormessage:
+        type: string
+    type: object
+  RegistryItem:
+    properties:
+      name:
+        type: string
+      next:
+        type: boolean
+    type: object
+  Request:
+    properties:
+      input:
+        example: MyAgIDQKNCAgIDMKMiAgIDUKMSAgIDMKMyAgIDkKMyAgIDMK
+        format: base64
+        type: string
+    type: object
+  Response:
+    properties:
+      output:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+info:
+  contact:
+    name: None
+  description: Solver for AoC 2024 written in Go
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Advent of Code 2024 Solver API
+  version: "1.0"
+paths:
+  /solvers:
+    get:
+      description: Lists days which the solver can solve
+      parameters:
+      - description: Bearer format, prefix with Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Result
+          schema:
+            items:
+              $ref: '#/definitions/RegistryItem'
+            type: array
+        "401":
+          description: Unathorized
+          schema:
+            $ref: '#/definitions/Error'
+        "429":
+          description: Request was Rate limited
+          schema:
+            $ref: '#/definitions/Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Error'
+      security:
+      - 'OAuth2AccessCode ':
+        - read
+      summary: Solve List
+      tags:
+      - solverList
+  /solvers/{day}/{part}:
+    post:
+      description: Provides solution for the day and part based on input
+      parameters:
+      - description: Day, format d[0-9]*
+        example: d1
+        in: path
+        name: day
+        required: true
+        type: string
+      - description: Problem part
+        example: 1
+        in: path
+        name: part
+        required: true
+        type: integer
+      - description: Solve Base64 encoded input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/Request'
+      - description: Bearer format, prefix with Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Result
+          schema:
+            $ref: '#/definitions/Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Error'
+        "401":
+          description: Unathorized
+          schema:
+            $ref: '#/definitions/Error'
+        "404":
+          description: Solver for the day not found
+          schema:
+            $ref: '#/definitions/Error'
+        "429":
+          description: Request was Rate limited
+          schema:
+            $ref: '#/definitions/Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Error'
+        "504":
+          description: Request took too long to compute
+          schema:
+            $ref: '#/definitions/Error'
+      security:
+      - 'OAuth2AccessCode ':
+        - read
+      summary: Solver
+      tags:
+      - solver
+securityDefinitions:
+  OAuth2AccessCode:
+    authorizationUrl: https://github.com/login/oauth/authorize
+    description: GitHub OAuth
+    flow: accessCode
+    scopes:
+      read: Grants read access
+    tokenUrl: http://localhost:8080/oauth/github/token
+    type: oauth2
+swagger: "2.0"

@@ -6,6 +6,7 @@ COPY . .
 
 WORKDIR /release.web/cmd/web
 
+# regenerate doc files
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 RUN swag init --parseDependency
 
