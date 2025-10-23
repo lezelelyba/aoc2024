@@ -20,7 +20,7 @@ func TestOAuthCallback(t *testing.T) {
 	cfg.OAuthProviders[providerCfg.Name] = providerCfg
 
 	// load template
-	callbackTemplate := template.Must(template.ParseFiles("./../templates/callback.tmpl"))
+	callbackTemplate := template.Must(template.ParseFiles("./../templates/pages/callback.tmpl"))
 
 	// setup the router
 	mux := http.NewServeMux()
@@ -74,17 +74,18 @@ func TestOAuthHandler(t *testing.T) {
 		_ = r.PostFormValue("client_secret")
 
 		switch code {
-		case "":
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(``))
+		case "invalidCode":
+			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"error":"bad_verification_code", "error_description": "error description", "error_uri": "http://localhost/error.html"}`))
 		case "validCode":
 			w.WriteHeader(http.StatusOK)
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{"scope":"read","token_type":"bearer","access_token":"validToken"}`))
 		default:
-			w.WriteHeader(http.StatusBadRequest)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{}`))
+			hijacker, _ := w.(http.Hijacker)
+			conn, _, _ := hijacker.Hijack()
+			conn.Close()
 		}
 	}))
 	defer provider.Close()
@@ -97,8 +98,6 @@ func TestOAuthHandler(t *testing.T) {
 	providerCfg.TokenURL = provider.URL + "/token"
 	providerCfg.ClientId = "dummy"
 	providerCfg.ClientSecret = "dummy"
-	// providerCfg.CallbackURL = *oAuthGithubCallbackURL
-	// providerCfg.UserAuthURL = *oAuthGithubUserAuthURL
 
 	cfg.OAuthProviders[providerCfg.Name] = providerCfg
 
@@ -118,9 +117,8 @@ func TestOAuthHandler(t *testing.T) {
 	}{
 		{"unknown provider", "/oauth/unknownProvider/token", http.StatusBadRequest},
 		{"missing code", "/oauth/github/token", http.StatusBadRequest},
-		// TODO: what github returns in case of bad token?
-		// 200 OK and you have to read the message
-		{"invalid code", "/oauth/github/token?code=invalidCode", http.StatusInternalServerError},
+		{"github breaks", "/oauth/github/token?code=breakGithub", http.StatusInternalServerError},
+		{"invalid code", "/oauth/github/token?code=invalidCode", http.StatusBadRequest},
 		{"valid code", "/oauth/github/token?code=validCode", http.StatusOK},
 	}
 
