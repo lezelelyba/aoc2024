@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"text/template"
 
 	_ "advent2024/pkg/d1"
@@ -49,19 +50,26 @@ var Version string = "dev"
 // @scope.read								Grants read access
 // @description							GitHub OAuth
 func main() {
-	// create new mux
-	webMux := http.NewServeMux()
-	apiMux := http.NewServeMux()
-	globalMux := http.NewServeMux()
 
-	// parse config
+	// parse and validate config
 
 	cfg, errors := config.LoadConfig()
+	valid, validationErrors := cfg.ValidateConfig()
 
 	if len(errors) != 0 {
 		for _, e := range errors {
 			log.Println(e)
 		}
+	}
+
+	if len(validationErrors) != 0 {
+		for _, e := range validationErrors {
+			log.Println(e)
+		}
+	}
+
+	if !valid || len(errors) > 0 || len(validationErrors) > 0 {
+		os.Exit(1)
 	}
 
 	cfg.Version = Version
@@ -89,6 +97,11 @@ func main() {
 	// create logging middleware
 
 	logger := middleware.NewLogger(&cfg)
+
+	// create http muxes
+	webMux := http.NewServeMux()
+	apiMux := http.NewServeMux()
+	globalMux := http.NewServeMux()
 
 	// web pages
 	webMux.Handle("GET /", middleware.WithTemplate(indexTemplate)(http.HandlerFunc(web.ServerIndex)))
