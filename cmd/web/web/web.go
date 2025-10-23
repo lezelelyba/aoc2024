@@ -84,10 +84,62 @@ func ServerIndex(w http.ResponseWriter, r *http.Request) {
 		Config:        cfg,
 	}
 
-	err = tmpl.ExecuteTemplate(w, "index.tmpl", data)
+	err = tmpl.ExecuteTemplate(w, "layout.tmpl", data)
 
 	rc = http.StatusInternalServerError
 	errMsg = fmt.Sprintf("unable to render index template %v", err)
+	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
+		return
+	}
+}
+
+func ServerDocs(w http.ResponseWriter, r *http.Request) {
+	var rc int
+	var errMsg string
+
+	page := "docs"
+
+	logger := middleware.GetLogger(r)
+	cfg, ok := middleware.GetConfig(r)
+
+	rc = http.StatusInternalServerError
+	errMsg = fmt.Sprintf("configuration error: %s: unable to get config", page)
+	if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
+		return
+	}
+
+	templateVal := r.Context().Value(middleware.ContextKeyTemplates)
+	tmpl, ok := templateVal.(*template.Template)
+
+	ok = ok && tmpl != nil
+
+	rc = http.StatusInternalServerError
+	errMsg = fmt.Sprintf("unable to find %s template", page)
+	if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
+		return
+	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "UnknownHostname"
+	}
+
+	registryItems := solver.ListRegistryItemsWithCtx()
+
+	data := struct {
+		Hostname      string
+		Config        *config.Config
+		RegistryItems []solver.RegistryItemPublic
+	}{
+		Hostname:      hostname,
+		RegistryItems: registryItems,
+		Config:        cfg,
+	}
+
+	err = tmpl.ExecuteTemplate(w, "layout.tmpl", data)
+
+	rc = http.StatusInternalServerError
+	errMsg = fmt.Sprintf("unable to render %s template %v", page, err)
 	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
@@ -267,16 +319,28 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 
 		token, err := exchangeCodeForToken(&provider, query.Get("code"))
 
+		// local error
 		rc = http.StatusInternalServerError
 		errMsg = fmt.Sprintf("unable to exchange code for token with %s: %v", provider.Name, err)
 		if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 			return
 		}
 
+		// error response from provider
+		if token.IsError() {
+			rc = http.StatusBadRequest
+			errMsg = fmt.Sprintf("unable to exchange code for token with %s: %v", provider.Name, err)
+			if weberrors.HandleError(w, logger, token, rc, errMsg) != nil {
+				return
+			}
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		jwtToken, err := middleware.GenerateJWT(provider.Name, token.Token(), config.JWTSecret, config.JWTTokenValidity)
+		tokenStr, _ := token.Token()
+
+		jwtToken, err := middleware.GenerateJWT(provider.Name, tokenStr, config.JWTSecret, config.JWTTokenValidity)
 
 		rc = http.StatusInternalServerError
 		errMsg = "unable to create jwt token"
@@ -290,7 +354,7 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middleware.Token, error) {
+func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middleware.OAuthResponse, error) {
 	if provider == nil {
 		return nil, fmt.Errorf("unable to find empty provider")
 	}
@@ -324,15 +388,11 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middlewa
 		// work only with non-nil response
 		defer resp.Body.Close()
 
-		var token middleware.OAuthReplyGithub
+		var token middleware.OAuthGithubReply
 
 		err = json.NewDecoder(resp.Body).Decode(&token)
 		if err != nil {
 			return nil, fmt.Errorf("unable to unmarshal %s response", provider.Name)
-		}
-
-		if token.AccessToken == "" {
-			return nil, fmt.Errorf("no token retured from %s", provider.Name)
 		}
 
 		return token, nil

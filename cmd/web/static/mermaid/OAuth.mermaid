@@ -1,0 +1,40 @@
+---
+title: OAuth Sequence Diagram - GitHub
+config:
+    theme: neutral
+---
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Server
+    participant GitHub
+    Client->>+GitHub: GET https://github.com/login/oauth/authorize?[state]
+    GitHub-->>-Client: REDIRECT /callback/github?[code]&[state]
+    Client->>+Server: GET /callback/github?[code]&[state]    
+    Server-->>Client: 
+    break sent state != received state
+    Client->>Client: abort Authentication
+    end
+    Client->>+Server: POST /oauth/github/token?[code]
+    Server->>+GitHub: POST https://github.com/login/oauth/access_token [x-www-form-urlencoded: code]
+    alt Code Valid
+    Note left of GitHub: Validate Code<br>Generate GH Token
+    GitHub-->>Server: [Body: JSON GH token]
+    Note right of Server: Generate JWT Token
+    Server-->>Client: [Body: JSON JWT token]
+    
+    else Code Invalid or GitHub Internal Error
+    GitHub-->>-Server: Error
+    
+    Server-->>-Client: Error
+    
+    break no token received
+    Client->>Client: abort Authentication
+    end
+    end
+    
+    loop As Needed
+    Client->>+Server: API request [Authorization: Bearer JWT Token]
+    Note right of Server: Validate JWT Token<br>Generate Response
+    Server-->>-Client: API response
+    end
