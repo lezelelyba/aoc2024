@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{block "title" .}}AoC 2024 Solver{{end}}</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="icon" href="/static/images/favicon.png">
+  {{block "head" .}}{{end}}
+</head>
+<body>
+  <header>
+    <h1>Advent of Code 2024 Solver</h1>
+    <nav>
+    <p>
+      |
+      <a href="/">Home</a>
+      |
+      <a href="/docs">Documentation</a>
+      |
+      <a href="/swagger" target="_blank">API Definition</a>
+      |
+    </p>
+    <p>
+      |
+      <a href="https://adventofcode.com/2024" target="_blank">Advent of Code</a>
+      |
+      <a href="https://github.com/lezelelyba/aoc2024/" target="_blank">GitHub</a>
+      |
+    </p>
+    </nav>
+  </header>
+
+  <main>
+    {{block "content" .}}{{end}}
+  </main>
+
+  <footer>
+    <div class="footer">
+      <div class="server-info">
+        <span>Server info: {{.Hostname}}</span>
+        <span>Version: {{.Config.Version}}</span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

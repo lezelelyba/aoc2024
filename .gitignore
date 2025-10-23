@@ -16,3 +16,7 @@ tls
 
 #do not include vscode setup
 .vscode/
+
+#do not include web docs folder
+#Dockerfile generates the folder
+cmd/web/docs

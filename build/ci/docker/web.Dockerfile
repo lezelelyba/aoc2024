@@ -6,6 +6,9 @@ COPY . .
 
 WORKDIR /release.web/cmd/web
 
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+RUN swag init --parseDependency
+
 RUN go mod download
 
 ARG VERSION
@@ -17,8 +20,9 @@ COPY --from=builder /advent2024.webserver /advent2024.webserver
 
 COPY --from=builder /release.web/cmd/web/templates /templates
 COPY --from=builder /release.web/cmd/web/static /static
-
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+
 
 EXPOSE 8080
 

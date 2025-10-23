@@ -21,10 +21,9 @@ import (
 
 	"advent2024/web/api"
 	"advent2024/web/config"
+	_ "advent2024/web/docs"
 	"advent2024/web/middleware"
 	"advent2024/web/web"
-
-	_ "advent2024/web/docs"
 )
 
 var Version string = "dev"
@@ -74,18 +73,18 @@ func main() {
 		"getField":   web.GetField,
 	}
 
-	indexTemplate := template.Must(template.New("").Funcs(funcMap).ParseFiles("./templates/index.tmpl"))
-	callbackTemplate := template.Must(template.ParseFiles("./templates/callback.tmpl"))
+	// base layout
+	layoutTemplate := template.Must(template.New("").Funcs(funcMap).ParseGlob("./templates/layouts/*.tmpl"))
 
-	// TODO: load all common templates
-	// TODO: create template for each page, including the common templates
-	// use those templates to render each page
-	//
-	// cannot load all templates at once and then reference just one of them
-	// as for the common blocks, the last template loaded which defines that block
-	// will be use
-	//
-	// templates := template.Must(template.ParseGlob("./templates/*.tmpl"))
+	// index page
+	indexTemplate := template.Must(layoutTemplate.Clone())
+	template.Must(indexTemplate.ParseFiles("./templates/pages/index.tmpl"))
+
+	// doc page
+	docsTemplate := template.Must(layoutTemplate.Clone())
+	template.Must(docsTemplate.ParseFiles("./templates/pages/docs.tmpl"))
+
+	callbackTemplate := template.Must(template.ParseFiles("./templates/pages/callback.tmpl"))
 
 	// create logging middleware
 
@@ -93,6 +92,7 @@ func main() {
 
 	// web pages
 	webMux.Handle("GET /", middleware.WithTemplate(indexTemplate)(http.HandlerFunc(web.ServerIndex)))
+	webMux.Handle("GET /docs", middleware.WithTemplate(docsTemplate)(http.HandlerFunc(web.ServerDocs)))
 	webMux.HandleFunc("GET /list", web.SolverListing)
 	webMux.HandleFunc("GET /healthcheck", web.HealthCheck)
 
@@ -108,6 +108,10 @@ func main() {
 	// static files
 	fs := http.FileServer(http.Dir("static"))
 	webMux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+
+	// godoc
+	godocs := http.FileServer(http.Dir("/docs/"))
+	webMux.Handle("GET /godocs/", http.StripPrefix("/godocs/", godocs))
 
 	// api
 	apiMux.HandleFunc("GET /solvers", api.SolverListing)

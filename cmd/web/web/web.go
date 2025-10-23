@@ -84,10 +84,62 @@ func ServerIndex(w http.ResponseWriter, r *http.Request) {
 		Config:        cfg,
 	}
 
-	err = tmpl.ExecuteTemplate(w, "index.tmpl", data)
+	err = tmpl.ExecuteTemplate(w, "layout.tmpl", data)
 
 	rc = http.StatusInternalServerError
 	errMsg = fmt.Sprintf("unable to render index template %v", err)
+	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
+		return
+	}
+}
+
+func ServerDocs(w http.ResponseWriter, r *http.Request) {
+	var rc int
+	var errMsg string
+
+	page := "docs"
+
+	logger := middleware.GetLogger(r)
+	cfg, ok := middleware.GetConfig(r)
+
+	rc = http.StatusInternalServerError
+	errMsg = fmt.Sprintf("configuration error: %s: unable to get config", page)
+	if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
+		return
+	}
+
+	templateVal := r.Context().Value(middleware.ContextKeyTemplates)
+	tmpl, ok := templateVal.(*template.Template)
+
+	ok = ok && tmpl != nil
+
+	rc = http.StatusInternalServerError
+	errMsg = fmt.Sprintf("unable to find %s template", page)
+	if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
+		return
+	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "UnknownHostname"
+	}
+
+	registryItems := solver.ListRegistryItemsWithCtx()
+
+	data := struct {
+		Hostname      string
+		Config        *config.Config
+		RegistryItems []solver.RegistryItemPublic
+	}{
+		Hostname:      hostname,
+		RegistryItems: registryItems,
+		Config:        cfg,
+	}
+
+	err = tmpl.ExecuteTemplate(w, "layout.tmpl", data)
+
+	rc = http.StatusInternalServerError
+	errMsg = fmt.Sprintf("unable to render %s template %v", page, err)
 	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 		return
 	}
