@@ -1,3 +1,4 @@
+// Package handles JWT tokens
 package middleware
 
 import (
@@ -8,7 +9,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GenerateJWT(provider, token, secret string, validityPeriod time.Duration) (string, error) {
+// Generates JWT token based on the provided token
+// Accepts provider name, token, secret to use for encoding and validity period
+// Returns string representation of the Token
+func GenerateJWT(provider, token string, jwtSecret []byte, validityPeriod time.Duration) (string, error) {
 	validUntil := fmt.Sprint(time.Now().Add(validityPeriod).Unix())
 
 	claims := jwt.MapClaims{
@@ -18,9 +22,10 @@ func GenerateJWT(provider, token, secret string, validityPeriod time.Duration) (
 	}
 
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return jwtToken.SignedString([]byte(secret))
+	return jwtToken.SignedString(jwtSecret)
 }
 
+// Attempts to parse token
 func ParseToken(tokenStr string, jwtSecret []byte) (*jwt.Token, error) {
 	if tokenStr == "" {
 		return nil, fmt.Errorf("token is empty")
@@ -36,21 +41,26 @@ func ParseToken(tokenStr string, jwtSecret []byte) (*jwt.Token, error) {
 	return token, err
 }
 
+// Validates if token is valid
 func TokenValid(token *jwt.Token) bool {
 
+	// empty token
 	if token == nil {
 		return false
 	}
 
+	// token not parsable by jwt module
 	if !token.Valid {
 		return false
 	}
 
+	// token without claims
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return false
 	}
 
+	// get token expiration
 	validUntilStr := claims["valid_until"].(string)
 
 	i, err := strconv.ParseInt(validUntilStr, 10, 64)
@@ -61,5 +71,6 @@ func TokenValid(token *jwt.Token) bool {
 
 	validUntil := time.Unix(i, 0)
 
+	// token is valid if it's not expired
 	return !time.Now().After(validUntil)
 }

@@ -1,3 +1,4 @@
+// Tests for web functionality
 package tests
 
 import (
@@ -59,7 +60,10 @@ func TestOAuthCallback(t *testing.T) {
 
 func TestOAuthHandler(t *testing.T) {
 
-	// Mock OAuth provider
+	// Mock OAuth provider, modeled based on GitHub
+	// 200 OK - for any request containing valid data
+	// Bad Request - for incorrectly encoded data
+	// Close connection for non specific code - to simulate network issues
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 
@@ -144,7 +148,7 @@ func TestToken(t *testing.T) {
 		want := true
 
 		secret := "jwtSecret"
-		jwtTokenStr, _ := middleware.GenerateJWT("provider", "token", secret, time.Duration(5*time.Second))
+		jwtTokenStr, _ := middleware.GenerateJWT("provider", "token", []byte(secret), time.Duration(5*time.Second))
 		parsedToken, _ := middleware.ParseToken(jwtTokenStr, []byte(secret))
 		if middleware.TokenValid(parsedToken) != want {
 			t.Errorf("token invalid")
@@ -163,7 +167,7 @@ func TestToken(t *testing.T) {
 		want := false
 
 		secret := "jwtSecret"
-		jwtTokenStr, _ := middleware.GenerateJWT("provider", "token", secret, time.Duration(5*time.Second))
+		jwtTokenStr, _ := middleware.GenerateJWT("provider", "token", []byte(secret), time.Duration(5*time.Second))
 
 		time.Sleep(6 * time.Second)
 
@@ -176,7 +180,7 @@ func TestToken(t *testing.T) {
 		want := false
 
 		secret := "jwtSecret"
-		jwtTokenStr, _ := middleware.GenerateJWT("provider", "token", secret, time.Duration(5*time.Second))
+		jwtTokenStr, _ := middleware.GenerateJWT("provider", "token", []byte(secret), time.Duration(5*time.Second))
 		parsedToken, _ := middleware.ParseToken(jwtTokenStr, []byte(secret+"something"))
 		if middleware.TokenValid(parsedToken) != want {
 			t.Errorf("token valid")
