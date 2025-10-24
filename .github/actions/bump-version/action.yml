@@ -28,6 +28,7 @@ runs:
       with:
         fetch-depth: 0
         ref: ${{ inputs.branch-name }}
+        ssh-key: ${{ secrets.GH_ACTIONS_DEPLOY_KEY }}
 
     - name: Cache npm global packages
       uses: actions/cache@v3
