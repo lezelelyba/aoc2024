@@ -10,8 +10,3 @@ ecs_app_env_map_secret = {
     JWT_SECRET =  "jwt_secret",
     OAUTH_GITHUB_CLIENT_SECRET =  "github_client_secret" ,
 }
-
-ecs_app_env_map_secret_keys = [
-    "JWT_SECRET",
-    "OAUTH_GITHUB_CLIENT_SECRET",
-]
