@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"text/template"
 
 	_ "advent2024/pkg/d1"
@@ -18,13 +19,14 @@ import (
 	_ "advent2024/pkg/d8"
 	_ "advent2024/pkg/d9"
 
+	_ "advent2024/web/docs"
+
 	httpSwagger "github.com/swaggo/http-swagger"
 
 	"advent2024/web/api"
 	"advent2024/web/config"
-	_ "advent2024/web/docs"
 	"advent2024/web/middleware"
-	"advent2024/web/web"
+	"advent2024/web/webhandlers"
 )
 
 var Version string = "dev"
@@ -49,14 +51,11 @@ var Version string = "dev"
 // @scope.read								Grants read access
 // @description							GitHub OAuth
 func main() {
-	// create new mux
-	webMux := http.NewServeMux()
-	apiMux := http.NewServeMux()
-	globalMux := http.NewServeMux()
 
-	// parse config
+	// parse and validate config
 
 	cfg, errors := config.LoadConfig()
+	valid, validationErrors := cfg.ValidateConfig()
 
 	if len(errors) != 0 {
 		for _, e := range errors {
@@ -64,13 +63,23 @@ func main() {
 		}
 	}
 
+	if len(validationErrors) != 0 {
+		for _, e := range validationErrors {
+			log.Println(e)
+		}
+	}
+
+	if !valid || len(errors) > 0 || len(validationErrors) > 0 {
+		os.Exit(1)
+	}
+
 	cfg.Version = Version
 
 	// parse templates
 
 	funcMap := template.FuncMap{
-		"fieldNames": web.FieldNames,
-		"getField":   web.GetField,
+		"fieldNames": webhandlers.FieldNames,
+		"getField":   webhandlers.GetField,
 	}
 
 	// base layout
@@ -84,22 +93,28 @@ func main() {
 	docsTemplate := template.Must(layoutTemplate.Clone())
 	template.Must(docsTemplate.ParseFiles("./templates/pages/docs.tmpl"))
 
+	// callback page
 	callbackTemplate := template.Must(template.ParseFiles("./templates/pages/callback.tmpl"))
 
 	// create logging middleware
 
 	logger := middleware.NewLogger(&cfg)
 
+	// create http muxes
+	webMux := http.NewServeMux()
+	apiMux := http.NewServeMux()
+	globalMux := http.NewServeMux()
+
 	// web pages
-	webMux.Handle("GET /", middleware.WithTemplate(indexTemplate)(http.HandlerFunc(web.ServerIndex)))
-	webMux.Handle("GET /docs", middleware.WithTemplate(docsTemplate)(http.HandlerFunc(web.ServerDocs)))
-	webMux.HandleFunc("GET /list", web.SolverListing)
-	webMux.HandleFunc("GET /healthcheck", web.HealthCheck)
+	webMux.Handle("GET /", middleware.WithTemplate(indexTemplate)(http.HandlerFunc(webhandlers.ServerIndex)))
+	webMux.Handle("GET /docs", middleware.WithTemplate(docsTemplate)(http.HandlerFunc(webhandlers.ServerDocs)))
+	webMux.HandleFunc("GET /list", webhandlers.SolverListing)
+	webMux.HandleFunc("GET /healthcheck", webhandlers.HealthCheck)
 
 	// oauth
 	if cfg.OAuth {
-		webMux.Handle("GET /callback/{provider}", middleware.WithTemplate(callbackTemplate)(http.HandlerFunc(web.OAuthCallback)))
-		webMux.HandleFunc("POST /oauth/{provider}/token", web.OAuthHandler)
+		webMux.Handle("GET /callback/{provider}", middleware.WithTemplate(callbackTemplate)(http.HandlerFunc(webhandlers.OAuthCallback)))
+		webMux.HandleFunc("POST /oauth/{provider}/token", webhandlers.OAuthHandler)
 	}
 
 	// swagger docs
@@ -129,7 +144,7 @@ func main() {
 	globalMux.Handle("/api/", http.StripPrefix("/api", apiHandler))
 	globalMux.Handle("/", webMux)
 
-	// add logging middleware
+	// add middlewares
 	var finalMux http.Handler = globalMux
 	finalMux = middleware.RecoveryMiddleware()(finalMux)
 	finalMux = middleware.LoggingMiddleware(logger)(finalMux)

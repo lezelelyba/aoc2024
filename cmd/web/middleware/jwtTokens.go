@@ -9,9 +9,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Generates JWT token based on the provided token
-// Accepts provider name, token, secret to use for encoding and validity period
-// Returns string representation of the Token
+// Generates JWT token.
+// Accepts provider name, token, secret to use for encoding and validity period.
+// Returns string representation of the Token.
 func GenerateJWT(provider, token string, jwtSecret []byte, validityPeriod time.Duration) (string, error) {
 	validUntil := fmt.Sprint(time.Now().Add(validityPeriod).Unix())
 
@@ -25,7 +25,7 @@ func GenerateJWT(provider, token string, jwtSecret []byte, validityPeriod time.D
 	return jwtToken.SignedString(jwtSecret)
 }
 
-// Attempts to parse token
+// Parses JWT token
 func ParseToken(tokenStr string, jwtSecret []byte) (*jwt.Token, error) {
 	if tokenStr == "" {
 		return nil, fmt.Errorf("token is empty")
@@ -41,7 +41,7 @@ func ParseToken(tokenStr string, jwtSecret []byte) (*jwt.Token, error) {
 	return token, err
 }
 
-// Validates if token is valid
+// Checks if token is valid
 func TokenValid(token *jwt.Token) bool {
 
 	// empty token

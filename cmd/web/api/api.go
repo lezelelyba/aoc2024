@@ -47,25 +47,30 @@ type SolveResult struct {
 //	@Failure	504						{object}	weberrors.AoCError	"Request took too long to compute"
 //	@Router		/solvers/{day}/{part}	[post]
 //	@Security	OAuth2AccessCode [read]
+//
+// Handles solve API endpoint
 func Solve(w http.ResponseWriter, r *http.Request) {
 
 	var rc int
 	var errMsg string
 
+	// get logger and config
 	logger := middleware.GetLogger(r)
 	cfg, ok := middleware.GetConfig(r)
 
+	// unable to get config
 	rc = http.StatusInternalServerError
 	errMsg = "configuration error: index: unable to get config"
 	if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
 		return
 	}
 
+	// prepare response headers, always JSON
 	w.Header().Set("Content-Type", "application/json")
 
+	// get part and day from request URL
 	day := r.PathValue("day")
 	part := r.PathValue("part")
-
 	part_converted, err := strconv.Atoi(part)
 
 	rc = http.StatusBadRequest
@@ -74,6 +79,8 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// read request
+	// limit the size of read response
 	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
 	defer r.Body.Close()
 
@@ -85,6 +92,7 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// unmarshall request body
 	var p SolveRequest
 	err = json.Unmarshal(body, &p)
 
@@ -94,6 +102,7 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// decode the base64 encoded request
 	decoded_body, err := base64.StdEncoding.DecodeString(string(p.Input))
 
 	rc = http.StatusBadRequest
@@ -102,6 +111,7 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get solver
 	slvr, ok := solver.NewWithCtx(day)
 
 	rc = http.StatusNotFound
@@ -110,11 +120,14 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// cancel request after deadline
 	ctx, cancel := context.WithTimeout(r.Context(), cfg.SolverTimeout)
 	defer cancel()
 
+	// init
 	err = slvr.InitCtx(ctx, strings.NewReader(string(decoded_body)))
 
+	// initialization took too long or input error?
 	if errors.Is(err, solver.ErrTimeout) {
 		rc = http.StatusGatewayTimeout
 	} else {
@@ -126,8 +139,10 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// try to solve
 	result, err := slvr.SolveCtx(ctx, part_converted)
 
+	// solution took too long or solver error?
 	if errors.Is(err, solver.ErrTimeout) {
 		rc = http.StatusGatewayTimeout
 	} else {
@@ -139,6 +154,7 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// prepare response
 	b, err := json.Marshal(SolveResult{Output: result})
 	rc = http.StatusInternalServerError
 	errMsg = fmt.Sprintf("unable to Marshal result: %s", err)
@@ -163,13 +179,18 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 //	@Failure		500				{object}	weberrors.AoCError			"Internal Server Error"
 //	@Router			/solvers														[GET]
 //	@Security		OAuth2AccessCode [read]
+//
+// Handles solver listing API endpoint
 func SolverListing(w http.ResponseWriter, r *http.Request) {
 	logger := middleware.GetLogger(r)
 
+	// prepare response headers
 	w.Header().Set("Content-Type", "application/json")
 
-	registryItems := solver.ListRegistryItems()
+	// gets registry of ctx supporting solvers
+	registryItems := solver.ListRegistryItemsWithCtx()
 
+	// prepare response body
 	b, err := json.Marshal(registryItems)
 
 	rc := http.StatusInternalServerError
