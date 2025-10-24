@@ -1,0 +1,38 @@
+---
+title: Web UI Flowchart
+config:
+    flowchart:
+        curve: basis
+    theme: neutral
+---
+flowchart TB
+    subgraph InitialPhase
+        direction TB
+    Start
+    Idle
+    end
+    subgraph Authentication
+        direction TB
+    StartAuth
+    Authenticated
+    end
+    subgraph Selection
+        direction TB
+    Selected
+    Submitted
+    ShowingResult
+    end
+    Start -->|START| Idle
+    Idle -->|AUTHENTICATE| StartAuth
+    Idle -->|SKIPAUTH| Authenticated
+    StartAuth -->|AUTHOK| Authenticated
+    StartAuth -->|AUTHFAIL| Idle
+    Authenticated -->|SELECT| Selected
+    Authenticated -->|TIMEOUTLOGOUT| Idle
+    Selected -->|SUBMIT| Submitted
+    Selected -->|TIMEOUTLOGOUT| Idle
+    Selected -->|SELECT| Selected
+    Submitted -->|SHOWRESULT| ShowingResult
+    ShowingResult -->|SEEN| Idle
+    ShowingResult -->|SUBMITERROR| Selected
+    ShowingResult -->|TIMEOUTLOGOUT| Idle

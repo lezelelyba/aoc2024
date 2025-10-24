@@ -1,0 +1,11 @@
+# Created by Terraform Bootstrap
+
+terraform {
+  backend "s3" {
+    bucket         = "${bucket}"
+    key            = "${environment}/terraform.tfstate"
+    region         = "${region}"
+    dynamodb_table = "${lock_table}"
+    encrypt        = true
+  }
+}

@@ -1,0 +1,87 @@
+name: CI / Docker Build
+
+on:
+  pull_request:
+    branches:
+      - master
+      - dev
+    paths:
+      - 'build/**'
+      - 'cmd/**'
+      - 'pgk/**'
+      
+  push:
+    branches:
+      - master
+      - dev
+      - 'feature/**'
+      - 'fix/**'
+    paths:
+      - 'build/**'
+      - 'cmd/**'
+      - 'pgk/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up branch name variable
+        id: vars
+        run: |
+          # Strip refs/heads/ prefix and replace slashes with dashes
+          BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}" | tr '/' '-')
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+          TIMESTAMP=$(date +%s)
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+
+      - name: Run unit tests
+        run: |
+          for mod in ./pkg/*/; do
+            if [ -f "$mod/go.mod" ]; then
+              echo "Testing $mod"
+              go test "$mod/..."
+            fi
+          done
+
+      - name: Build Docker images
+        run: |
+          docker build -f build/ci/docker/cli.Dockerfile -t jsafar/advent2024.cli:${BRANCH_NAME} .
+          docker build -f build/ci/docker/web.Dockerfile -t jsafar/advent2024.web:${BRANCH_NAME} .
+
+      - name: Log in to Docker Hub
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master')
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Push Docker images - dev
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        run: |
+          docker push jsafar/advent2024.cli:${BRANCH_NAME}
+          docker push jsafar/advent2024.web:${BRANCH_NAME}
+
+      - name: Push Docker images - master
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          docker tag jsafar/advent2024.cli:${BRANCH_NAME} jsafar/advent2024.cli:latest
+          docker tag jsafar/advent2024.web:${BRANCH_NAME} jsafar/advent2024.web:latest
+
+          docker push jsafar/advent2024.cli:latest
+          docker push jsafar/advent2024.web:latest
+
+      - name: Trigger ECS deploy workflow_run
+        if: github.event_name == 'push' && ( github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev' )
+        run: gh workflow run .github/workflows/ecs-image-change.yml --ref ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

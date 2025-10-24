@@ -1,0 +1,40 @@
+{{define "content"}}
+
+<script>
+  fetch("/static/mermaid/UI.mermaid")
+    .then(r => r.text())
+    .then(t => document.getElementById("mermaidUI").innerHTML = t);
+  fetch("/static/mermaid/OAuth.mermaid")
+    .then(r => r.text())
+    .then(t => document.getElementById("mermaidOAuth").innerHTML = t);
+</script>
+
+<section>
+      <h2>
+        <a href="/swagger" target="_blank">API Definition</a>
+      </h2>
+</section>
+
+<section>
+  <h2>
+    <a href="/godocs" target="_blank">Go Documentation</a>
+  </h2>
+</section>
+
+<section>
+    <h2>Diagram of UI flow on the index Page</h2>
+    <pre id="mermaidUI" class="mermaid">
+    </pre>
+</section>
+
+<section>
+    <h2>Diagram of OAuth Flow</h2>
+    <pre id="mermaidOAuth" class="mermaid">
+    </pre>
+</section>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true });
+</script>
+{{end}}

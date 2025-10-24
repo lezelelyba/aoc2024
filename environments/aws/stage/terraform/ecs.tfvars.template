@@ -1,0 +1,12 @@
+ecs_app_env_map = {
+    ENABLE_OAUTH = "true",
+    OAUTH_GITHUB_USER_AUTH_URL = "https://github.com/login/oauth/authorize",
+    OAUTH_GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token",
+    OAUTH_GITHUB_CLIENT_ID = "github_client_id",
+    OAUTH_GITHUB_CALLBACK_URL = "https://localhost:8443/callback/github",
+}
+
+ecs_app_env_map_secret = {
+    JWT_SECRET =  "jwt_secret",
+    OAUTH_GITHUB_CLIENT_SECRET =  "github_client_secret" ,
+}

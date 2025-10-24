@@ -14,14 +14,30 @@ import (
 	_ "advent2024/pkg/d4"
 	_ "advent2024/pkg/d5"
 	_ "advent2024/pkg/d6"
+	_ "advent2024/pkg/d7"
+	_ "advent2024/pkg/d8"
+	_ "advent2024/pkg/d9"
 )
 
+var Version string = "dev"
+
 func main() {
+
 	filename := flag.String("filename", "", "Specify filename with puzzle input")
 	part := flag.Int("part", 1, "Specify which puzzle part to run")
 	day := flag.String("day", "d1", "Specify which day to run")
+	version := flag.Bool("version", false, "List version")
 
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Version %s\n\n", Version)
+		flag.PrintDefaults()
+	}
 	flag.Parse()
+
+	if *version == true {
+		flag.Usage()
+		os.Exit(0)
+	}
 
 	solver, ok := solver.New(*day)
 
@@ -51,4 +67,5 @@ func main() {
 
 	fmt.Printf("Result - Part %d: %s", *part, result)
 
+	//bumptest3
 }

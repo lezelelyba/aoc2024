@@ -1,0 +1,29 @@
+name: CMD web - Pull Request
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/cmd-web-pr.yml'
+      - 'build/ci/docker/web.Dockerfile'
+      - 'cmd/web/**'
+      - 'pkg/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Unit Tests
+        run: |
+          for mod in ./pkg/*/; do
+            if [ -f "$mod/go.mod" ]; then
+              echo "Testing $mod"
+              go test "$mod/..."
+            fi
+          done
+      - name: Run Web Tests
+        run : |
+          echo "Running web tests..."
+          go test ./cmd/web/...
+          

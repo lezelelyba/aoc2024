@@ -1,0 +1,27 @@
+name: Environments - AWS Dev - Push to release branches
+
+on:
+  push:
+    branches:
+      - dev
+      - stage
+      - master
+    paths:
+      - 'environments/aws/dev/**'
+      - '.github/workflows/environments-aws-dev-release.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  bump_version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/bump-version
+        with:
+          branch-name: ${{github.ref_name}}
+          work-dir: environments/aws/dev
+          tag-prefix: environments/aws/dev
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

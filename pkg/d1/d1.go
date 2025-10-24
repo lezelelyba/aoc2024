@@ -12,12 +12,14 @@ import (
 	"advent2024/pkg/solver"
 )
 
+var day = "d1"
+
 type PuzzleStruct struct {
 	input *[2][]int
 }
 
 func init() {
-	solver.Register("d1", func() solver.PuzzleSolver {
+	solver.Register(day, func() solver.PuzzleSolver {
 		return NewSolver()
 	})
 }
@@ -30,6 +32,11 @@ func (p *PuzzleStruct) Init(reader io.Reader) error {
 	input, err := parseInput(bufio.NewScanner(reader))
 
 	if err != nil {
+		log.Print(err)
+		return err
+	}
+
+	if err := validateInput(input); err != nil {
 		log.Print(err)
 		return err
 	}
@@ -67,7 +74,7 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 		return strconv.Itoa(sim), nil
 	}
 
-	return "", fmt.Errorf("unknown Part %d", part)
+	return "", fmt.Errorf("%s unknown part %d: %w", day, part, solver.ErrUnknownPart)
 }
 
 func parseInput(sc *bufio.Scanner) (*[2][]int, error) {
@@ -83,14 +90,16 @@ func parseInput(sc *bufio.Scanner) (*[2][]int, error) {
 		vs := strings.Fields(sc.Text())
 
 		if len(vs) != 2 {
-			return nil, fmt.Errorf("unable to parse \"%v\"", sc.Text())
+			maxOutput := min(len(sc.Text()), 80)
+			return nil, fmt.Errorf("%s unable to parse \"%v\": %w", day, sc.Text()[:maxOutput], solver.ErrInvalidInput)
 		}
 
 		l, lerr := strconv.Atoi(vs[0])
 		r, rerr := strconv.Atoi(vs[1])
 
 		if lerr != nil || rerr != nil {
-			return nil, fmt.Errorf("unable to parse \"%v\"", sc.Text())
+			maxOutput := min(len(sc.Text()), 80)
+			return nil, fmt.Errorf("%s unable to parse \"%v\": %w", day, sc.Text()[:maxOutput], solver.ErrInvalidInput)
 		}
 
 		left = append(left, l)
@@ -98,6 +107,16 @@ func parseInput(sc *bufio.Scanner) (*[2][]int, error) {
 	}
 
 	return &[2][]int{left, right}, nil
+}
+
+func validateInput(entries *[2][]int) error {
+	if entries == nil {
+		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
+	} else if len(entries[0]) == 0 || len(entries[1]) == 0 {
+		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
+	}
+
+	return nil
 }
 
 func histogram(l []int) *map[int]int {

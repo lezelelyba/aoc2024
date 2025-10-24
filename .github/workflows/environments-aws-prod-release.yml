@@ -1,0 +1,27 @@
+name: Environments - AWS Prod - Push to release branches
+
+on:
+  push:
+    branches:
+      - dev
+      - stage
+      - master
+    paths:
+      - 'environments/aws/prod/**'
+      - '.github/workflows/environments-aws-prod-release.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  bump_version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/bump-version
+        with:
+          branch-name: ${{github.ref_name}}
+          work-dir: environments/aws/prod
+          tag-prefix: environments/aws/prod
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

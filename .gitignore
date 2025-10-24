@@ -1,2 +1,18 @@
-.terraform
+# do not include test inputs
+inputs
+
+# do not include kvm images
 *.img
+
+# do not include .terraform state folder
+.terraform
+
+#do not include tls cert and keys
+tls
+
+# do not include tf vars
+*.tfvars
+!*.tfvars.template
+
+#do not include vscode setup
+.vscode/

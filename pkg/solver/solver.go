@@ -1,39 +1,109 @@
+// Package provides registry of solvers
 package solver
 
 import (
+	"errors"
 	"io"
-	"strings"
+	"sort"
+	"sync"
 )
 
+// Package Errors
+// Errors returned by the solver can be tested againts these errors
+// using errors.Is
+var (
+	ErrInvalidInput = errors.New("invalid input")
+	ErrTimeout      = errors.New("solver timeout")
+	ErrUnknownPart  = errors.New("unknown part")
+)
+
+// Interface of Puzzle Solver
 type PuzzleSolver interface {
 	Init(reader io.Reader) error
 	Solve(part int) (string, error)
 }
 
-var registry = map[string]func() PuzzleSolver{}
-
-func Register(name string, constructor func() PuzzleSolver) {
-	registry[name] = constructor
+// Registered solver
+type RegistryItem struct {
+	Name        string
+	Next        bool
+	Constructor func() PuzzleSolver
 }
 
-func ListRegister() []string {
-	registered_keys := make([]string, len(registry))
+// Registered solver for export purposes
+type RegistryItemPublic struct {
+	Name string `json:"name"`
+	Next bool   `json:"next"`
+} //@name RegistryItem
 
-	i := 0
-	for k := range registry {
-		registered_keys[i] = strings.Clone(k)
-		i++
+// Interface of Puzzle Solver supporting stepwise solving
+type Stepper interface {
+	PuzzleSolver
+	Next() (string, error)
+}
+
+// Registry of solvers
+var registry = map[string]RegistryItem{}
+
+// Keys of the solvers, sorted
+var keys []string
+
+// Mutex guarding access to registry
+var mu sync.RWMutex
+
+// Registers a solver and check for supported interfaces
+// Keeps the keys ordered
+func Register(name string, constructor func() PuzzleSolver) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	item := RegistryItem{Name: name, Constructor: constructor}
+
+	var ps PuzzleSolver
+
+	// recovers from panic
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				ps = nil
+			}
+		}()
+		ps = constructor()
+	}()
+
+	if _, ok := ps.(Stepper); ok {
+		item.Next = true
 	}
 
-	return registered_keys
+	registry[name] = item
+
+	// sort the keys
+	keys = append(keys, name)
+	sort.Strings(keys)
 }
 
+// Lists registered keys
+func ListRegistryItems() []RegistryItemPublic {
+	mu.RLock()
+	defer mu.RUnlock()
+
+	items := make([]RegistryItemPublic, 0, len(registry))
+
+	for _, k := range keys {
+		v := registry[k]
+		items = append(items, RegistryItemPublic{Name: v.Name, Next: v.Next})
+	}
+
+	return items
+}
+
+// Factory for solvers
 func New(name string) (PuzzleSolver, bool) {
-	constructor, ok := registry[name]
+	solver, ok := registry[name]
 
 	if !ok {
 		return nil, false
 	}
 
-	return constructor(), true
+	return solver.Constructor(), true
 }

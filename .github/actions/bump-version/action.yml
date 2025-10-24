@@ -1,0 +1,130 @@
+name: "Bump version"
+description: "Bumps semver and pushes tag"
+
+inputs:
+  branch-name:
+    required: true
+  tag-prefix:
+    required: true
+  work-dir:
+    required: false
+    default: "."
+  refresh-cache:
+    required: false
+    default: "false"
+
+outputs:
+  next-version:
+    description: "The new bumped version"
+    value: ${{ steps.bump.outputs.next-version }}
+  bumped:
+    description: "Was the version bumped"
+    value: ${{ steps.bump.outputs.bumped }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: ${{ inputs.branch-name }}
+
+    - name: Cache npm global packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm-global
+        key: npm-global-${{ runner.os }}
+        restore-keys: |
+          npm-global-${{ runner.os }}
+
+    - name: Setup npm global path
+      shell: bash
+      run: |
+        mkdir -p ~/.npm-global
+        npm config set prefix ~/.npm-global
+        echo "PATH=$HOME/.npm-global/bin:$PATH" >> $GITHUB_ENV
+
+    - name: Refresh npm global cache if requested
+      shell: bash
+      run: |
+        if [ "${{ inputs.refresh-cache }}" == "true" ]; then
+          echo "Deleting cached semver..."
+          rm -rf ~/.npm-global/lib/node_modules/semver
+        fi       
+
+    - name: Install SemVer
+      shell: bash
+      run: |
+        npm install -g semver
+
+    - name: Bump Version
+      id: bump
+      shell: bash
+      run: |
+        echo "Move to working dir"
+
+        cd ${{ inputs.work-dir }}
+
+        echo "Setup git"
+
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/${{ github.repository }}.git
+
+        # Read current version
+
+        CURR_VER=$(cat VERSION 2>/dev/null || echo "0.0.0")
+        echo "Current version: $CURR_VER"
+
+        # Determine next version
+        
+        if [[ "${{inputs.branch-name}}" == "dev" ]]; then
+          NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid rc)
+        elif [[ "${{inputs.branch-name}}" == "stage" ]]; then
+          NEXT_VER=$(semver "$CURR_VER" -i prerelease --preid rc)
+        else
+          NEXT_VER=$(semver "$CURR_VER" -i patch)
+        fi
+
+        echo "Next version: $NEXT_VER"
+
+        if [ "$NEXT_VER" != "$CURR_VER" ]; then
+        
+          echo "Fetch"
+
+          git fetch origin ${{ inputs.branch-name }}
+          git reset --hard origin/${{ inputs.branch-name }}
+
+          # Update VERSION file
+          
+          echo "$NEXT_VER" > VERSION
+
+          echo "Version Updated"
+          echo $(cat VERSION)
+
+          echo "Commit new VERSION"
+
+          git add VERSION
+          git commit -m "chore: bump version of ${{inputs.work-dir}} to $NEXT_VER"
+
+          git push origin HEAD:"${{inputs.branch-name}}"
+
+          echo "Create Tag"
+
+          TAG_PREFIX=${{inputs.tag-prefix}}
+          TAG_NAME="$TAG_PREFIX/v$NEXT_VER"
+
+          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
+            echo "Tag $TAG_NAME already exists, skipping tagging."
+          else
+              echo "Push Tag"
+              git tag "$TAG_NAME"
+              git push origin "$TAG_NAME"
+          fi
+
+          echo "next-version=$NEXT_VER" >> $GITHUB_OUTPUT
+          echo "bumped=true" >> $GITHUB_OUTPUT
+        else
+          echo "next-version=$CURR_VER" >> $GITHUB_OUTPUT
+          echo "bumped=false" >> $GITHUB_OUTPUT
+        fi

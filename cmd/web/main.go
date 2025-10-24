@@ -1,309 +1,163 @@
+// Solver for Advent of Code 2024
 package main
 
 import (
-	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 	"text/template"
-	"time"
 
 	_ "advent2024/pkg/d1"
+	_ "advent2024/pkg/d10"
 	_ "advent2024/pkg/d2"
 	_ "advent2024/pkg/d3"
 	_ "advent2024/pkg/d4"
 	_ "advent2024/pkg/d5"
 	_ "advent2024/pkg/d6"
+	_ "advent2024/pkg/d7"
+	_ "advent2024/pkg/d8"
+	_ "advent2024/pkg/d9"
 
-	"advent2024/pkg/solver"
+	_ "advent2024/web/docs"
 
-	"github.com/google/uuid"
+	httpSwagger "github.com/swaggo/http-swagger"
+
+	"advent2024/web/api"
+	"advent2024/web/config"
+	"advent2024/web/middleware"
+	"advent2024/web/webhandlers"
 )
 
-type contextKey string
-type Config struct {
-	empty string
-}
+var Version string = "dev"
 
-const (
-	ContextKeyLogger         contextKey = "logger"
-	ContextKeyRequestID      contextKey = "requestID"
-	ContextKeyUploadTemplate contextKey = "uploadTemplate"
-)
+//	@title			Advent of Code 2024 Solver API
+//	@version		2.0
+//	@description	Solver for AoC 2024 written in Go
 
-type loggingResponseWriter struct {
-	http.ResponseWriter
-	statusCode   int
-	bytesWritten int
-}
+//	@contact.name	None
 
-func (lrw *loggingResponseWriter) WriteHeader(code int) {
-	lrw.statusCode = code
-	lrw.ResponseWriter.WriteHeader(code)
-}
+//	@license.name	Apache 2.0
+//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 
-func (lrw *loggingResponseWriter) Write(b []byte) (int, error) {
-	n, err := lrw.ResponseWriter.Write(b)
-	lrw.bytesWritten += n
+//	@BasePath	/api
 
-	return n, err
-}
+//	@externalDocs.description	OpenAPI
+//	@externalDocs.url			https://swagger.io/resources/open-api/
 
-func NewLogger(c *Config) *log.Logger {
-	return log.New(os.Stderr, "advent2024.web ", log.Ldate|log.Ltime|log.LUTC|log.Lmsgprefix)
-}
-
-func LoggingMiddleware(logger *log.Logger) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-			start := time.Now()
-
-			ip := ClientIP(r)
-
-			requestID := uuid.New().String()
-
-			oldPrefix := logger.Prefix()
-			newPrefix := oldPrefix + ": " + requestID + " : "
-
-			prefixedLogger := log.New(logger.Writer(), newPrefix, logger.Flags())
-
-			ctx := context.WithValue(r.Context(), ContextKeyLogger, prefixedLogger)
-			ctx = context.WithValue(ctx, ContextKeyRequestID, requestID)
-
-			captureWriter := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-
-			next.ServeHTTP(captureWriter, r.WithContext(ctx))
-
-			duration := time.Since(start)
-
-			prefixedLogger.Printf("%s - - \"%s %s\" %d %d duration %s",
-				ip,
-				r.Method,
-				r.URL,
-				captureWriter.statusCode,
-				captureWriter.bytesWritten,
-				duration)
-		})
-	}
-}
-
-func ClientIP(r *http.Request) string {
-	ip := r.Header.Get("X-Real-Ip")
-
-	if ip == "" {
-		ip = r.Header.Get("X-Forwarded-For")
-	}
-
-	if ip == "" {
-		ip = r.RemoteAddr
-	}
-
-	return ip
-}
-
-func withTemplate(template *template.Template, key contextKey, next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), key, template)
-		next(w, r.WithContext(ctx))
-	}
-}
-
+// @securitydefinitions.oauth2.accessCode	OAuth2AccessCode
+// @authorizationURL						https://github.com/login/oauth/authorize
+// @tokenURL								http://localhost:8080/oauth/github/token
+// @scope.read								Grants read access
+// @description							GitHub OAuth
 func main() {
-	mux := http.NewServeMux()
 
-	// parse config
+	// parse and validate config.
 
-	config := Config{empty: ""}
+	cfg, errors := config.LoadConfig()
+	valid, validationErrors := cfg.ValidateConfig()
+
+	if len(errors) != 0 {
+		for _, e := range errors {
+			log.Println(e)
+		}
+	}
+
+	if len(validationErrors) != 0 {
+		for _, e := range validationErrors {
+			log.Println(e)
+		}
+	}
+
+	if !valid || len(errors) > 0 || len(validationErrors) > 0 {
+		os.Exit(1)
+	}
+
+	cfg.Version = Version
 
 	// parse templates
 
-	uploadTemplate := template.Must(template.ParseFiles("./templates/upload.tmpl"))
+	funcMap := template.FuncMap{
+		"fieldNames": webhandlers.FieldNames,
+		"getField":   webhandlers.GetField,
+	}
+
+	// base layout
+	layoutTemplate := template.Must(template.New("").Funcs(funcMap).ParseGlob("./templates/layouts/*.tmpl"))
+
+	// index page
+	indexTemplate := template.Must(layoutTemplate.Clone())
+	template.Must(indexTemplate.ParseFiles("./templates/pages/index.tmpl"))
+
+	// doc page
+	docsTemplate := template.Must(layoutTemplate.Clone())
+	template.Must(docsTemplate.ParseFiles("./templates/pages/docs.tmpl"))
+
+	// callback page
+	callbackTemplate := template.Must(template.ParseFiles("./templates/pages/callback.tmpl"))
 
 	// create logging middleware
 
-	logger := NewLogger(&config)
+	logger := middleware.NewLogger(&cfg)
 
-	mux.HandleFunc("GET /", serverStatus)
-	mux.HandleFunc("GET /list", solverListing)
-	mux.HandleFunc("POST /solve/{day}/{part}", solve)
-	mux.HandleFunc("GET /solve/{day}/{part}/upload", withTemplate(uploadTemplate, ContextKeyUploadTemplate, solveWithUpload))
+	// create http muxes
+	webMux := http.NewServeMux()
+	apiMux := http.NewServeMux()
+	globalMux := http.NewServeMux()
 
+	// web pages
+	webMux.Handle("GET /", middleware.WithTemplate(indexTemplate)(http.HandlerFunc(webhandlers.ServerIndex)))
+	webMux.Handle("GET /docs", middleware.WithTemplate(docsTemplate)(http.HandlerFunc(webhandlers.ServerDocs)))
+	webMux.HandleFunc("GET /list", webhandlers.SolverListing)
+	webMux.HandleFunc("GET /healthcheck", webhandlers.HealthCheck)
+
+	// oauth
+	if cfg.OAuth {
+		webMux.Handle("GET /callback/{provider}", middleware.WithTemplate(callbackTemplate)(http.HandlerFunc(webhandlers.OAuthCallback)))
+		webMux.HandleFunc("POST /oauth/{provider}/token", webhandlers.OAuthHandler)
+	}
+
+	// swagger docs
+	webMux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)
+
+	// static files
 	fs := http.FileServer(http.Dir("static"))
-	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	webMux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 
-	loggedMux := LoggingMiddleware(logger)(mux)
+	// godoc
+	godocs := http.FileServer(http.Dir("godocs"))
+	webMux.Handle("GET /godocs/", http.StripPrefix("/godocs/", godocs))
 
-	log.Println("Starting Server on : 8080")
-	http.ListenAndServe(":8080", loggedMux)
-}
+	// api
+	apiMux.HandleFunc("GET /solvers", api.SolverListing)
+	apiMux.HandleFunc("POST /solvers/{day}/{part}", api.Solve)
 
-func serverStatus(w http.ResponseWriter, r *http.Request) {
-	registered_keys := solver.ListRegister()
-	registered_keys_string := strings.Join(registered_keys, " ")
+	// add api rate limiter
+	apiHandler := middleware.RateLimitMiddleware(cfg.APIRate, cfg.APIBurst)(apiMux)
 
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = "UnknownHostname"
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Server " + hostname + " is up and running\n" + "Registered days: " + registered_keys_string + "\n"))
-}
-
-func solverListing(w http.ResponseWriter, r *http.Request) {
-	registered_keys := solver.ListRegister()
-
-	type registeredKeys struct {
-		Keys []string
+	// add authentication if enabled
+	if cfg.OAuth {
+		apiHandler = middleware.AuthenticationMiddleware()(apiHandler)
 	}
 
-	b, err := json.Marshal(registeredKeys{Keys: registered_keys})
-	if err != nil {
-		log.Printf("Unable to marshal registered solvers")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("{}")))
-		return
-	}
+	// combine muxes
+	globalMux.Handle("/api/", http.StripPrefix("/api", apiHandler))
+	globalMux.Handle("/", webMux)
 
-	w.WriteHeader(http.StatusOK)
-	w.Write(b)
-}
+	// add middlewares
+	var finalMux http.Handler = globalMux
+	finalMux = middleware.RecoveryMiddleware()(finalMux)
+	finalMux = middleware.LoggingMiddleware(logger)(finalMux)
+	finalMux = middleware.WithConfig(&cfg)(finalMux)
 
-func getLogger(ctx context.Context) *log.Logger {
-	loggerVal := ctx.Value(ContextKeyLogger)
-	logger, ok := loggerVal.(*log.Logger)
-	if !ok || logger == nil {
-		logger = log.Default()
-	}
+	// start server
+	addr := fmt.Sprintf(":%d", cfg.Port)
 
-	return logger
-}
-
-type SolvePayload struct {
-	Input string `json:input`
-}
-
-type SolveResult struct {
-	Output string `json:output`
-}
-
-func solve(w http.ResponseWriter, r *http.Request) {
-
-	logger := getLogger(r.Context())
-
-	day := r.PathValue("day")
-	part := r.PathValue("part")
-
-	part_converted, err := strconv.Atoi(part)
-
-	if err != nil {
-		logger.Printf("Part is not numerical: %d", part_converted)
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(fmt.Sprintf("Solver for day %s part %s not implemented\n", day, part)))
-		return
-	}
-
-	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
-	defer r.Body.Close()
-
-	body, err := io.ReadAll(r.Body)
-
-	if err != nil {
-		logger.Printf("Unable to read body")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("Unable to read body")))
-		return
-	}
-
-	var p SolvePayload
-	err = json.Unmarshal(body, &p)
-
-	if err != nil {
-		logger.Printf("Unable to unmarshal body")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("Unable to unmarshal request")))
-		return
-	}
-
-	decoded_body, err := base64.StdEncoding.DecodeString(string(p.Input))
-
-	if err != nil {
-		logger.Printf("Unable to decode Base64")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("Unable to read body: Invalid Base64 encoding")))
-		return
-	}
-
-	solver, ok := solver.New(day)
-
-	if !ok {
-		logger.Printf("Unable to find solver for day %s", day)
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(fmt.Sprintf("Solver for day %s not implemented\n", day)))
-		return
-	}
-
-	err = solver.Init(strings.NewReader(string(decoded_body)))
-
-	if err != nil {
-		logger.Printf("Unable to intialize Solver for day %s", day)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("Unable to initialize Solver for day %s\n", day)))
-		return
-	}
-
-	result, err := solver.Solve(part_converted)
-
-	if err != nil {
-		logger.Printf("Unable to solve problem for day %s part %s", day, part)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Unable to solve for day %s\n", day)))
-		return
-	}
-
-	b, err := json.Marshal(SolveResult{Output: result})
-	if err != nil {
-		logger.Printf("Unable to marshal result")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("{}")))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(b)
-}
-
-func solveWithUpload(w http.ResponseWriter, r *http.Request) {
-	logger := getLogger(r.Context())
-
-	templateVal := r.Context().Value(ContextKeyUploadTemplate)
-	template, ok := templateVal.(*template.Template)
-
-	if !ok || template == nil {
-		logger.Printf("Unable to find Upload template")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("{}")))
-		return
-	}
-
-	data := struct {
-		Title    string
-		Endpoint string
-	}{
-		Title:    fmt.Sprintf("Upload Page for day %s", r.PathValue("day")),
-		Endpoint: fmt.Sprintf("/solve/%s/%s", r.PathValue("day"), r.PathValue("part")),
-	}
-
-	if err := template.Execute(w, data); err != nil {
-		logger.Printf("Unable to render Upload template")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("{}")))
-		return
+	if !cfg.EnableTLS {
+		log.Printf("Starting Server on : %d\n", cfg.Port)
+		log.Fatal(http.ListenAndServe(addr, finalMux))
+	} else {
+		log.Printf("Starting TLS Server on : %d\n", cfg.Port)
+		log.Fatal(http.ListenAndServeTLS(addr, cfg.CertFile, cfg.KeyFile, finalMux))
 	}
 }

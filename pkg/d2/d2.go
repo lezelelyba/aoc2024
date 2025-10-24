@@ -5,12 +5,15 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"strconv"
 	"strings"
 )
 
+var day = "d2"
+
 func init() {
-	solver.Register("d2", func() solver.PuzzleSolver {
+	solver.Register(day, func() solver.PuzzleSolver {
 		return NewSolver()
 	})
 }
@@ -28,6 +31,11 @@ func (p *PuzzleStruct) Init(reader io.Reader) error {
 	reports, err := parseInput(bufio.NewScanner(reader))
 
 	if err != nil {
+		return err
+	}
+
+	if err := validateInput(reports); err != nil {
+		log.Print(err)
 		return err
 	}
 
@@ -71,7 +79,7 @@ func (p *PuzzleStruct) Solve(part int) (string, error) {
 		return strconv.Itoa(sum), nil
 	}
 
-	return "", fmt.Errorf("unknown Part %d", part)
+	return "", fmt.Errorf("%s unknown part %d: %w", day, part, solver.ErrUnknownPart)
 }
 
 func parseInput(sc *bufio.Scanner) (*[][]int, error) {
@@ -93,7 +101,8 @@ func parseInput(sc *bufio.Scanner) (*[][]int, error) {
 			i, err := strconv.Atoi(v)
 
 			if err != nil {
-				return nil, fmt.Errorf("unable to parse: %v", sc.Text())
+				maxOutput := min(len(sc.Text()), 80)
+				return nil, fmt.Errorf("%s unable to parse \"%v\": %w", day, sc.Text()[:maxOutput], solver.ErrInvalidInput)
 			}
 
 			report = append(report, i)
@@ -103,6 +112,16 @@ func parseInput(sc *bufio.Scanner) (*[][]int, error) {
 	}
 
 	return &reports, nil
+}
+
+func validateInput(reports *[][]int) error {
+
+	if reports == nil {
+		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
+	} else if len(*reports) == 0 {
+		return fmt.Errorf("%s empty records: %w", day, solver.ErrInvalidInput)
+	}
+	return nil
 }
 
 func report_safe(report *[]int) bool {

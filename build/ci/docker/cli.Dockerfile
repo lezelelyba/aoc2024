@@ -1,4 +1,4 @@
-FROM golang:1.24.7 AS builder
+FROM golang:1.25.3 AS builder
 
 WORKDIR /release.cli
 
@@ -8,10 +8,12 @@ WORKDIR /release.cli/cmd/cli
 
 RUN go mod download
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /advent2024.cli
+ARG VERSION
+
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-X 'main.Version=${VERSION}'" -o /advent2024.cli
 
 FROM scratch
 
 COPY --from=builder /advent2024.cli /advent2024.cli
 
-CMD ["/advent2024.cli"]
+ENTRYPOINT ["/advent2024.cli"]
