@@ -81,7 +81,7 @@ variable "ecs_app_env_map_secret" {
     default = {}
     sensitive = true
 }
-variable "ecs_app_env_map_secret_keys" {
-    type = list(string)
-    default = []
+
+locals {
+    ecs_app_env_map_secret_keys = nonsensitive(keys(var.ecs_app_env_map_secret))
 }

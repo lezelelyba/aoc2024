@@ -70,7 +70,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
             ]
 
             secrets = [
-                for i in var.ecs_app_env_map_secret_keys : {
+                for i in local.ecs_app_env_map_secret_keys : {
                     name = i
                     valueFrom = aws_secretsmanager_secret.container_env_secret["${var.env}-${i}"].arn
                 }
@@ -109,7 +109,7 @@ resource "aws_ecs_service" "app" {
 }
 
 resource "aws_secretsmanager_secret" "container_env_secret" {
-    for_each = { for k in var.ecs_app_env_map_secret_keys: "${var.env}-${k}" => k }
+    for_each = { for k in local.ecs_app_env_map_secret_keys: "${var.env}-${k}" => k }
 
     name = each.key
     recovery_window_in_days = 0
