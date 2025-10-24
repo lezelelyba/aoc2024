@@ -52,7 +52,7 @@ var Version string = "dev"
 // @description							GitHub OAuth
 func main() {
 
-	// parse and validate config
+	// parse and validate config.
 
 	cfg, errors := config.LoadConfig()
 	valid, validationErrors := cfg.ValidateConfig()

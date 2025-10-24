@@ -53,6 +53,9 @@ TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
 ifeq ($(ENVIRONMENT), prod)
 TF_DIR ?= $(MAKEFILE_DIR)environments/aws/prod/terraform
 TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
+else ifeq ($(ENVIRONMENT), stage)
+TF_DIR ?= $(MAKEFILE_DIR)environments/aws/stage/terraform
+TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
 else ifeq ($(ENVIRONMENT), dev)
 TF_DIR ?= $(MAKEFILE_DIR)environments/aws/dev/terraform
 TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
