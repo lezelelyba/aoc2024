@@ -19,8 +19,13 @@ jobs:
   bump_version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - id: bump
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.GH_ACTIONS_DEPLOY_KEY }}
+
+      - name: Bump Version
+        id: bump
         uses: ./.github/actions/bump-version
         with:
           branch-name: ${{github.ref_name}}
