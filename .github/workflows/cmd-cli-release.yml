@@ -21,8 +21,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ssh-key: ${{ secrets.GH_ACTIONS_DEPLOY_KEY }}
 
       - name: Bump Version
         id: bump
@@ -31,6 +29,7 @@ jobs:
           branch-name: ${{github.ref_name}}
           work-dir: cmd/cli
           tag-prefix: cmd/cli
+          ssh-key: ${{ secrets.GH_ACTIONS_DEPLOY_KEY }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

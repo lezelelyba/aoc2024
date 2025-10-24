@@ -12,6 +12,8 @@ inputs:
   refresh-cache:
     required: false
     default: "false"
+  ssh-key:
+    required: true
 
 outputs:
   next-version:
@@ -28,7 +30,7 @@ runs:
       with:
         fetch-depth: 0
         ref: ${{ inputs.branch-name }}
-        ssh-key: ${{ secrets.GH_ACTIONS_DEPLOY_KEY }}
+        ssh-key: ${{ inputs.ssh-key }}
 
     - name: Cache npm global packages
       uses: actions/cache@v3
