@@ -1,5 +1,5 @@
 // Web Page Handlers
-package web
+package webhandlers
 
 import (
 	"advent2024/pkg/solver"
@@ -16,8 +16,8 @@ import (
 	"text/template"
 )
 
-// Server Status
-// including hostname and list of registered solvers
+// Handles server status page.
+// Output including hostname and list of registered solvers
 func ServerStatus(w http.ResponseWriter, r *http.Request) {
 
 	if r.URL.Path != "/" {
@@ -41,8 +41,8 @@ func ServerStatus(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Server " + hostname + " is up and running\n" + "Registered days: " + registeredKeysStr + "\n"))
 }
 
-// Main Page
-// Renders Main page from template
+// Handles main page
+// Renders page from template, with information pulled from configuration
 // TODO: refactor to be usable for all simple pages
 func ServerIndex(w http.ResponseWriter, r *http.Request) {
 	var rc int
@@ -101,8 +101,8 @@ func ServerIndex(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Docs page Handler
-// Renders page from template
+// Handles documentation page
+// Renders page from template, with information pulled from configuration
 func ServerDocs(w http.ResponseWriter, r *http.Request) {
 	var rc int
 	var errMsg string
@@ -155,7 +155,7 @@ func ServerDocs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Shows registered Solvers
+// Handles display of registered solvers
 func SolverListing(w http.ResponseWriter, r *http.Request) {
 	logger := middleware.GetLogger(r)
 
@@ -175,7 +175,7 @@ func SolverListing(w http.ResponseWriter, r *http.Request) {
 
 // Handles callback redirects from OAuth providers
 // Pulls data about OAuth provider from config
-// Renders page to send user to Handler URL
+// Renders page from template, with information pulled from configuration
 func OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	var rc int
 	var errMsg string
@@ -214,7 +214,7 @@ func OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Endpoint string
 	}{
-		Endpoint: provider.TokenEndpoint(),
+		Endpoint: provider.AppTokenEndpoint(),
 	}
 
 	err := template.Execute(w, data)
@@ -226,7 +226,7 @@ func OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Handles code<>token exchange with the OAuth Providers
+// Handles user code<>token exchange page
 // TODO: implement more providers, curently only github
 // gets OAuth code from client, exchanges code for token with provider and then generates JWT token for client
 func OAuthHandler(w http.ResponseWriter, r *http.Request) {
@@ -256,12 +256,12 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	provider := config.OAuthProviders[providerName]
 
-	switch provider.Name {
+	switch provider.Name() {
 	case "github":
 
 		// code is missing
 		rc = http.StatusBadRequest
-		errMsg = fmt.Sprintf("unable to exchange code for token with %s: code is missing", provider.Name)
+		errMsg = fmt.Sprintf("unable to exchange code for token with %s: code is missing", provider.Name())
 		ok := query.Get("code") != ""
 		if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
 			return
@@ -272,7 +272,7 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 
 		// error => local error
 		rc = http.StatusInternalServerError
-		errMsg = fmt.Sprintf("unable to exchange code for token with %s: %v", provider.Name, err)
+		errMsg = fmt.Sprintf("unable to exchange code for token with %s: %v", provider.Name(), err)
 		if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
 			return
 		}
@@ -280,7 +280,7 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 		// error nil, but error response from provider
 		if token.IsError() {
 			rc = http.StatusBadRequest
-			errMsg = fmt.Sprintf("unable to exchange code for token with %s: %v", provider.Name, err)
+			errMsg = fmt.Sprintf("unable to exchange code for token with %s: %v", provider.Name(), err)
 			if weberrors.HandleError(w, logger, token, rc, errMsg) != nil {
 				return
 			}
@@ -292,7 +292,7 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 
 		// get token and generate JWT token
 		tokenStr, _ := token.Token()
-		jwtToken, err := middleware.GenerateJWT(provider.Name, tokenStr, []byte(config.JWTSecret), config.JWTTokenValidity)
+		jwtToken, err := middleware.GenerateJWT(provider.Name(), tokenStr, []byte(config.JWTSecret), config.JWTTokenValidity)
 
 		// unable to generate token
 		rc = http.StatusInternalServerError
@@ -308,7 +308,7 @@ func OAuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Helper function for the actual code<>token exchange
+// Exchanges code with OAuth provider for a token
 func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middleware.OAuthResponse, error) {
 	// no provider
 	if provider == nil {
@@ -316,19 +316,19 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middlewa
 	}
 
 	// know providres
-	switch provider.Name {
+	switch (*provider).Name() {
 	case "github":
 		// extract required information from client request
 		data := url.Values{}
-		data.Set("client_id", provider.ClientId)
-		data.Set("client_secret", provider.ClientSecret)
+		data.Set("client_id", (*provider).ClientID())
+		data.Set("client_secret", (*provider).ClientSecret())
 		data.Set("code", code)
 		// TODO: send redirect_uri to github
 
 		// create request to provider
 		req, err := http.NewRequest(
 			"POST",
-			provider.TokenURL,
+			(*provider).TokenURL(),
 			strings.NewReader(data.Encode()))
 
 		if err != nil {
@@ -343,7 +343,7 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middlewa
 
 		// err from client
 		if err != nil {
-			return nil, fmt.Errorf("unable to exchange code for token with %s: %v", provider.Name, err)
+			return nil, fmt.Errorf("unable to exchange code for token with %s: %v", (*provider).Name(), err)
 		}
 
 		// work only with non-nil response
@@ -354,23 +354,24 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middlewa
 
 		err = json.NewDecoder(resp.Body).Decode(&token)
 		if err != nil {
-			return nil, fmt.Errorf("unable to unmarshal %s response", provider.Name)
+			return nil, fmt.Errorf("unable to unmarshal %s response", (*provider).Name())
 		}
 
 		return token, nil
 	// unknown provider
 	default:
-		return nil, fmt.Errorf("unable to find provider %s", provider.Name)
+		return nil, fmt.Errorf("unable to find provider %s", (*provider).Name())
 	}
 }
 
-// Healthcheck page Handler
+// Handles healthcheck page
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
 
-// helper functions for templates, extract field names from struct
+// extract field names from struct
+// helper functions for templates
 func FieldNames(v interface{}) []string {
 	r := reflect.ValueOf(v)
 	t := r.Type()
@@ -384,7 +385,8 @@ func FieldNames(v interface{}) []string {
 	return fields
 }
 
-// helper functions for templates, extracts value of field from struct
+// extracts value of field from struct
+// helper functions for templates
 func GetField(v interface{}, name string) interface{} {
 	r := reflect.ValueOf(v)
 	if r.Kind() == reflect.Ptr {

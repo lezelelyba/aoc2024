@@ -36,7 +36,7 @@
     loginButtons["{{.Name}}"].textContent = "Authenticate via {{.Name}}"
     loginButtons["{{.Name}}"].id = "login-button-{{.Name}}";
     loginButtons["{{.Name}}"].class = "login-button";
-    loginButtons["{{.Name}}"].addEventListener("click", () => startOAuth("{{.UserAuth}}"));
+    loginButtons["{{.Name}}"].addEventListener("click", () => startOAuth("{{.AuthURL}}"));
 
     loginButtonsDiv.appendChild(loginButtons["{{.Name}}"]);
     {{- end }}

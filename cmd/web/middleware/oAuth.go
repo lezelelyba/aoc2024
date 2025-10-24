@@ -45,7 +45,7 @@ func (r OAuthGithubReply) Token() (string, error) {
 	return "", errors.New("reply is an error: unable to get token")
 }
 
-// Response is Error
+// Checks if Response is Error
 func (r OAuthGithubReply) IsError() bool {
 	return !(r.Err == nil)
 }
@@ -64,7 +64,8 @@ func (e OAuthGithubError) Error() string {
 	return e.Err
 }
 
-// Custom Unmarshaller for GitHub Response
+// Unmarshal GitHub Response.
+// Checks if the response is error or success and populates correct field of the struct.
 func (r *OAuthGithubReply) UnmarshalJSON(data []byte) error {
 
 	// unmarshal as a map

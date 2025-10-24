@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// Config
 type Config struct {
 	Version          string
 	Port             int
@@ -25,15 +26,28 @@ type Config struct {
 	OAuthProviders   map[string]OAuthProvider
 }
 
-type OAuthProvider struct {
-	Name         string
-	UserAuthURL  string
-	TokenURL     string
-	CallbackURL  string
-	ClientId     string
-	ClientSecret string
+// OAuth Provider
+type OAuthProvider interface {
+	Name() string
+	AuthURL() string
+	TokenURL() string
+	AppCallbackURL() string
+	AppTokenEndpoint() string
+	ClientID() string
+	ClientSecret() string
 }
 
+// Github OAuth provider
+type GithubProvider struct {
+	ProviderName     string
+	ProviderAuthURL  string
+	ProviderTokenURL string
+	CallbackURL      string
+	AppClientId      string
+	AppClientSecret  string
+}
+
+// Constructor with defaults
 func NewConfig() Config {
 	return Config{
 		Port:             8080,
@@ -47,14 +61,45 @@ func NewConfig() Config {
 	}
 }
 
-func (p OAuthProvider) TokenEndpoint() string {
-	return fmt.Sprintf("/oauth/%s/token", p.Name)
+// Returns Name
+func (p GithubProvider) Name() string {
+	return p.ProviderName
 }
 
-func (p OAuthProvider) UserAuth() string {
-	return fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=read:user", p.UserAuthURL, p.ClientId, url.QueryEscape(p.CallbackURL))
+// Returns code<>token exchange URL where client can exchange code for JWT token
+func (p GithubProvider) AppTokenEndpoint() string {
+
+	return fmt.Sprintf("/oauth/%s/token", p.ProviderName)
 }
 
+// Returns callback URL where Github will redirect the user
+func (p GithubProvider) AppCallbackURL() string {
+	return p.CallbackURL
+}
+
+// Returns URL where client can authenticate with the OAuth Provider
+func (p GithubProvider) AuthURL() string {
+	return fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=read:user", p.ProviderAuthURL, p.AppClientId, url.QueryEscape(p.CallbackURL))
+}
+
+// Returns URl where app can exchange client code for a token
+func (p GithubProvider) TokenURL() string {
+	return p.ProviderTokenURL
+}
+
+// Returns Client ID
+func (p GithubProvider) ClientID() string {
+	return p.AppClientId
+}
+
+// Returns Client Secret
+func (p GithubProvider) ClientSecret() string {
+	return p.AppClientSecret
+}
+
+// Load configuration from command line and environment
+// Returns Configuration and list of load errors
+// TODO: JSON config
 func LoadConfig() (Config, []error) {
 	var errs []error
 
@@ -91,6 +136,7 @@ func LoadConfig() (Config, []error) {
 
 	flag.Parse()
 
+	// parse int helper
 	parseInt := func(name, value string, dest *int, fallback int) {
 		v, err := strconv.Atoi(value)
 		if err != nil {
@@ -102,10 +148,12 @@ func LoadConfig() (Config, []error) {
 		*dest = v
 	}
 
+	// parse int values
 	parseInt("port", *port, &config.Port, config.Port)
 	parseInt("apiRate", *apiRate, &config.APIRate, config.APIRate)
 	parseInt("apiBurst", *apiBurst, &config.APIBurst, config.APIBurst)
 
+	// parse durations
 	var durationInt int
 	parseInt("jwtTokenValidity", *jwtTokenValidity, &durationInt, int(config.JWTTokenValidity.Seconds()))
 	config.JWTTokenValidity = time.Duration(time.Duration(durationInt) * time.Second)
@@ -113,7 +161,7 @@ func LoadConfig() (Config, []error) {
 	parseInt("solverTimeout", *solverTimeout, &durationInt, int(config.SolverTimeout.Seconds()))
 	config.SolverTimeout = time.Duration(time.Duration(durationInt) * time.Second)
 
-	// replacement for the comment out part
+	// parse https
 	if *enableHttps == "true" {
 		config.EnableTLS = true
 	}
@@ -121,115 +169,45 @@ func LoadConfig() (Config, []error) {
 	config.CertFile = *cert
 	config.KeyFile = *key
 
+	// parse oauth
 	if *oAuth == "true" {
 		config.OAuth = true
 	}
 
 	config.JWTSecret = *jwtSecret
 
-	provider := OAuthProvider{Name: "github"}
+	// parse individual providers
+	// TODO: JSON file
+	provider := GithubProvider{ProviderName: "github"}
 
 	provider.CallbackURL = *oAuthGithubCallbackURL
-	provider.ClientId = *oAuthGithubId
-	provider.ClientSecret = *oAuthGithubSecret
-	provider.UserAuthURL = *oAuthGithubUserAuthURL
-	provider.TokenURL = *oAuthGithubTokenURL
+	provider.AppClientId = *oAuthGithubId
+	provider.AppClientSecret = *oAuthGithubSecret
+	provider.ProviderAuthURL = *oAuthGithubUserAuthURL
+	provider.ProviderTokenURL = *oAuthGithubTokenURL
 
-	config.OAuthProviders[provider.Name] = provider
-
-	// if *enableHttps == "true" {
-
-	// 	config.EnableTLS = true
-	// 	config.CertFile = *cert
-	// 	config.KeyFile = *key
-
-	// 	tlsErrors := 0
-
-	// 	checks := []struct {
-	// 		path string
-	// 		name string
-	// 	}{
-	// 		{*cert, "certificate"},
-	// 		{*key, "key"},
-	// 	}
-
-	// 	for _, c := range checks {
-	// 		if c.path == "" {
-	// 			errs = append(errs, fmt.Errorf("TLS enabled, but %s path is missing", c.name))
-	// 			tlsErrors++
-	// 			continue
-	// 		}
-
-	// 		if _, err := os.Stat(c.path); errors.Is(err, os.ErrNotExist) {
-	// 			errs = append(errs, fmt.Errorf("TLS enabled, but %s file not found", c.name))
-	// 			tlsErrors++
-	// 		}
-	// 	}
-
-	// 	if tlsErrors > 0 {
-	// 		config.EnableTLS = false
-	// 		errs = append(errs, fmt.Errorf("TLS disabled due to configuration errors"))
-	// 	}
-	// }
-
-	// if *oAuth == "true" {
-
-	// 	config.OAuth = true
-	// 	// config.OAuthProviders = map[string]OAuthProvider{}
-	// 	config.JWTSecret = *jwtSecret
-
-	// 	provider := OAuthProvider{Name: "github"}
-
-	// 	provider.CallbackURL = *oAuthGithubCallbackURL
-	// 	provider.ClientId = *oAuthGithubId
-	// 	provider.ClientSecret = *oAuthGithubSecret
-	// 	provider.UserAuthURL = *oAuthGithubUserAuthURL
-	// 	provider.TokenURL = *oAuthGithubTokenURL
-
-	// 	oauthErrors := 0
-
-	// 	checks := []struct {
-	// 		str  string
-	// 		name string
-	// 	}{
-	// 		{*jwtSecret, "JWT secret"},
-	// 		{*oAuthGithubUserAuthURL, "user authentication URL"},
-	// 		{*oAuthGithubTokenURL, "token exchange URL"},
-	// 		{*oAuthGithubId, "client id"},
-	// 		{*oAuthGithubSecret, "client secret"},
-	// 		{*oAuthGithubCallbackURL, "callback URL"},
-	// 	}
-
-	// 	for _, c := range checks {
-	// 		if c.str == "" {
-	// 			errs = append(errs, fmt.Errorf("OAuth enable, but %s is missing", c.name))
-	// 			oauthErrors++
-	// 		}
-	// 	}
-
-	// 	if oauthErrors > 0 {
-	// 		config.OAuth = false
-	// 		errs = append(errs, fmt.Errorf("OAuth disabled due to configuration errors"))
-	// 	} else {
-	// 		config.OAuthProviders[provider.Name] = provider
-	// 	}
-	// }
+	config.OAuthProviders[provider.Name()] = provider
 
 	return config, errs
 }
 
+// Validates configuration.
+// Returns if configuration is valid or list of validation errors
 func (cfg *Config) ValidateConfig() (bool, []error) {
 
 	var errs []error
 
 	var valid bool = true
 
+	// port range
 	if cfg.Port < 0 || cfg.Port > 65535 {
 		valid = false
 		errs = append(errs, fmt.Errorf("port %d outside of range 0 - 65535", cfg.Port))
 	}
 
+	// if TLS is enabled both cert and key has to be provided
 	if cfg.EnableTLS {
+		// validation breaking errors
 		tlsErrors := 0
 
 		checks := []struct {
@@ -253,27 +231,30 @@ func (cfg *Config) ValidateConfig() (bool, []error) {
 			}
 		}
 
-		// TODO: Validate the keys and cert are valid and that they belong together
+		// TODO: Validate the key and cert are valid and that they belong together
 
 		if tlsErrors > 0 {
 			valid = false
 		}
 	}
 
+	// if OAuth is enabled, providers have to be valid and JWT token secret has to be set
 	if cfg.OAuth {
+		// validation breaking errors
 		oauthErrors := 0
 
 		for _, provider := range cfg.OAuthProviders {
+			// check if the values are not empty
 			checks := []struct {
 				str  string
 				name string
 			}{
 				{cfg.JWTSecret, "JWT secret"},
-				{provider.UserAuthURL, "user authentication URL"},
-				{provider.TokenURL, "token exchange URL"},
-				{provider.ClientId, "client id"},
-				{provider.ClientSecret, "client secret"},
-				{provider.CallbackURL, "callback URL"},
+				{provider.AuthURL(), "user authentication URL"},
+				{provider.TokenURL(), "token exchange URL"},
+				{provider.ClientID(), "client id"},
+				{provider.ClientSecret(), "client secret"},
+				{provider.AppCallbackURL(), "callback URL"},
 			}
 
 			for _, c := range checks {
@@ -283,13 +264,14 @@ func (cfg *Config) ValidateConfig() (bool, []error) {
 				}
 			}
 
+			// check if values are valid URLs
 			checks = []struct {
 				str  string
 				name string
 			}{
-				{provider.UserAuthURL, "user authentication URL"},
-				{provider.TokenURL, "token exchange URL"},
-				{provider.CallbackURL, "callback URL"},
+				{provider.AuthURL(), "user authentication URL"},
+				{provider.TokenURL(), "token exchange URL"},
+				{provider.AppCallbackURL(), "callback URL"},
 			}
 
 			for _, c := range checks {
@@ -309,6 +291,7 @@ func (cfg *Config) ValidateConfig() (bool, []error) {
 	return valid, errs
 }
 
+// Returns value of env variable or default if not set
 func envOrDefault(env, def string) string {
 	if val := os.Getenv(env); val != "" {
 		return val
@@ -316,10 +299,27 @@ func envOrDefault(env, def string) string {
 	return def
 }
 
+// Check if string is valid URL
 func isValidURL(s string) bool {
 	u, err := url.Parse(s)
 	if err != nil || u.Scheme == "" || u.Host == "" {
 		return false
 	}
 	return true
+}
+
+func StripHost(raw string) (string, error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", err
+	}
+	// Build only the path+query+fragment part
+	out := u.Path
+	if u.RawQuery != "" {
+		out += "?" + u.RawQuery
+	}
+	if u.Fragment != "" {
+		out += "#" + u.Fragment
+	}
+	return out, nil
 }

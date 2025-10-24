@@ -4,7 +4,7 @@ package tests
 import (
 	"advent2024/web/config"
 	"advent2024/web/middleware"
-	"advent2024/web/web"
+	"advent2024/web/webhandlers"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,9 +16,10 @@ func TestOAuthCallback(t *testing.T) {
 	// create config
 	cfg := config.NewConfig()
 
-	providerCfg := config.OAuthProvider{}
-	providerCfg.Name = "knownProvider"
-	cfg.OAuthProviders[providerCfg.Name] = providerCfg
+	// TODO: generic provider?
+	providerCfg := config.GithubProvider{}
+	providerCfg.ProviderName = "knownProvider"
+	cfg.OAuthProviders[providerCfg.Name()] = providerCfg
 
 	// load template
 	callbackTemplate := template.Must(template.ParseFiles("./../templates/pages/callback.tmpl"))
@@ -27,7 +28,7 @@ func TestOAuthCallback(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.Handle("GET /callback/{provider}",
 		middleware.Chain(
-			http.HandlerFunc(web.OAuthCallback),
+			http.HandlerFunc(webhandlers.OAuthCallback),
 			middleware.WithConfig(&cfg),
 			middleware.WithTemplate(callbackTemplate)))
 
@@ -97,19 +98,19 @@ func TestOAuthHandler(t *testing.T) {
 	// create config
 	cfg := config.NewConfig()
 
-	providerCfg := config.OAuthProvider{}
-	providerCfg.Name = "github"
-	providerCfg.TokenURL = provider.URL + "/token"
-	providerCfg.ClientId = "dummy"
-	providerCfg.ClientSecret = "dummy"
+	providerCfg := config.GithubProvider{}
+	providerCfg.ProviderName = "github"
+	providerCfg.ProviderTokenURL = provider.URL + "/token"
+	providerCfg.AppClientId = "dummy"
+	providerCfg.AppClientSecret = "dummy"
 
-	cfg.OAuthProviders[providerCfg.Name] = providerCfg
+	cfg.OAuthProviders[providerCfg.Name()] = providerCfg
 
 	// setup the router
 	mux := http.NewServeMux()
 	mux.Handle("POST /oauth/{provider}/token",
 		middleware.Chain(
-			http.HandlerFunc(web.OAuthHandler),
+			http.HandlerFunc(webhandlers.OAuthHandler),
 			middleware.WithConfig(&cfg)))
 
 	// cases
