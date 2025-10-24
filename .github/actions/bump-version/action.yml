@@ -31,6 +31,7 @@ runs:
         fetch-depth: 0
         ref: ${{ inputs.branch-name }}
         ssh-key: ${{ inputs.ssh-key }}
+        token: ${{ env.GITHUB_TOKEN }}
 
     - name: Cache npm global packages
       uses: actions/cache@v3
