@@ -12,19 +12,21 @@ Utilizes:
     - For running container in local KVM deployment
 
 Requirements:
-  - Terraform installed locally for bootstrap and AWS environment creation
-  - AWS account
-  - AWS CLI installed
-  - Defined AWS user which can boostrap the environment
-  - Obtain a domain
+  - Terraform
+    - Install locally for bootstrap and AWS environment creation
+  - AWS
+    - create account
+    - Define user who can bootstrap the environment
+    - Install CLI
+      - Modify the AWS CLI config to contain environment specified in <code>aws_bootstrap/variables.tf ${envs}</code>
+      - Specify the User
+    - Register domain with AWS
+  - GitHub
+    - specify AWS Secrets for GH Actions
+    - Create OAuth
+    - Obtain client id and client secret for OAuth
 
-Manual Tasks:
-  - Clone repo
-  - Create User in AWS and configure AWS CLI
-  - Modify the AWS CLI config to contain environment specified in <code>aws_bootstrap/variables.tf ${envs}</code>
-  - Bootstrap the environment via <code>make bootstrap</code>
-    - Creates:
-      - S3 bucket for TF state
-      - Dynamo DB for TF locks
-      - GH Action role for CD
-  - Create the environemtn via <code>make dev</code> or <code>make prod</code>
+Tasks:
+  make ENVIRONMENT=dev apply TF_APPLYPARAMS="-var-file=\"ecs.tfvars\"
+  make ENVIRONMENT=stage apply TF_APPLYPARAMS="-var-file=\"ecs.tfvars\"
+  make ENVIRONMENT=prod apply TF_APPLYPARAMS="-var-file=\"ecs.tfvars\"
