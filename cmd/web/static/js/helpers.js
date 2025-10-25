@@ -15,3 +15,38 @@ function fillTemplateFromSession(template) {
     return value;
   });
 }
+
+/**
+ * Parses JWT token and returns claims
+ * @param {string} token - JWT Token
+ * @returns {object} Claims
+ */
+function parseJwt(token) {
+  const payload = token.split('.')[1];
+  return JSON.parse(atob(payload));
+}
+
+
+function startAuthTimer(fsm, elId, exp) {
+  let timerId;
+
+  function updateTimer() {
+    const now = Math.floor(Date.now() / 1000);
+    let remaining = exp - now;
+    if (remaining <= 0) {
+      remaining = 0;
+      if (timerId) {
+        clearInterval(timerId);
+        fsm.transition('TIMEOUTLOGOUT', {timeout: true});
+      }
+    }
+
+    const minutes = Math.floor(remaining / 60);
+    const seconds = remaining % 60;
+    document.getElementById(elId).textContent =
+      `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
+
+  updateTimer();
+  timerId = setInterval(updateTimer, 1000);
+}

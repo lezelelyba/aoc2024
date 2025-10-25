@@ -51,6 +51,17 @@ const UIMachine = {
         SKIPAUTH: 'authenticated'
       },
       onEntry: function(prevState, thisState, payload) {
+        // remove token if user logged out or token timed out
+        if (payload && payload.timeout) {
+          sessionStorage.removeItem("accessToken");
+        }
+
+        if (payload && payload.logout) {
+          sessionStorage.removeItem("accessToken");
+        }
+        
+        // enable body if timeout happend during waiting for result
+        document.body.classList.remove("busy");
 
         // auth
         const authEls = document.getElementsByClassName("auth");
@@ -63,6 +74,11 @@ const UIMachine = {
         if(statusEl) {
           statusEl.textContent = "Not Authenticated";
           statusEl.classList.remove("authenticated");
+        }
+        
+        const timerEl = document.getElementById("auth-timer");
+        if(timerEl) {
+          timerEl.hidden = true
         }
         
         const loginButtonsDiv = document.getElementById("login-buttons-div");
@@ -138,6 +154,15 @@ const UIMachine = {
           statusEl.textContent = "Authenticated";
           statusEl.classList.add("authenticated");
         }
+
+        // display authentication timer
+        const timerEl = document.getElementById("auth-timer");
+
+        if(timerEl) {
+          timerEl.hidden = false;
+          const tokenExpiration = parseJwt(sessionStorage.getItem("accessToken")).exp;
+          startAuthTimer(UIHandler, "auth-timer", tokenExpiration);
+        }
        
         // hide login buttons
         const loginButtonsDiv = document.getElementById("login-buttons-div");
@@ -211,6 +236,7 @@ const UIMachine = {
     submitted: {
       transitions: {
         SHOWRESULT: 'showingResult',
+        TIMEOUTLOGOUT: 'idle',
       },
       onEntry: function(prevState, thisState, payload) {
         // disable selection until result is acknowledged
@@ -252,9 +278,15 @@ const UIMachine = {
         // enable body
         document.body.classList.remove("busy");
 
+        // display body
+        if (payload && payload.result) {
+          const resultEl = document.getElementById('result');
+          resultEl.textContent = payload.result;
+        }
+
         // show button depending on error
         // TODO: different state for each SUBMITOK, SUBMITERROR transition
-        if (payload !== null && payload.error == true) {
+        if (payload && payload.error == true) {
             document.getElementById("resubmitBtn").hidden = false;
         } else {
             document.getElementById("seenBtn").hidden = false;
@@ -327,8 +359,7 @@ document.addEventListener("DOMContentLoaded", function() {
 const logoutBtn = document.getElementById("logoutBtn")
 if(logoutBtn) {
   logoutBtn.addEventListener("click", () => {
-    sessionStorage.removeItem("accessToken");
-    UIHandler.transition('TIMEOUTLOGOUT');
+    UIHandler.transition('TIMEOUTLOGOUT', {logout: true});
   });
 }
 
@@ -342,6 +373,8 @@ document.querySelectorAll('a[data-day]').forEach(link => {
   });
 });
 
+// seen button
+// acknowledges the result was seen
 document.getElementById("seenBtn").addEventListener("click", () => {
   UIHandler.transition('SEEN');
   
@@ -362,6 +395,7 @@ document.getElementById("seenBtn").addEventListener("click", () => {
   }
 });
 
+// resubmit button
 document.getElementById("resubmitBtn").addEventListener("click", () => {
   UIHandler.transition('SUBMITERROR');
 });
@@ -373,11 +407,12 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
   // submit
   UIHandler.transition('SUBMIT');
 
+  // wait for reply or handle error
   try {
-    await handleSubmitClick("/api/solvers/{day}/{part}");
-    UIHandler.transition('SHOWRESULT', {error: false});
+    const result = await handleSubmitClick("/api/solvers/{day}/{part}");
+    UIHandler.transition('SHOWRESULT', {error: false, result: result});
   } catch(error) {
-    UIHandler.transition('SHOWRESULT', {error: true});
+    UIHandler.transition('SHOWRESULT', {error: true, result: error.message });
   }
 });
 
@@ -413,22 +448,17 @@ async function handleSubmitClick(endpointTemplate) {
 
   const textInput = document.getElementById('textInput');
   const text = textInput.value;
-
-  const resultEl = document.getElementById('result');
-
   let apiEndpoint
   try {
       apiEndpoint = fillTemplateFromSession(endpointTemplate)
   } catch (error) {
-    resultEl.textContent = 'Local Error: ' + error.message;
-    throw(error);
+    throw Error("local error: " + error);
   }
   
   // check if something was filled
   // display error if not
   if (!file && text.trim() === "" ) {
-    resultEl.textContent = 'Please select a file of input text first.';
-    throw Error("no input");
+    throw Error("local error: Please select a file or input text first");
   }
   
   // base64 encode the input, send request to API and display return value
@@ -441,9 +471,8 @@ async function handleSubmitClick(endpointTemplate) {
     }
     
     const response = await sendToApi(apiEndpoint, { input: base64 })
-    resultEl.textContent = JSON.stringify(response, null, 2)
+    return JSON.stringify(response, null, 2)
   } catch(error) {
-    resultEl.textContent = 'Error: ' + error.message;
-    throw(error);
+    throw Error("backend error: " + error.message);
   }
 }

@@ -3,7 +3,6 @@ package middleware
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -12,13 +11,11 @@ import (
 // Generates JWT token.
 // Accepts provider name, token, secret to use for encoding and validity period.
 // Returns string representation of the Token.
-func GenerateJWT(provider, token string, jwtSecret []byte, validityPeriod time.Duration) (string, error) {
-	validUntil := fmt.Sprint(time.Now().Add(validityPeriod).Unix())
+func GenerateJWT(provider string, jwtSecret []byte, validityPeriod time.Duration) (string, error) {
 
-	claims := jwt.MapClaims{
-		"provider":    provider,
-		"token":       token,
-		"valid_until": fmt.Sprint(validUntil),
+	claims := jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(validityPeriod)),
+		Issuer:    fmt.Sprintf("AoC-%s", provider),
 	}
 
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -61,16 +58,13 @@ func TokenValid(token *jwt.Token) bool {
 	}
 
 	// get token expiration
-	validUntilStr := claims["valid_until"].(string)
 
-	i, err := strconv.ParseInt(validUntilStr, 10, 64)
+	validUntil, err := claims.GetExpirationTime()
 
 	if err != nil {
 		return false
 	}
 
-	validUntil := time.Unix(i, 0)
-
-	// token is valid if it's not expired
-	return !time.Now().After(validUntil)
+	// token is valid if now is before expiry date
+	return time.Now().Before(validUntil.Time)
 }
