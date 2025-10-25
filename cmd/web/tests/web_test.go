@@ -153,7 +153,7 @@ func TestToken(t *testing.T) {
 		want := true
 
 		secret := "jwtSecret"
-		jwtTokenStr, _ := middleware.GenerateJWT("provider", "token", []byte(secret), time.Duration(5*time.Second))
+		jwtTokenStr, _ := middleware.GenerateJWT("provider", []byte(secret), time.Duration(5*time.Second))
 		parsedToken, _ := middleware.ParseToken(jwtTokenStr, []byte(secret))
 		if middleware.TokenValid(parsedToken) != want {
 			t.Errorf("token invalid")
@@ -172,7 +172,7 @@ func TestToken(t *testing.T) {
 		want := false
 
 		secret := "jwtSecret"
-		jwtTokenStr, _ := middleware.GenerateJWT("provider", "token", []byte(secret), time.Duration(5*time.Second))
+		jwtTokenStr, _ := middleware.GenerateJWT("provider", []byte(secret), time.Duration(5*time.Second))
 
 		time.Sleep(6 * time.Second)
 
@@ -185,7 +185,7 @@ func TestToken(t *testing.T) {
 		want := false
 
 		secret := "jwtSecret"
-		jwtTokenStr, _ := middleware.GenerateJWT("provider", "token", []byte(secret), time.Duration(5*time.Second))
+		jwtTokenStr, _ := middleware.GenerateJWT("provider", []byte(secret), time.Duration(5*time.Second))
 		parsedToken, _ := middleware.ParseToken(jwtTokenStr, []byte(secret+"something"))
 		if middleware.TokenValid(parsedToken) != want {
 			t.Errorf("token valid")
