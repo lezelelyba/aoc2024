@@ -33,6 +33,7 @@ flowchart TB
     Selected -->|TIMEOUTLOGOUT| Idle
     Selected -->|SELECT| Selected
     Submitted -->|SHOWRESULT| ShowingResult
+    Submitted -->|TIMEOUTLOGOUT| Idle
     ShowingResult -->|SEEN| Idle
     ShowingResult -->|SUBMITERROR| Selected
     ShowingResult -->|TIMEOUTLOGOUT| Idle
