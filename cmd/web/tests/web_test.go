@@ -69,7 +69,7 @@ func TestOAuthHandler(t *testing.T) {
 		err := r.ParseForm()
 
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte(``))
 			return
 		}
@@ -87,6 +87,9 @@ func TestOAuthHandler(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{"scope":"read","token_type":"bearer","access_token":"validToken"}`))
+		case "simulateWrongURL":
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(``))
 		default:
 			hijacker, _ := w.(http.Hijacker)
 			conn, _, _ := hijacker.Hijack()
@@ -125,6 +128,7 @@ func TestOAuthHandler(t *testing.T) {
 		{"github breaks", "/oauth/github/token?code=breakGithub", http.StatusInternalServerError},
 		{"invalid code", "/oauth/github/token?code=invalidCode", http.StatusBadRequest},
 		{"valid code", "/oauth/github/token?code=validCode", http.StatusOK},
+		{"'wrong' code<>exchange URL", "/oauth/github/token?code=simulateWrongURL", http.StatusInternalServerError},
 	}
 
 	for _, c := range cases {
