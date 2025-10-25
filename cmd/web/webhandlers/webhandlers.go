@@ -8,6 +8,7 @@ import (
 	"advent2024/web/weberrors"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -348,6 +349,17 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middlewa
 
 		// work only with non-nil response
 		defer resp.Body.Close()
+
+		// only process OK responses
+		if resp.StatusCode != http.StatusOK {
+			// if there is a response include part of it
+			limited := io.LimitReader(resp.Body, 80)
+			data, err := io.ReadAll(limited)
+			if err != nil {
+				data = []byte("")
+			}
+			return nil, fmt.Errorf("unable to exchange code for token with %s: %s", (*provider).Name(), data)
+		}
 
 		// decode token
 		var token middleware.OAuthGithubReply
