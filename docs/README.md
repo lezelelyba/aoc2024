@@ -11,22 +11,26 @@ Utilizes:
   - Ansible
     - For running container in local KVM deployment
 
-Requirements:
+Tasks:
   - Terraform
     - Install locally for bootstrap and AWS environment creation
   - AWS
-    - create account
+    - Create account
     - Define user who can bootstrap the environment
     - Install CLI
       - Modify the AWS CLI config to contain environment specified in <code>aws_bootstrap/variables.tf ${envs}</code>
       - Specify the User
     - Register domain with AWS
+  - if OAuth is desired
   - GitHub
-    - specify AWS Secrets for GH Actions
+    - Specify AWS Secrets for GH Actions
     - Create OAuth
     - Obtain client id and client secret for OAuth
 
-Tasks:
-  make ENVIRONMENT=dev apply TF_APPLYPARAMS="-var-file=\"ecs.tfvars\"
-  make ENVIRONMENT=stage apply TF_APPLYPARAMS="-var-file=\"ecs.tfvars\"
-  make ENVIRONMENT=prod apply TF_APPLYPARAMS="-var-file=\"ecs.tfvars\"
+Commands:
+  - make ENRIRONMENT=bootstrap init
+  - make ENRIRONMENT=bootstrap apply
+  - make ENVIRONMENT=dev init
+  - make ENVIRONMENT=dev apply
+  - OR if you want to specify options for the container
+  - make ENVIRONMENT=dev apply TF_APPLYPARAMS="-var-file=\"ecs.tfvars\""
