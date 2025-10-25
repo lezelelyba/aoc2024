@@ -352,8 +352,12 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middlewa
 
 		// only process OK responses
 		if resp.StatusCode != http.StatusOK {
+			// if there is a response include part of it
 			limited := io.LimitReader(resp.Body, 80)
-			data, _ := io.ReadAll(limited)
+			data, err := io.ReadAll(limited)
+			if err != nil {
+				data = []byte("")
+			}
 			return nil, fmt.Errorf("unable to exchange code for token with %s: %s", (*provider).Name(), data)
 		}
 
