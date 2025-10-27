@@ -7,7 +7,7 @@ TF_DESTROYPARAMS ?=
 TF_SSHPUBKEYPATH ?= ~/.ssh/aws.pem
 TF_SSHPRIVKEYPATH ?= ~/.ssh/aws.priv.pem
 
-.PHONY: all localci localcd localdestroy localclean bootstrap init apply destroy output test 
+.PHONY: all localci localcd localdestroy localclean init apply destroy output test 
 
 all: init apply
 
@@ -52,13 +52,12 @@ TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
 
 ifeq ($(ENVIRONMENT), prod)
 TF_DIR ?= $(MAKEFILE_DIR)environments/aws/prod/terraform
-TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
 else ifeq ($(ENVIRONMENT), stage)
 TF_DIR ?= $(MAKEFILE_DIR)environments/aws/stage/terraform
-TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
 else ifeq ($(ENVIRONMENT), dev)
 TF_DIR ?= $(MAKEFILE_DIR)environments/aws/dev/terraform
-TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
+else ifeq ($(ENVIRONMENT), bootstrap)
+TF_DIR ?= $(TF_BOOTSTRAPDIR)
 else
 $(error Unknown ENVIRONMENT: $(ENVIRONMENT))
 endif
@@ -66,24 +65,25 @@ endif
 else
 $(error Unknown CLOUDPROVIDER: $(CLOUDPROVIDER))
 endif
-
-bootstrapinit:
-	(cd $(TF_BOOTSTRAPDIR); terraform init ${TF_INITPARAMS})
-
-bootstrapapply:
-	(cd $(TF_BOOTSTRAPDIR); terraform apply ${TF_APPLYPARAMS})
-
-bootstrap: bootstrapinit bootstrapapply
-
-bootstrapdestroy:
-	(cd $(TF_BOOTSTRAPDIR); terraform destroy ${TF_DESTROY_PARAMS})
 	
 init:
+ifeq ($(ENVIRONMENT), bootstrap)
 	(cd ${TF_DIR}; terraform init -backend-config=${TF_BACKEND_CONFIG} ${TF_INITPARAMS})
+else
+	(cd ${TF_DIR}; terraform init ${TF_INITPARAMS})
+endif
 apply:
+ifeq ($(ENVIRONMENT), bootstrap)
+	(cd $(TF_DIR); terraform apply ${TF_APPLYPARAMS})
+else
 	(cd $(TF_DIR); terraform apply -var="sshpubkeypath=${TF_SSHPUBKEYPATH}" -var="sshprivkeypath=${TF_SSHPRIVKEYPATH}" ${TF_APPLYPARAMS})
+endif
 destroy:
+ifeq ($(ENVIRONMENT), bootstrap)
+	(cd $(TF_DIR); terraform destroy ${TF_APPLYPARAMS})
+else
 	(cd $(TF_DIR); terraform destroy -var="sshpubkeypath=${TF_SSHPUBKEYPATH}" -var="sshprivkeypath=${TF_SSHPRIVKEYPATH}" ${TF_DESTROYPARAMS})
+endif
 output:
 	(cd $(TF_DIR); terraform output)
 

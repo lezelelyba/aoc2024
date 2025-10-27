@@ -69,6 +69,7 @@ jobs:
             --output text)
 
           # Get DNS name
+          # TODO: get friendly DNS Name
           LB_DNS=$(aws elbv2 describe-load-balancers \
             --load-balancer-arns $LB_ARN \
             --query "LoadBalancers[0].DNSName" \
@@ -97,9 +98,17 @@ jobs:
           LB_DNS: $${{ needs.deploy.outputs.lb_dns }}
         run: |
           echo "Running smoke test on $LB_DNS"
-          STATUS=$(curl -s -o /dev/null -w "%%{http_code}" http://$LB_DNS/healthcheck)
-          if [ "$STATUS" -ne 200 ]; then
-            echo "Smoke test failed: HTTP $STATUS"
+
+          # TODO: remove the insecure flag after we get friendly DNS name
+          
+          STATUS_HTTP=$(curl -s -o /dev/null -w "%%{http_code}" http://$LB_DNS/healthcheck)
+          STATUS_HTTPS=$(curl --insecure -s -o /dev/null -w "%%{http_code}" https://$LB_DNS/healthcheck)
+
+          if [ "$STATUS_HTTP" -eq 200 ]; then
+            echo "Smoke test passed: HTTP $STATUS_HTTP"
+          elif [ "$STATUS_HTTPS" -eq 200 ]; then
+            echo "Smoke test passed: HTTPS $STATUS_HTTPS"
+          else
+            echo "Smoke test failed: HTTP: $STATUS_HTTP, HTTPS: $STATUS_HTTPS"
             exit 1
           fi
-          echo "Smoke test passed: HTTP $STATUS"

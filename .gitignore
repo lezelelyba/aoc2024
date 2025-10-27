@@ -7,6 +7,10 @@ inputs
 # do not include .terraform state folder
 .terraform
 
+# do not include generated files
+backend.json
+inventory.ini
+
 #do not include tls cert and keys
 tls
 
