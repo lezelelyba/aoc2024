@@ -271,7 +271,6 @@ jobs:
       
       - name: Trigger ECS deploy workflow_run
         uses: ./github/workflows/ecs-image-change-wf.yml
-        secrets: inherit
 
         # run: gh workflow run .github/workflows/ecs-image-change.yml --ref ${{ github.ref_name }}
         # env:
