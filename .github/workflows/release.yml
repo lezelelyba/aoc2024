@@ -28,10 +28,10 @@ jobs:
       - name: Create Filters
         uses: dorny/paths-filter@v3
         id: filter
-        # checks difference compared to branch we push into
-        # otherwise it would use master
-        base: ${{ github.ref }}
         with:
+          # checks difference compared to branch we push into
+          # otherwise it would use master
+          base: ${{ github.ref }}
           filters : |
             cli:
               - '.github/workflows/cmd-cli-pr.yml'
