@@ -68,9 +68,9 @@ endif
 	
 init:
 ifeq ($(ENVIRONMENT), bootstrap)
-	(cd ${TF_DIR}; terraform init -backend-config=${TF_BACKEND_CONFIG} ${TF_INITPARAMS})
-else
 	(cd ${TF_DIR}; terraform init ${TF_INITPARAMS})
+else
+	(cd ${TF_DIR}; terraform init -backend-config=${TF_BACKEND_CONFIG} ${TF_INITPARAMS})
 endif
 apply:
 ifeq ($(ENVIRONMENT), bootstrap)
