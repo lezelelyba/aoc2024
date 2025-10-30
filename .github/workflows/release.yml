@@ -80,50 +80,31 @@ jobs:
           - cmd/cli
           - cmd/web
           - environments/bootstrap/aws
-          - environments/aws/env-aws-dev
-          - environments/aws/env-aws-stage
-          - environments/aws/env-aws-prod
+          - environments/aws/dev
+          - environments/aws/stage
+          - environments/aws/prod
           - environments/local
           - modules/aws/infra
           - ''
-        tag-prefix:
-          - cmd/cli
-          - cmd/web
-          - environments/bootstrap/aws
-          - environments/aws/env-aws-dev
-          - environments/aws/env-aws-stage
-          - environments/aws/env-aws-prod
-          - environments/local
-          - modules/aws/infra
-          - release 
         include:
           - name: cli
             work-dir: cmd/cli
-            tag-prefix: cmd/cli
           - name: web
             work-dir: cmd/web
-            tag-prefix: cmd/web
           - name: env-aws-bootstrap
             work-dir: environments/bootstrap/aws
-            tag-prefix: environments/bootstrap/aws
           - name: env-aws-dev
             work-dir: environments/aws/dev
-            tag-prefix: environments/aws/dev
           - name: env-aws-stage
             work-dir: environments/aws/stage
-            tag-prefix: environments/aws/stage
           - name: env-aws-prod
             work-dir: environments/aws/prod
-            tag-prefix: environments/aws/prod
           - name: env-local
             work-dir: environments/local
-            tag-prefix: environments/local
           - name: tf-infra
             work-dir: modules/aws/infra
-            tag-prefix: modules/aws/infra
           - name: release
             work-dir: ''
-            tag-prefix: release
       max-parallel: 1
     outputs:
       cli-bumped: ${{ steps.bumped-cli.outputs.bumped }}
@@ -133,6 +114,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Bump Version of Component
         id: bump
         if: |
@@ -143,15 +125,26 @@ jobs:
           (matrix.component.name == 'env-aws-stage' && needs.filter.outputs.env-aws-stage == 'true') ||
           (matrix.component.name == 'env-aws-prod' && needs.filter.outputs.env-aws-prod == 'true') ||
           (matrix.component.name == 'env-local' && needs.filter.outputs.env-local == 'true') ||
-          (matrix.component.name == 'tf-infra' && needs.filter.outputs.tf-infra == 'true') ||
+          (matrix.component.name == 'tf-infra' && needs.filter.outputs.tf-infra == 'true')
+        uses: ./.github/actions/bump-version
+        with:
+          branch-name: ${{github.ref_name}}
+          work-dir: ${{ matrix.component.work-dir }}
+          tag-prefix: ${{ matrix.component.work-dir }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump Version of main
+        id: bump-main
+        if: |
           (matrix.component.name == 'release' && needs.filter.outputs.release == 'true' && github.ref_name == 'master')
         uses: ./.github/actions/bump-version
         with:
           branch-name: ${{github.ref_name}}
-          work-dir: ${{ matrix.component.work-dir || '' }}
-          tag-prefix: ${{ matrix.component.tag-prefix }}
+          tag-prefix: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set Outputs - CLI
         id: bumped-cli
         if: |
