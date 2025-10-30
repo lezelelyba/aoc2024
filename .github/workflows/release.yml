@@ -26,8 +26,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Create Filters
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v3
         id: filter
+        # checks difference compared to branch we push into
+        # otherwise it would use master
+        base: ${{ github.ref }}
         with:
           filters : |
             cli:
@@ -146,7 +149,17 @@ jobs:
           echo "web-bumped=${{steps.bump.outputs.bumped}}" >> $GITHUB_OUTPUT
           echo "web-next-version=${{steps.bump.outputs.next-version}}" >> $GITHUB_OUTPUT
 
-
+  bump-outputs:
+    runs-on: ubuntu-latest
+    needs: bump-version
+    steps:
+      - name: Show outputs
+        run: |
+          echo cli bumped: ${{ needs.bump-version.outputs.cli-bumped }}
+          echo cli new version: ${{ needs.bump-version.outputs.cli-next-version }}
+          echo web bumped: ${{ needs.bump-version.outputs.web-bumped }}
+          echo web next version: ${{ needs.bump-version.outputs.web-next-version }}
+          
   build-cli:
     runs-on: ubuntu-latest
     needs: bump-version
