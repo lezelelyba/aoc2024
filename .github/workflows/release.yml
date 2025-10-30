@@ -34,12 +34,10 @@ jobs:
           base: ${{ github.ref }}
           filters : |
             cli:
-              - '.github/workflows/cmd-cli-pr.yml'
               - 'build/ci/docker/cli.Dockerfile'
               - 'cmd/cli/**'
               - 'pkg/**'
             web:
-              - '.github/workflows/cmd-web-release.yml'
               - 'build/ci/docker/web.Dockerfile'
               - 'cmd/web/**'
               - 'pkg/**'
@@ -116,27 +114,27 @@ jobs:
       - name: Bump Version of Component
         id: bump
         if: |
-          (matrix.component.name == 'cli' && needs.filter.outputs.cli == 'true') ||
-          (matrix.component.name == 'web' && needs.filter.outputs.web == 'true') ||
-          (matrix.component.name == 'env-aws-bootstrap' && needs.filter.outputs.env-aws-bootstrap == 'true') ||
-          (matrix.component.name == 'env-aws-dev' && needs.filter.outputs.env-aws-dev == 'true') ||
-          (matrix.component.name == 'env-aws-stage' && needs.filter.outputs.env-aws-stage == 'true') ||
-          (matrix.component.name == 'env-aws-prod' && needs.filter.outputs.env-aws-prod == 'true') ||
-          (matrix.component.name == 'env-local' && needs.filter.outputs.env-local == 'true') ||
-          (matrix.component.name == 'tf-infra' && needs.filter.outputs.tf-infra == 'true') ||
-          (matrix.component.name == 'release' && needs.filter.outputs.release == 'true' && github.ref_name == 'master')
+          (matrix.name == 'cli' && needs.filter.outputs.cli == 'true') ||
+          (matrix.name == 'web' && needs.filter.outputs.web == 'true') ||
+          (matrix.name == 'env-aws-bootstrap' && needs.filter.outputs.env-aws-bootstrap == 'true') ||
+          (matrix.name == 'env-aws-dev' && needs.filter.outputs.env-aws-dev == 'true') ||
+          (matrix.name == 'env-aws-stage' && needs.filter.outputs.env-aws-stage == 'true') ||
+          (matrix.name == 'env-aws-prod' && needs.filter.outputs.env-aws-prod == 'true') ||
+          (matrix.name == 'env-local' && needs.filter.outputs.env-local == 'true') ||
+          (matrix.name == 'tf-infra' && needs.filter.outputs.tf-infra == 'true') ||
+          (matrix.name == 'release' && needs.filter.outputs.release == 'true' && github.ref_name == 'master')
         uses: ./.github/actions/bump-version
         with:
           branch-name: ${{github.ref_name}}
-          work-dir: ${{ matrix.component.work-dir || '' }}
-          tag-prefix: ${{ matrix.component.tag-prefix }}
+          work-dir: ${{ matrix.work-dir || '' }}
+          tag-prefix: ${{ matrix.tag-prefix }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set Outputs - CLI
         id: bumped-cli
         if: |
-          (matrix.component.name == 'cli' && needs.filter.outputs.cli == 'true')
+          (matrix.name == 'cli' && needs.filter.outputs.cli == 'true')
         run: |
           echo "cli-bumped=${{steps.bump.outputs.bumped}}" >> $GITHUB_OUTPUT
           echo "cli-next-version=${{steps.bump.outputs.next-version}}" >> $GITHUB_OUTPUT
@@ -144,7 +142,7 @@ jobs:
       - name: Set Outputs - WEB
         id: bumped-web
         if: |
-          (matrix.component.name == 'web' && needs.filter.outputs.web == 'true')
+          (matrix.name == 'web' && needs.filter.outputs.web == 'true')
         run: |
           echo "web-bumped=${{steps.bump.outputs.bumped}}" >> $GITHUB_OUTPUT
           echo "web-next-version=${{steps.bump.outputs.next-version}}" >> $GITHUB_OUTPUT
