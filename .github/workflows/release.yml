@@ -260,6 +260,9 @@ jobs:
 
   deploy-web:
     needs: build-web
+    permissions:
+      id-token: write
+      contents: read
     uses: ./.github/workflows/ecs-image-change-wf.yml
     secrets: inherit
     
