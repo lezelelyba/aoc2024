@@ -1,4 +1,4 @@
-name: CMD cli - Push to release branches
+name: CMD web - Push to release branches
 
 on:
   push:
@@ -7,9 +7,9 @@ on:
       - stage
       - master
     paths:
-      - '.github/workflows/cmd-cli-release.yml'
-      - 'build/ci/docker/cli.Dockerfile'
-      - 'cmd/cli/**'
+      - '.github/workflows/cmd-web-release.yml'
+      - 'build/ci/docker/web.Dockerfile'
+      - 'cmd/web/**'
       - 'pkg/**'
 
 permissions:
@@ -19,20 +19,24 @@ jobs:
   bump_version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - id: bump
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Turnstyle
+        uses: softprops/turnstyle@v3
+      - name: Bump Version of Component
+        id: bump
         uses: ./.github/actions/bump-version
         with:
           branch-name: ${{github.ref_name}}
-          work-dir: cmd/cli
-          tag-prefix: cmd/cli
+          work-dir: cmd/web
+          tag-prefix: cmd/web
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     outputs:
       bumped: ${{ steps.bump.outputs.bumped }}
       next-version: ${{ steps.bump.outputs.next-version }}
-
+    
   build:
     runs-on: ubuntu-latest
     needs: bump_version
@@ -58,10 +62,10 @@ jobs:
 
           TIMESTAMP=$(date +%s)
           echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
-
+          
       - name: Build Docker images
         run: |
-          docker build -f build/ci/docker/cli.Dockerfile --build-arg VERSION="${NEXT_VER}" -t jsafar/advent2024.cli:${NEXT_VER} .
+          docker build -f build/ci/docker/web.Dockerfile --build-arg VERSION="${NEXT_VER}" -t jsafar/advent2024.web:${NEXT_VER} .
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -71,14 +75,30 @@ jobs:
 
       - name: Push Docker images
         run: |
-          docker tag jsafar/advent2024.cli:${NEXT_VER} jsafar/advent2024.cli:${BRANCH_NAME}
+          docker tag jsafar/advent2024.web:${NEXT_VER} jsafar/advent2024.web:${BRANCH_NAME}
           
-          docker push jsafar/advent2024.cli:${BRANCH_NAME}
-          docker push jsafar/advent2024.cli:${NEXT_VER}
+          docker push jsafar/advent2024.web:${BRANCH_NAME}
+          docker push jsafar/advent2024.web:${NEXT_VER}
 
       - name: Push Docker images - master
         if: github.ref == 'refs/heads/master'
         run: |
-          docker tag jsafar/advent2024.cli:${NEXT_VER} jsafar/advent2024.cli:latest
+          docker tag jsafar/advent2024.web:${NEXT_VER} jsafar/advent2024.web:latest
 
-          docker push jsafar/advent2024.cli:latest
+          docker push jsafar/advent2024.web:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: write
+      contents: read
+
+    steps:      
+      - uses: actions/checkout@v4
+      
+      - name: Trigger ECS deploy workflow_run
+        run: gh workflow run .github/workflows/ecs-image-change.yml --ref ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

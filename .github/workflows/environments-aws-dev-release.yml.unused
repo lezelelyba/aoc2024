@@ -17,8 +17,13 @@ jobs:
   bump_version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/bump-version
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Turnstyle
+        uses: softprops/turnstyle@v3
+      - name: Bump Version of Component
+        id: bump
+        uses: ./.github/actions/bump-version
         with:
           branch-name: ${{github.ref_name}}
           work-dir: environments/aws/dev
