@@ -85,3 +85,5 @@ variable "ecs_app_env_map_secret" {
 locals {
     ecs_app_env_map_secret_keys = nonsensitive(keys(var.ecs_app_env_map_secret))
 }
+
+# ci test
