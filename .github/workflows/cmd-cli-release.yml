@@ -18,9 +18,14 @@ permissions:
 jobs:
   bump_version:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{github.ref_name}}-bump-lock
+      cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
-      - id: bump
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Bump Version of Component
+        id: bump
         uses: ./.github/actions/bump-version
         with:
           branch-name: ${{github.ref_name}}
