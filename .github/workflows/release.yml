@@ -260,16 +260,24 @@ jobs:
 
   deploy-web:
     needs: build-web
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/ecs-image-change-wf.yml
+    secrets: inherit
+    
+  # deploy-web:
+  #   needs: build-web
+  #   runs-on: ubuntu-latest
 
-    permissions:
-      actions: write
-      contents: read
+  #   permissions:
+  #     actions: write
+  #     contents: read
 
-    steps:      
-      - uses: actions/checkout@v4
-      
-      - name: Trigger ECS deploy workflow_run
-        run: gh workflow run .github/workflows/ecs-image-change.yml --ref ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #   steps:      
+  #     - uses: actions/checkout@v4
+  #     
+  #     - name: Trigger ECS deploy workflow_run
+  #       uses: ./github/workflows/ecs-image-change-wf.yml
+  #       secrets: inherit
+
+  #       run: gh workflow run .github/workflows/ecs-image-change.yml --ref ${{ github.ref_name }}
+  #       env:
+  #        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
