@@ -1,0 +1,132 @@
+# Created by Terraform Bootstrap
+
+name: Redeploy latest image to ECS
+
+on:
+  workflow_call:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/stage' 
+
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      deployed: ${{ steps.get-deployment.outputs.deployed }}
+      lb_dns: ${{ steps.get-lb.outputs.lb_dns }}
+
+    steps:
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::858431073792:role/gh-actions-role
+          aws-region: eu-central-1
+
+      - name: Fetch ECS config
+        id: get-deployment
+        run: |
+          if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
+            NAME_PARAM="/cd/dev/config"
+          fi
+          if [ "${GITHUB_REF}" = "refs/heads/master" ]; then
+            NAME_PARAM="/cd/prod/config"
+          fi
+          if [ "${GITHUB_REF}" = "refs/heads/stage" ]; then
+            NAME_PARAM="/cd/stage/config"
+          fi
+
+          echo "Fetching SSM parameter: $NAME_PARAM"
+
+          if ! aws ssm get-parameter --name "$NAME_PARAM" \
+              --with-decryption --query "Parameter.Value" --output text > ecs.json 2>/dev/null; then
+            echo "Parameter $NAME_PARAM not found, skipping deployment."
+            echo "deployed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "deployed=true" >> $GITHUB_OUTPUT
+
+          CLUSTER=$(jq -r '.cluster' ecs.json)
+          SERVICE=$(jq -r '.service' ecs.json)
+          
+          echo "CLUSTER=$CLUSTER" >> $GITHUB_ENV
+          echo "SERVICE=$SERVICE" >> $GITHUB_ENV
+
+      - name: Force new ECS config
+        run: |
+          aws ecs update-service \
+            --cluster "$CLUSTER" \
+            --service "$SERVICE" \
+            --force-new-deployment
+
+      - name: Wait for ECS service
+        run: |
+          aws ecs wait services-stable \
+            --cluster $CLUSTER \
+            --services $SERVICE
+
+      - name: Get ALB DNS name
+        id: get-lb
+        run: |
+          TG_ARN=$(aws ecs describe-services \
+            --cluster $CLUSTER \
+            --services $SERVICE \
+            --query "services[0].loadBalancers[0].targetGroupArn" \
+            --output text)
+
+          # Get the Load Balancer ARN from Target Group
+          LB_ARN=$(aws elbv2 describe-target-groups \
+            --target-group-arns $TG_ARN \
+            --query "TargetGroups[0].LoadBalancerArns[0]" \
+            --output text)
+
+          # Get DNS name
+          # TODO: get friendly DNS Name
+          LB_DNS=$(aws elbv2 describe-load-balancers \
+            --load-balancer-arns $LB_ARN \
+            --query "LoadBalancers[0].DNSName" \
+            --output text)
+
+          echo "lb_dns=$LB_DNS" >> $GITHUB_OUTPUT
+
+  smoketest:    
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: |
+      (needs.deploy.outputs.deployed == 'true') &&
+      (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/stage')
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::858431073792:role/gh-actions-role
+          aws-region: eu-central-1
+
+      - name: Run smoke test
+        env:
+          LB_DNS: ${{ needs.deploy.outputs.lb_dns }}
+        run: |
+          echo "Running smoke test on $LB_DNS"
+
+          # TODO: remove the insecure flag after we get friendly DNS name
+          
+          STATUS_HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://$LB_DNS/healthcheck)
+          STATUS_HTTPS=$(curl --insecure -s -o /dev/null -w "%{http_code}" https://$LB_DNS/healthcheck)
+
+          if [ "$STATUS_HTTP" -eq 200 ]; then
+            echo "Smoke test passed: HTTP $STATUS_HTTP"
+          elif [ "$STATUS_HTTPS" -eq 200 ]; then
+            echo "Smoke test passed: HTTPS $STATUS_HTTPS"
+          else
+            echo "Smoke test failed: HTTP: $STATUS_HTTP, HTTPS: $STATUS_HTTPS"
+            exit 1
+          fi

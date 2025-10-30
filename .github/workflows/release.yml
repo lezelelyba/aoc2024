@@ -270,6 +270,9 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Trigger ECS deploy workflow_run
-        run: gh workflow run .github/workflows/ecs-image-change.yml --ref ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ./github/workflows/ecs-image-change-wf.yml
+        secrets: inherit
+
+        # run: gh workflow run .github/workflows/ecs-image-change.yml --ref ${{ github.ref_name }}
+        # env:
+        #  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
