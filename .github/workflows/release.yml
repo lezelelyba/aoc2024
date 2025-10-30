@@ -42,22 +42,19 @@ jobs:
               - 'pkg/**'
             env-aws-bootstrap:
               - 'environments/bootstrap/aws/**'
-              - '.github/workflows/environments-aws-bootstrap-release.yml'
             env-aws-dev:
               - 'environments/aws/dev/**'
-              - '.github/workflows/environments-aws-dev-release.yml'
+              - 'modules/aws/infra/**'
             env-aws-stage:
               - 'environments/aws/stage/**'
-              - '.github/workflows/environments-aws-stage-release.yml'
+              - 'modules/aws/infra/**'
             env-aws-prod:
               - 'environments/aws/prod/**'
-              - '.github/workflows/environments-aws-prod-release.yml'
+              - 'modules/aws/infra/**'
             env-local:
               - 'environments/local/**'
-              - '.github/workflows/environments-local-release.yml'
             tf-infra:
               - 'modules/aws/infra/**'
-              - '.github/workflows/modules-aws-infra-release.yml'
             release:
               - '*'
 
