@@ -1,0 +1,254 @@
+name: Push to release branches
+
+on:
+  push:
+    branches:
+      - dev
+      - stage
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  filter:
+    runs-on: ubuntu-latest
+    outputs:
+      cli: ${{ steps.filter.outputs.cli }}
+      web: ${{ steps.filter.outputs.web }}
+      env-aws-bootstrap: ${{ steps.filter.outputs.env-aws-bootstrap }}
+      env-aws-dev: ${{ steps.filter.outputs.env-aws-dev }}
+      env-aws-stage: ${{ steps.filter.outputs.env-aws-stage }}
+      env-aws-prod: ${{ steps.filter.outputs.env-aws-prod }}
+      env-local: ${{ steps.filter.outputs.env-local }}
+      tf-infra: ${{ steps.filter.outputs.tf-infra }}
+      release: ${{ steps.filter.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Filters
+        uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters : |
+            cli:
+              - '.github/workflows/cmd-cli-pr.yml'
+              - 'build/ci/docker/cli.Dockerfile'
+              - 'cmd/cli/**'
+              - 'pkg/**'
+            web:
+              - '.github/workflows/cmd-web-release.yml'
+              - 'build/ci/docker/web.Dockerfile'
+              - 'cmd/web/**'
+              - 'pkg/**'
+            env-aws-bootstrap:
+              - 'environments/bootstrap/aws/**'
+              - '.github/workflows/environments-aws-bootstrap-release.yml'
+            env-aws-dev:
+              - 'environments/aws/dev/**'
+              - '.github/workflows/environments-aws-dev-release.yml'
+            env-aws-stage:
+              - 'environments/aws/stage/**'
+              - '.github/workflows/environments-aws-stage-release.yml'
+            env-aws-prod:
+              - 'environments/aws/prod/**'
+              - '.github/workflows/environments-aws-prod-release.yml'
+            env-local:
+              - 'environments/local/**'
+              - '.github/workflows/environments-local-release.yml'
+            tf-infra:
+              - 'modules/aws/infra/**'
+              - '.github/workflows/modules-aws-infra-release.yml'
+            release:
+              - '*'
+
+  bump_version:
+    runs-on: ubuntu-latest
+    needs: filter
+    strategy:
+      matrix:
+        component:
+          - name: cli
+            work-dir: cmd/cli
+            tag-prefix: cmd/cli
+          - name: web
+            work-dir: cmd/web
+            tag-prefix: cmd/web
+          - name: env-aws-bootstrap
+            work-dir: environments/bootstrap/aws
+            tag-prefix: environments/bootstrap/aws
+          - name: env-aws-dev
+            work-dir: environments/aws/dev
+            tag-prefix: environments/aws/dev
+          - name: env-aws-stage
+            work-dir: environments/aws/stage
+            tag-prefix: environments/aws/stage
+          - name: env-aws-prod
+            work-dir: environments/aws/prod
+            tag-prefix: environments/aws/prod
+          - name: env-local
+            work-dir: environments/local
+            tag-prefix: environments/local
+          - name: tf-infra
+            work-dir: modules/aws/infra
+            tag-prefix: modules/aws/infra
+          - name: release
+            tag-prefix: release
+      max-parallel: 1
+    outputs:
+      cli-bumped: ${{ steps.bumped-cli.outputs.bumped }}
+      cli-next-version: ${{ steps.bumped-cli.outputs.next-version }}
+      web-bumped: ${{ steps.bumped-web.outputs.bumped }}
+      web-next-version: ${{ steps.bumped-web.outputs.next-version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Bump Version of Component
+        id: bump
+        if: |
+          (matrix.component.name == 'cli' && needs.filter.outputs.cli == 'true') ||
+          (matrix.component.name == 'web' && needs.filter.outputs.web == 'true') ||
+          (matrix.component.name == 'env-aws-bootstrap' && needs.filter.outputs.env-aws-bootstrap == 'true') ||
+          (matrix.component.name == 'env-aws-dev' && needs.filter.outputs.env-aws-dev == 'true') ||
+          (matrix.component.name == 'env-aws-stage' && needs.filter.outputs.env-aws-stage == 'true') ||
+          (matrix.component.name == 'env-aws-prod' && needs.filter.outputs.env-aws-prod == 'true') ||
+          (matrix.component.name == 'env-local' && needs.filter.outputs.env-local == 'true') ||
+          (matrix.component.name == 'tf-infra' && needs.filter.outputs.tf-infra == 'true') ||
+          (matrix.component.name == 'release' && needs.filter.outputs.release == 'true' && github.ref_name == 'master')
+        uses: ./.github/actions/bump-version
+        with:
+          branch-name: ${{github.ref_name}}
+          work-dir: ${{ matrix.component.work-dir || '' }}
+          tag-prefix: ${{ matrix.component.tag-prefix }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set Outputs - CLI
+        id: bumped-cli
+        if: |
+          (matrix.component.name == 'cli' && needs.filter.outputs.cli == 'true')
+        run: |
+          echo "cli-bumped=${{steps.bump.outputs.bumped}}" >> $GITHUB_OUTPUT
+          echo "cli-next-version=${{steps.bump.outputs.next-version}}" >> $GITHUB_OUTPUT
+      - name: Set Outputs - WEB
+        id: bumped-web
+        if: |
+          (matrix.component.name == 'web' && needs.filter.outputs.web == 'true')
+        run: |
+          echo "web-bumped=${{steps.bump.outputs.bumped}}" >> $GITHUB_OUTPUT
+          echo "web-next-version=${{steps.bump.outputs.next-version}}" >> $GITHUB_OUTPUT
+
+
+  build-cli:
+    runs-on: ubuntu-latest
+    needs: bump
+    if: ${{ needs.bump_version.outputs.cli-bumped }} == 'true'
+
+    permissions:
+      actions: write
+      contents: read
+
+    env:
+      NEXT_VER: ${{ needs.bump_version.outputs.cli-next-version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up branch name variable
+        id: vars
+        run: |
+          # Strip refs/heads/ prefix and replace slashes with dashes
+          BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}" | tr '/' '-')
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+          TIMESTAMP=$(date +%s)
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+
+      - name: Build Docker images
+        run: |
+          docker build -f build/ci/docker/cli.Dockerfile --build-arg VERSION="${NEXT_VER}" -t jsafar/advent2024.cli:${NEXT_VER} .
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Push Docker images
+        run: |
+          docker tag jsafar/advent2024.cli:${NEXT_VER} jsafar/advent2024.cli:${BRANCH_NAME}
+          
+          docker push jsafar/advent2024.cli:${BRANCH_NAME}
+          docker push jsafar/advent2024.cli:${NEXT_VER}
+
+      - name: Push Docker images - master
+        if: github.ref == 'refs/heads/master'
+        run: |
+          docker tag jsafar/advent2024.cli:${NEXT_VER} jsafar/advent2024.cli:latest
+
+          docker push jsafar/advent2024.cli:latest
+
+  build-web:
+    runs-on: ubuntu-latest
+    needs: bump_version
+    if: ${{ needs.bump_version.outputs.web-bumped }} == 'true'
+
+    permissions:
+      actions: write
+      contents: read
+
+    env:
+      NEXT_VER: ${{ needs.bump_version.outputs.web-next-version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up branch name variable
+        id: vars
+        run: |
+          # Strip refs/heads/ prefix and replace slashes with dashes
+          BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}" | tr '/' '-')
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+          TIMESTAMP=$(date +%s)
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+          
+      - name: Build Docker images
+        run: |
+          docker build -f build/ci/docker/web.Dockerfile --build-arg VERSION="${NEXT_VER}" -t jsafar/advent2024.web:${NEXT_VER} .
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Push Docker images
+        run: |
+          docker tag jsafar/advent2024.web:${NEXT_VER} jsafar/advent2024.web:${BRANCH_NAME}
+          
+          docker push jsafar/advent2024.web:${BRANCH_NAME}
+          docker push jsafar/advent2024.web:${NEXT_VER}
+
+      - name: Push Docker images - master
+        if: github.ref == 'refs/heads/master'
+        run: |
+          docker tag jsafar/advent2024.web:${NEXT_VER} jsafar/advent2024.web:latest
+
+          docker push jsafar/advent2024.web:latest
+
+  deploy-web:
+    needs: build-web
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: write
+      contents: read
+
+    steps:      
+      - uses: actions/checkout@v4
+      
+      - name: Trigger ECS deploy workflow_run
+        run: gh workflow run .github/workflows/ecs-image-change.yml --ref ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
