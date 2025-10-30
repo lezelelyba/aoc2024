@@ -260,8 +260,7 @@ jobs:
 
   deploy-web:
     needs: build-web
-    runs-on: ubuntu-latest
-    uses: ./github/workflows/ecs-image-change-wf.yml
+    uses: ./.github/workflows/ecs-image-change-wf.yml
     secrets: inherit
     
   # deploy-web:
