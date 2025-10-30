@@ -103,10 +103,10 @@ jobs:
             tag-prefix: release
       max-parallel: 1
     outputs:
-      cli-bumped: ${{ steps.bumped-cli.outputs.bumped }}
-      cli-next-version: ${{ steps.bumped-cli.outputs.next-version }}
-      web-bumped: ${{ steps.bumped-web.outputs.bumped }}
-      web-next-version: ${{ steps.bumped-web.outputs.next-version }}
+      cli-bumped: ${{ steps.bumped-cli.outputs.cli-bumped }}
+      cli-next-version: ${{ steps.bumped-cli.outputs.cli-next-version }}
+      web-bumped: ${{ steps.bumped-web.outputs.web-bumped }}
+      web-next-version: ${{ steps.bumped-web.outputs.web-next-version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
