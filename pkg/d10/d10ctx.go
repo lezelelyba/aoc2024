@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"time"
 )
 
 type PuzzleStructWithCtx struct {
@@ -32,28 +31,26 @@ func (p *PuzzleStructWithCtx) SolveCtx(ctx context.Context, part int) (string, e
 	case 1:
 		sum := 0
 
-		for {
-			time.Sleep(1 * time.Second)
-
+		for _, zero := range p.FindZeroes() {
 			select {
 			case <-ctx.Done():
 				return "", solver.ErrTimeout
 			default:
 			}
+			sum += p.ReachableSummits(zero)
 		}
 
 		return strconv.Itoa(sum), nil
 	case 2:
 		sum := 0
 
-		for {
-			time.Sleep(1 * time.Second)
-
+		for _, zero := range p.FindZeroes() {
 			select {
 			case <-ctx.Done():
 				return "", solver.ErrTimeout
 			default:
 			}
+			sum += p.PathsToSummits(zero)
 		}
 
 		return strconv.Itoa(sum), nil

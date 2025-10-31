@@ -27,6 +27,7 @@ jobs:
           aws-region: ${region}
 
       - name: Fetch ECS config
+        id: get-deployment
         run: |
 %{ for env in envs ~}
           if [ "$${GITHUB_REF}" = "refs/heads/${env.branch}" ]; then
