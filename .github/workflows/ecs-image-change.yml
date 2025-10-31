@@ -27,6 +27,7 @@ jobs:
           aws-region: eu-central-1
 
       - name: Fetch ECS config
+        id: get-deployment
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
             NAME_PARAM="/cd/dev/config"
