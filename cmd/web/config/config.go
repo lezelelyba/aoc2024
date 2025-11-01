@@ -75,7 +75,8 @@ func (p GithubProvider) Name() string {
 // Returns code<>token exchange URL where client can exchange code for JWT token
 func (p GithubProvider) AppTokenEndpoint() string {
 
-	return fmt.Sprintf("/oauth/%s/token", p.ProviderName)
+	// return fmt.Sprintf("/oauth/%s/token", p.ProviderName)
+	return fmt.Sprintf("/api/public/access_token")
 }
 
 // Returns callback URL where Github will redirect the user
