@@ -103,6 +103,7 @@ func main() {
 	// create http muxes
 	webMux := http.NewServeMux()
 	apiMux := http.NewServeMux()
+	apiUnsecuredMux := http.NewServeMux()
 	globalMux := http.NewServeMux()
 
 	// web pages
@@ -114,7 +115,6 @@ func main() {
 	// oauth
 	if cfg.OAuth {
 		webMux.Handle("GET /callback/{provider}", middleware.WithTemplate(callbackTemplate)(http.HandlerFunc(webhandlers.OAuthCallback)))
-		webMux.HandleFunc("POST /oauth/{provider}/token", webhandlers.OAuthHandler)
 	}
 
 	// swagger docs
@@ -138,6 +138,11 @@ func main() {
 	// add authentication if enabled
 	if cfg.OAuth {
 		apiHandler = middleware.AuthenticationMiddleware()(apiHandler)
+
+		// token exchange token
+		apiUnsecuredMux.HandleFunc("POST /access_token", api.OAuthCodeExchange)
+		apiUnsecuredHandler := middleware.RateLimitMiddleware(cfg.APIRate, cfg.APIBurst)(apiUnsecuredMux)
+		globalMux.Handle("/api/public/", http.StripPrefix("/api/public", apiUnsecuredHandler))
 	}
 
 	// combine muxes

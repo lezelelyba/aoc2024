@@ -1,4 +1,3 @@
-
 /**
  * Starts OAuth with OAuth Provider 
  * 
@@ -25,13 +24,14 @@ function startOAuth(authURL) {
 }
 
 /**
- * Sends OAuth code to backend to exchange it for token
+ * Sends OAuth code to backend to exchange it for token via API
  * 
  * code is received as query param in the redirect response from OAuth provider
  *  
  * @param {string} codeExchangeURL - Backend URL where OAuth code can be exchanged for token 
+ * @param {string} provider - Name of the OAuth provider
  */
-async function handleOAuthCallback(codeExchangeURL) {
+async function handleOAuthCallbackAPI(codeExchangeURL, provider) {
   // get params from callback URL
   const params = new URLSearchParams(window.location.search);
   const code = params.get("code");
@@ -42,7 +42,7 @@ async function handleOAuthCallback(codeExchangeURL) {
   if (code && state === storedState) {
     try {
       // exchange code for token
-      const resp = await fetch(`${codeExchangeURL}?code=${code}`, { method: "POST" });
+      const resp = await fetch(`${codeExchangeURL}`, { method: "POST", body: JSON.stringify({provider: provider, code: code}) });
       const data = await resp.json();
 
       if (data.access_token) {

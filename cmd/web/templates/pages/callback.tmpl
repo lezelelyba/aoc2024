@@ -11,6 +11,6 @@
      *
      * Sends oauth code to the backend code exchange endpoint 
      */
-    window.addEventListener("DOMContentLoaded", handleOAuthCallback("{{.Endpoint}}"));
+    window.addEventListener("DOMContentLoaded", handleOAuthCallbackAPI("{{.Provider.AppTokenEndpoint}}", "{{.Provider.Name}}"));
   </script>
 </body>
