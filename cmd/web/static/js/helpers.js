@@ -27,26 +27,49 @@ function parseJwt(token) {
 }
 
 
-function startAuthTimer(fsm, elId, exp) {
+/**
+ * Starts Authentication timer
+ * Transitions via TIMEOUTLOGOUT after timer expires
+ *  
+ * @param {number} exp - expiration time of authentication
+ * @param {string} elId - element where to write the remaining time
+ * @param {function} expFunc - expiration function
+ * @returns {object} Timer
+ */
+function startAuthTimer(exp, elId, expFunc) {
   let timerId;
 
+  // create a function which is called periodically
   function updateTimer() {
     const now = Math.floor(Date.now() / 1000);
     let remaining = exp - now;
+
+    // when expired
     if (remaining <= 0) {
       remaining = 0;
+      // if timer var exists => timer is running
       if (timerId) {
+        // clear
         clearInterval(timerId);
-        fsm.transition('TIMEOUTLOGOUT', {timeout: true});
+        // call the expiration function
+        expFunc()
       }
     }
 
+    // display the remaining time in the element
     const minutes = Math.floor(remaining / 60);
     const seconds = remaining % 60;
-    document.getElementById(elId).textContent =
-      `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    const el = document.getElementById(elId);
+    if (el) {
+      el.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    }
   }
 
+  // 1st run to display the remaining time immediately
   updateTimer();
+  // start timer with 1s update interval
   timerId = setInterval(updateTimer, 1000);
+
+  // return timer
+  return timerId
 }

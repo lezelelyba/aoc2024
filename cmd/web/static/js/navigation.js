@@ -161,7 +161,12 @@ const UIMachine = {
         if(timerEl) {
           timerEl.hidden = false;
           const tokenExpiration = parseJwt(sessionStorage.getItem("accessToken")).exp;
-          startAuthTimer(UIHandler, "auth-timer", tokenExpiration);
+
+          function timeout() {
+            UIHandler.transition("TIMEOUTLOGOUT", {timeout: true})
+          }
+
+          startAuthTimer(tokenExpiration, "auth-timer", timeout);
         }
        
         // hide login buttons
