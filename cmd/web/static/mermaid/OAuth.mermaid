@@ -7,6 +7,7 @@ sequenceDiagram
     autonumber
     participant Client
     participant Server
+    participant Backend
     participant GitHub
     Client->>+GitHub: GET https://github.com/login/oauth/authorize?[state]
     GitHub-->>-Client: REDIRECT /callback/github?[code]&[state]
@@ -15,18 +16,18 @@ sequenceDiagram
     break sent state != received state
     Client->>Client: abort Authentication
     end
-    Client->>+Server: POST /oauth/github/token?[code]
-    Server->>+GitHub: POST https://github.com/login/oauth/access_token [x-www-form-urlencoded: code]
+    Client->>+Backend: POST /api/access_token [ json: provider, code]
+    Backend->>+GitHub: POST https://github.com/login/oauth/access_token [x-www-form-urlencoded: code]
     alt Code Valid
     Note left of GitHub: Validate Code<br>Generate GH Token
-    GitHub-->>Server: [Body: JSON GH token]
+    GitHub-->>Backend: [Body: JSON GH token]
     Note right of Server: Generate JWT Token
-    Server-->>Client: [Body: JSON JWT token]
+    Backend-->>Client: [Body: JSON JWT token]
     
     else Code Invalid or GitHub Internal Error
-    GitHub-->>-Server: Error
+    GitHub-->>-Backend: Error
     
-    Server-->>-Client: Error
+    Backend-->>-Client: Error
     
     break no token received
     Client->>Client: abort Authentication
@@ -34,7 +35,7 @@ sequenceDiagram
     end
     
     loop As Needed
-    Client->>+Server: API request [Authorization: Bearer JWT Token]
+    Client->>+Backend: API request [Authorization: Bearer JWT Token]
     Note right of Server: Validate JWT Token<br>Generate Response
-    Server-->>-Client: API response
+    Backend-->>-Client: API response
     end

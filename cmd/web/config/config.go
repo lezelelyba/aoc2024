@@ -20,6 +20,7 @@ import (
 type Config struct {
 	Version          string
 	Port             int
+	APIOnly          bool
 	EnableTLS        bool
 	CertFile         string
 	KeyFile          string
@@ -57,6 +58,7 @@ type GithubProvider struct {
 func NewConfig() Config {
 	return Config{
 		Port:             8080,
+		APIOnly:          false,
 		EnableTLS:        false,
 		OAuth:            false,
 		APIRate:          3,
@@ -116,6 +118,8 @@ func LoadConfig() (Config, []error) {
 
 	port := flag.String("port", envOrDefault("PORT", strconv.Itoa(config.Port)), "TCP port on which the app runs")
 
+	apiOnly := flag.String("api-only", envOrDefault("API_ONLY", fmt.Sprintf("%t", config.APIOnly)), "Disable web presentation")
+
 	enableHttps := flag.String("https", envOrDefault("ENABLE_HTTPS", fmt.Sprintf("%t", config.EnableTLS)), "Enables HTTPS, requires cert and key to be specified")
 	cert := flag.String("cert", envOrDefault("TLS_CERT_FILE", ""), "cert file")
 	key := flag.String("key", envOrDefault("TLS_KEY_FILE", ""), "key file")
@@ -163,6 +167,11 @@ func LoadConfig() (Config, []error) {
 
 	parseInt("solverTimeout", *solverTimeout, &durationInt)
 	config.SolverTimeout = time.Duration(time.Duration(durationInt) * time.Second)
+
+	// parse API Only
+	if *apiOnly == "true" {
+		config.APIOnly = true
+	}
 
 	// parse https
 	if *enableHttps == "true" {
@@ -268,17 +277,37 @@ func (cfg *Config) ValidateConfig() (bool, []error) {
 
 		for _, provider := range cfg.OAuthProviders {
 			// check if the values are not empty
-			checks := []struct {
+			var checks []struct {
 				str  string
 				name string
-			}{
-				{cfg.JWTSecret, "JWT secret"},
-				{provider.AuthURL(), "user authentication URL"},
-				{provider.TokenURL(), "token exchange URL"},
-				{provider.ClientID(), "client id"},
-				{provider.ClientSecret(), "client secret"},
-				{provider.AppCallbackURL(), "callback URL"},
 			}
+
+			// serving web presentation as well
+			if !cfg.APIOnly {
+				checks = []struct {
+					str  string
+					name string
+				}{
+					{cfg.JWTSecret, "JWT secret"},
+					{provider.AuthURL(), "user authentication URL"},
+					{provider.TokenURL(), "token exchange URL"},
+					{provider.ClientID(), "client id"},
+					{provider.ClientSecret(), "client secret"},
+					{provider.AppCallbackURL(), "callback URL"},
+				}
+			} else {
+				// serving only API
+				checks = []struct {
+					str  string
+					name string
+				}{
+					{cfg.JWTSecret, "JWT secret"},
+					{provider.TokenURL(), "token exchange URL"},
+					{provider.ClientID(), "client id"},
+					{provider.ClientSecret(), "client secret"},
+				}
+			}
+			// check if the values are not empty
 
 			for _, c := range checks {
 				if c.str == "" {
@@ -288,13 +317,24 @@ func (cfg *Config) ValidateConfig() (bool, []error) {
 			}
 
 			// check if values are valid URLs
-			checks = []struct {
-				str  string
-				name string
-			}{
-				{provider.AuthURL(), "user authentication URL"},
-				{provider.TokenURL(), "token exchange URL"},
-				{provider.AppCallbackURL(), "callback URL"},
+			// serving web presentation as well
+			if !cfg.APIOnly {
+				checks = []struct {
+					str  string
+					name string
+				}{
+					{provider.AuthURL(), "user authentication URL"},
+					{provider.TokenURL(), "token exchange URL"},
+					{provider.AppCallbackURL(), "callback URL"},
+				}
+			} else {
+				// serving only API
+				checks = []struct {
+					str  string
+					name string
+				}{
+					{provider.TokenURL(), "token exchange URL"},
+				}
 			}
 
 			for _, c := range checks {
