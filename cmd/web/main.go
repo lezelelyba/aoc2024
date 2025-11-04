@@ -48,7 +48,7 @@ var Version string = "dev"
 
 // @securitydefinitions.oauth2.accessCode	OAuth2AccessCode
 // @authorizationURL						https://github.com/login/oauth/authorize
-// @tokenURL								http://localhost:8080/oauth/github/token
+// @tokenURL								/api/public/access_token
 // @scope.read								Grants read access
 // @description							GitHub OAuth
 func main() {
@@ -108,13 +108,17 @@ func main() {
 	globalMux := http.NewServeMux()
 
 	// web pages
-	webMux.Handle("GET /", middleware.WithTemplate(indexTemplate)(http.HandlerFunc(webhandlers.ServerIndex)))
+	if !cfg.APIOnly {
+		webMux.Handle("GET /", middleware.WithTemplate(indexTemplate)(http.HandlerFunc(webhandlers.ServerIndex)))
+	}
 	webMux.Handle("GET /docs", middleware.WithTemplate(docsTemplate)(http.HandlerFunc(webhandlers.ServerDocs)))
-	webMux.HandleFunc("GET /list", webhandlers.SolverListing)
+	if !cfg.APIOnly {
+		webMux.HandleFunc("GET /list", webhandlers.SolverListing)
+	}
 	webMux.HandleFunc("GET /healthcheck", webhandlers.HealthCheck)
 
 	// oauth
-	if cfg.OAuth {
+	if cfg.OAuth && !cfg.APIOnly {
 		webMux.Handle("GET /callback/{provider}", middleware.WithTemplate(callbackTemplate)(http.HandlerFunc(webhandlers.OAuthCallback)))
 	}
 
@@ -122,8 +126,10 @@ func main() {
 	webMux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)
 
 	// static files
-	fs := http.FileServer(http.Dir("static"))
-	webMux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	if !cfg.APIOnly {
+		fs := http.FileServer(http.Dir("static"))
+		webMux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	}
 
 	// godoc
 	godocs := http.FileServer(http.Dir("godocs"))
@@ -136,7 +142,7 @@ func main() {
 	// public api
 	apiUnsecuredMux.HandleFunc("GET /info", api.Info)
 
-	// enable token exchange if oaht is enabled
+	// enable token exchange if oauth is enabled
 	if cfg.OAuth {
 		apiUnsecuredMux.HandleFunc("POST /access_token", api.OAuthCodeExchange)
 	}

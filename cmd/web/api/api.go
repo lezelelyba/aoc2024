@@ -31,29 +31,29 @@ type SolveResult struct {
 type CodeExchangeRequest struct {
 	Provider string `json:"provider"`
 	Code     string `json:"code"`
-} //@name Code Exchange Request
+} //@name CodeExchangeRequest
 
 type JWTToken struct {
 	Token string `json:"access_token"`
-} //@name Token Response
+} //@name TokenResponse
 
 type InfoResponse struct {
 	Version        string `json:"version"`
 	Authentication string `json:"authentication"`
-} //@name Info Response
+} //@name InfoResponse
 
 // Solve godoc
 //
-//	@Summary		Solver
+//	@Summary		Solves the problem
 //	@Description	Provides solution for the day and part based on input
-//	@Tags			solver
+//	@Tags			Private
 //	@Accepts		json
 //	@Produces		json
 //	@Security
+//	@Param		Authorization			header		string				true	"Bearer format, prefix with Bearer"
 //	@Param		day						path		string				true	"Day, format d[0-9]*"	example(d1)
 //	@Param		part					path		int					true	"Problem part"			example(1)
 //	@Param		input					body		SolveRequest		true	"Solve Base64 encoded input"
-//	@Param		Authorization			header		string				true	"Bearer format, prefix with Bearer"
 //	@Success	200						{object}	SolveResult			"Result"
 //	@Failure	400						{object}	weberrors.AoCError	"Bad Request"
 //	@Failure	401						{object}	weberrors.AoCError	"Unathorized"
@@ -185,16 +185,17 @@ func Solve(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Solve List
 //	@Description	Lists days which the solver can solve
-//	@Tags			solverList
+//	@Tags			Private
 //	@Accepts		json
 //	@Produces		json
-//	@Param			Authorization	header		string						true	"Bearer format, prefix with Bearer"
-//	@Success		200				{array}		solver.RegistryItemPublic	"Result"
-//	@Failure		401				{object}	weberrors.AoCError			"Unathorized"
-//	@Failure		429				{object}	weberrors.AoCError			"Request was Rate limited"
-//	@Failure		500				{object}	weberrors.AoCError			"Internal Server Error"
-//	@Router			/solvers														[GET]
-//	@Security		OAuth2AccessCode [read]
+//	@Security
+//	@Param		Authorization	header		string						true	"Bearer format, prefix with Bearer"
+//	@Success	200				{array}		solver.RegistryItemPublic	"Result"
+//	@Failure	401				{object}	weberrors.AoCError			"Unathorized"
+//	@Failure	429				{object}	weberrors.AoCError			"Request was Rate limited"
+//	@Failure	500				{object}	weberrors.AoCError			"Internal Server Error"
+//	@Router		/solvers																																																		[GET]
+//	@Security	OAuth2AccessCode [read]
 //
 // Handles solver listing API endpoint
 func SolverListing(w http.ResponseWriter, r *http.Request) {
@@ -223,15 +224,17 @@ func SolverListing(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Exchanged OAuth code for a JWT token
 //	@Description	Exchanges OAuth code for a JWT token
-//	@Tags			Oauth_code_exchange
+//	@Tags			Public
 //	@Accepts		json
 //	@Produces		json
-//	@Success		200				{object}		JWTToken	"JWT Token"
-//	@Failure		401				{object}	weberrors.AoCError			"Unathorized"
-//	@Failure		500				{object}	weberrors.AoCError			"Internal Server Error"
-//	@Router			/public/auth_token														[POST]
+//	@Param			code				body		CodeExchangeRequest	true	"Provider and code to be exchanged"
+//	@Success		200					{object}	JWTToken			"JWT Token"
+//	@Failure		400					{object}	weberrors.AoCError	"Bad Request"
+//	@Failure		429					{object}	weberrors.AoCError	"Request was Rate limited"
+//	@Failure		500					{object}	weberrors.AoCError	"Internal Server Error"
+//	@Router			/public/auth_token																																						[POST]
 //
-// Handles solver listing API endpoint
+// Handles OAuth code for JWT token exchange
 func OAuthCodeExchange(w http.ResponseWriter, r *http.Request) {
 	// prepare response headers
 	w.Header().Set("Content-Type", "application/json")
@@ -407,6 +410,18 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middlewa
 	}
 }
 
+// Info godoc
+//
+//	@Summary		Information about the backend
+//	@Description	Provides information about the backend
+//	@Tags			Public
+//	@Produces		json
+//	@Success		200				{object}	InfoResponse		"Backend Info"
+//	@Failure		429				{object}	weberrors.AoCError	"Request was Rate limited"
+//	@Failure		500				{object}	weberrors.AoCError	"Internal Server Error"
+//	@Router			/public/info																																						[GET]
+//
+// Handles backend information endpoint
 func Info(w http.ResponseWriter, r *http.Request) {
 	var rc int
 	var errMsg string
