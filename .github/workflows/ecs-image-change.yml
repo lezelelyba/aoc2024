@@ -57,7 +57,7 @@ jobs:
           echo "SERVICE=$SERVICE" >> $GITHUB_ENV
 
       - name: Force new ECS config
-        if: steps.get-deployment.output.deployed == 'true'
+        if: steps.get-deployment.outputs.deployed == 'true'
         run: |
           aws ecs update-service \
             --cluster "$CLUSTER" \
@@ -65,14 +65,14 @@ jobs:
             --force-new-deployment
 
       - name: Wait for ECS service
-        if: steps.get-deployment.output.deployed == 'true'
+        if: steps.get-deployment.outputs.deployed == 'true'
         run: |
           aws ecs wait services-stable \
             --cluster $CLUSTER \
             --services $SERVICE
 
       - name: Get ALB DNS name
-        if: steps.get-deployment.output.deployed == 'true'
+        if: steps.get-deployment.outputs.deployed == 'true'
         id: get-lb
         run: |
           TG_ARN=$(aws ecs describe-services \
