@@ -32,7 +32,7 @@ head_include_raw: |
     loginButtons["{{ oauthProvider.Name }}"].class = "login-button";
       {% if oauthProvider.Name == "github" %}
     const client_id = "{{ oauthProvider.ClientId }}";
-    const redirect_uri = window.location.origin + "/{{ site.BaseUrl }}/callback/" + "{{ oauthProvider.Name }}";
+    const redirect_uri = window.location.origin + "{{ site.BaseUrl }}/callback/" + "{{ oauthProvider.Name }}";
     const scope = "{{ oauthprovider.Scope }}";
     const AuthURL = `{{oauthProvider.BaseAuthURL}}?client_id=${client_id}&redirect_uri=${redirect_uri}&scope=${scope}`;
       {% else %}
