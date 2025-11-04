@@ -1,27 +1,14 @@
-{{define "content"}}
-    {{block "authentication" .}}{{end}}
-    {{block "solverSelection" .}}{{end}}
-    {{block "solverUpload" .}}{{end}}
-    {{block "solverResult" .}}{{end}}
-{{end}}
-
-{{ define "head"}}
+---
+layout: default
+head_include_raw: |
   <script src="/static/js/navigation.js" defer></script>
   <script src="/static/js/auth.js"></script>
   <script src="/static/js/helpers.js"></script>
   <script src="/static/js/api.js"></script>
-{{ end }}
+---
 
-{{ define "authentication"}}
-{{- if .Config.OAuth -}}
-<div id="auth-enabled" data-enabled="true" hidden></div>
-{{- else -}}
-<div id="auth-enabled" data-enabled="false" hidden></div>
-{{- end -}}
-
-{{- if .Config.OAuth -}}
-<section class="auth active">
-
+<section class="auth disabled" hidden>
+  <div id="auth-enabled" data-enabled="false" hidden></div>
   <div class="auth-status-logout">
     <div>
       <strong>Authentication status</strong>: <span id="auth-status">Not Authenticated</span>
@@ -37,26 +24,28 @@
     // create OAuth authentication buttons
     const loginButtons = new Map();
     const loginButtonsDiv = document.getElementById("login-buttons-div");
-    {{- range .Config.OAuthProviders }}
-    loginButtons["{{.Name}}"] = document.createElement("button");
-    loginButtons["{{.Name}}"].textContent = "Authenticate via {{.Name}}"
-    loginButtons["{{.Name}}"].id = "login-button-{{.Name}}";
-    loginButtons["{{.Name}}"].class = "login-button";
-    loginButtons["{{.Name}}"].addEventListener("click", () => startOAuth("{{.AuthURL}}"));
 
-    loginButtonsDiv.appendChild(loginButtons["{{.Name}}"]);
-    {{- end }}
+    {% for oauthProvider in site.OAuthProviders %}
+    loginButtons["{{ oauthProvider.Name }}"] = document.createElement("button");
+    loginButtons["{{ oauthProvider.Name }}"].textContent = "Authenticate via {{ oauthProvider.Name }}"
+    loginButtons["{{ oauthProvider.Name }}"].id = "login-button-{{ oauthProvider.Name }}";
+    loginButtons["{{ oauthProvider.Name }}"].class = "login-button";
+      {% if oauthProvider.Name == "github" %}
+    const client_id = "{{ oauthProvider.ClientId }}";
+    const redirect_uri = window.location.origin + "/callback/" + "{{ oauthProvider.Name }}";
+    const scope = "{{ oauthprovider.Scope }}";
+    const AuthURL = `{{oauthProvider.BaseAuthURL}}?client_id=${client_id}&redirect_uri=${redirect_uri}&scope=${scope}`;
+      {% else %}
+    const AuthURL = "";
+      {% endif %}
+    loginButtons["{{ oauthProvider.Name }}"].addEventListener("click", () => startOAuth(encodeURI(AuthURL)));
+    loginButtonsDiv.appendChild(loginButtons["{{ oauthProvider.Name }}"]);
+    {% endfor %}
+
   </script>
 </section>
-{{- end -}}
-{{end}}
 
-{{ define "solverSelection"}}
-  {{- if .Config.OAuth -}}
 <section class="selection disabled">
-  {{- else -}}
-<section class="selection active">
-  {{- end -}}
   <div id="table-header">
     <h2>Table of Solvers</h2>
     <div id="solver-selection" hidden>
@@ -66,9 +55,7 @@
   <div id="table-container">
   </div>
 </section>
-{{end}}
 
-{{define "solverUpload"}}
 <section class="submission disabled">
   <div id="submit-header">
     <label for="fileInput" class="file-btn">Choose a file</label>
@@ -84,12 +71,9 @@
     <button id="submitBtn">Send to API</button>
   </div>
 </section>
-{{end}}
 
-{{define "solverResult"}}
 <section class="result disabled">
   <pre id="result"></pre>
   <button id="seenBtn" hidden>Ok</button>
   <button id="resubmitBtn" hidden>Ok</button>
 </section>
-{{end}}
