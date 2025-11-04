@@ -1,9 +1,9 @@
-BackendBaseUrl: https://dev.aoc2024.lezeleprojects.org
+BackendBaseUrl: http://localhost:8080
 
-BaseUrl: "/aoc2024"
+BaseUrl: ""
 
 OAuthProviders:
   - Name: github
     BaseAuthURL: https://github.com/login/oauth/authorize
-    ClientId: Ov23liDJwyMZc8s0j4CA
+    ClientId: Ov23li6T8sWzuL6DzKTP
     Scope: read:user
