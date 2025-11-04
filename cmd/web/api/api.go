@@ -37,6 +37,11 @@ type JWTToken struct {
 	Token string `json:"access_token"`
 } //@name Token Response
 
+type InfoResponse struct {
+	Version        string `json:"version"`
+	Authentication string `json:"authentication"`
+} //@name Info Response
+
 // Solve godoc
 //
 //	@Summary		Solver
@@ -400,4 +405,43 @@ func exchangeCodeForToken(provider *config.OAuthProvider, code string) (middlewa
 	default:
 		return nil, fmt.Errorf("unable to find provider %s", (*provider).Name())
 	}
+}
+
+func Info(w http.ResponseWriter, r *http.Request) {
+	var rc int
+	var errMsg string
+
+	logger := middleware.GetLogger(r)
+	cfg, ok := middleware.GetConfig(r)
+
+	rc = http.StatusInternalServerError
+	errMsg = "configuration error: unable to get config"
+	if weberrors.HandleError(w, logger, weberrors.OkToError(ok), rc, errMsg) != nil {
+		return
+	}
+
+	// prepare response headers
+	w.Header().Set("Content-Type", "application/json")
+
+	var info InfoResponse
+
+	info.Version = cfg.Version
+
+	if cfg.OAuth {
+		info.Authentication = "oauth"
+	} else {
+		info.Authentication = "none"
+	}
+
+	// prepare response body
+	b, err := json.Marshal(info)
+
+	rc = http.StatusInternalServerError
+	errMsg = "unable to mashal info"
+	if weberrors.HandleError(w, logger, err, rc, errMsg) != nil {
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(b)
 }

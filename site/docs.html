@@ -1,8 +1,8 @@
-{{ define "head"}}
+---
+layout: default
+head_include_raw: |
   <script src="/static/js/api.js"></script>
-{{ end }}
-
-{{define "content"}}
+---
 
 <script>
   fetch("/static/mermaid/UI.mermaid")
@@ -15,13 +15,13 @@
 
 <section id="swagger">
       <h2>
-        <a href="/swagger" target="_blank">API Definition</a>
+        <a href="{{ site.BackendBaseUrl }}/swagger" target="_blank">API Definition (hosted on backend)</a>
       </h2>
 </section>
 
 <section id="godocs">
   <h2>
-    <a href="/godocs" target="_blank">Go Documentation</a>
+    <a href="{{ site.BackendBaseUrl }}/godocs" target="_blank">Go Documentation (hosted on backend)</a>
   </h2>
 </section>
 
@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const swaggerEl = document.getElementById("swagger");
     swaggerEl.classList.add("disabled");
-    
+
     const godocsEl= document.getElementById("godocs");
     godocsEl.classList.add("disabled");
   })
@@ -69,4 +69,3 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 </script>
-{{end}}

@@ -1,0 +1,7 @@
+BackendBaseUrl: http://localhost:8080
+
+OAuthProviders:
+  - Name: github
+    BaseAuthURL: https://github.com/login/oauth/authorize
+    ClientId: Ov23li6T8sWzuL6DzKTP
+    Scope: read:user

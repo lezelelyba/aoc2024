@@ -26,6 +26,15 @@
   </header>
 
   <main>
+    <section class="backend">
+        <strong>Backend</strong>: <span id="backend">Available</span>
+        <script>
+          el = document.getElementById("backend");
+          if (el) {
+            el.textContent = window.location.origin;
+          }
+        </script>
+    </section>
     {{block "content" .}}{{end}}
   </main>
 

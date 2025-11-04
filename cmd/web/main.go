@@ -132,20 +132,32 @@ func main() {
 	apiMux.HandleFunc("GET /solvers", api.SolverListing)
 	apiMux.HandleFunc("POST /solvers/{day}/{part}", api.Solve)
 
-	// add api rate limiter
-	apiHandler := middleware.RateLimitMiddleware(cfg.APIRate, cfg.APIBurst)(apiMux)
+	// public api
+	apiUnsecuredMux.HandleFunc("GET /info", api.Info)
 
-	// add authentication if enabled
+	// enable token exchange if oaht is enabled
 	if cfg.OAuth {
-		apiHandler = middleware.AuthenticationMiddleware()(apiHandler)
-
-		// token exchange token
 		apiUnsecuredMux.HandleFunc("POST /access_token", api.OAuthCodeExchange)
-		apiUnsecuredHandler := middleware.RateLimitMiddleware(cfg.APIRate, cfg.APIBurst)(apiUnsecuredMux)
-		globalMux.Handle("/api/public/", http.StripPrefix("/api/public", apiUnsecuredHandler))
 	}
 
+	// add authentication if enabled
+	var apiHandler http.Handler
+	if cfg.OAuth {
+		apiHandler = middleware.AuthenticationMiddleware()(apiMux)
+	} else {
+		apiHandler = apiMux
+	}
+
+	// Rate limit
+	apiUnsecuredHandler := middleware.RateLimitMiddleware(cfg.APIRate, cfg.APIBurst)(apiUnsecuredMux)
+	apiHandler = middleware.RateLimitMiddleware(cfg.APIRate, cfg.APIBurst)(apiHandler)
+
+	// CORS
+	apiHandler = middleware.CORSMiddleware()(apiHandler)
+	apiUnsecuredHandler = middleware.CORSMiddleware()(apiUnsecuredHandler)
+
 	// combine muxes
+	globalMux.Handle("/api/public/", http.StripPrefix("/api/public", apiUnsecuredHandler))
 	globalMux.Handle("/api/", http.StripPrefix("/api", apiHandler))
 	globalMux.Handle("/", webMux)
 

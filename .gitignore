@@ -20,3 +20,9 @@ tls
 
 #do not include vscode setup
 .vscode/
+
+#ignore Bundler and Jekyll files
+site/vendor
+site/.bundle
+site/.jekyll-cache
+site/_site

@@ -7,8 +7,12 @@
  * @param {Object} payload - payload to be serialized as JSON
  * @returns {Promise<object>} Promise resolving to the parsed API response
  */
-async function sendToApi(apiEndpoint, payload) {
+async function sendToApi(method, apiEndpoint, payload) {
   const accessToken = sessionStorage.getItem("accessToken");
+
+  if (window.AppConfig && window.AppConfig.baseApiUrl) {
+    apiEndpoint = window.AppConfig.baseApiUrl + apiEndpoint
+  }
   
   console.log("Sending to:", apiEndpoint);
 
@@ -19,11 +23,20 @@ async function sendToApi(apiEndpoint, payload) {
 
   try {
     // sends authorized request
-    const res = await fetch(apiEndpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload)
-    });
+    let res;
+
+    if (method == "GET") {
+      res = await fetch(apiEndpoint, {
+        method: method,
+        headers,
+      });
+    } else if (method == "POST") {
+      res = await fetch(apiEndpoint, {
+        method: method,
+        headers,
+        body: JSON.stringify(payload)
+      });
+    }
 
     // attempt to parse response
     const data = await res.json();
@@ -31,7 +44,7 @@ async function sendToApi(apiEndpoint, payload) {
     return data;
   } catch (err) {
     console.error("Error:", err);
-    return { error: err.message };
+    throw err
   }
 }
 
