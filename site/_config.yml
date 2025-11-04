@@ -1,5 +1,7 @@
 BackendBaseUrl: https://dev.aoc2024.lezeleprojects.org/
 
+BaseUrl: "/aoc2024"
+
 OAuthProviders:
   - Name: github
     BaseAuthURL: https://github.com/login/oauth/authorize

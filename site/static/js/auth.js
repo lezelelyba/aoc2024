@@ -59,7 +59,7 @@ async function handleOAuthCallbackAPI(codeExchangeURL, provider) {
   sessionStorage.removeItem("oauth_state");
 
   // Restore original page
-  const redirectTarget = sessionStorage.getItem("postAuthRedirect") || "/";
+  const redirectTarget = sessionStorage.getItem("postAuthRedirect") || "{{ site.baseUrl }}/";
   window.history.replaceState({}, "", redirectTarget);
   sessionStorage.removeItem("postAuthRedirect");
 

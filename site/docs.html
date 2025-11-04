@@ -1,14 +1,14 @@
 ---
 layout: default
 head_include_raw: |
-  <script src="/static/js/api.js"></script>
+  <script src="{{ site.BaseUrl }}/static/js/api.js"></script>
 ---
 
 <script>
-  fetch("/static/mermaid/UI.mermaid")
+  fetch("{{ site.BaseUrl }}/static/mermaid/UI.mermaid")
     .then(r => r.text())
     .then(t => document.getElementById("mermaidUI").innerHTML = t);
-  fetch("/static/mermaid/OAuth.mermaid")
+  fetch("{{ site.BaseUrl }}/static/mermaid/OAuth.mermaid")
     .then(r => r.text())
     .then(t => document.getElementById("mermaidOAuth").innerHTML = t);
 </script>
