@@ -10,6 +10,12 @@ variable "app_tcp_port" {
     default = 8080
 }
 
+variable "dns_zone" {
+}
+
+variable "app_dns_name" {
+}
+
 variable "docker_image" {
     default = "jsafar/advent2024.web:dev"
 }
@@ -19,6 +25,7 @@ locals {
     cert = contains(keys(var.aci_app_env_map), "TLS_CERT_FILE") ? file(var.aci_app_env_map["TLS_CERT_FILE"]) : ""
     key = contains(keys(var.aci_app_env_map), "TLS_KEY_FILE") ? file(var.aci_app_env_map["TLS_KEY_FILE"]) : ""
     enable_https = contains(keys(var.aci_app_env_map), "ENABLE_HTTPS") ? var.aci_app_env_map["ENABLE_HTTPS"] : "false"
+    use_acme = local.enable_https == "true" && ( local.cert == "" || local.key == "" )
 }
 
 resource "random_string" "dns_name_suffix" {
@@ -40,6 +47,12 @@ variable "aci_app_env_map_secret" {
 
 variable "tenant_id" {
     default = {}
+}
+
+variable "dns_provider" {
+}
+
+variable "email" {
 }
 
 locals {

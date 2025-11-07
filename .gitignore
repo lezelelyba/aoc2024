@@ -27,3 +27,4 @@ site/vendor
 site/.bundle
 site/.jekyll-cache
 site/_site
+site/aoc2024

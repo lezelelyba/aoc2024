@@ -26,14 +26,31 @@
   </header>
 
   <main>
+    <script>
+      window.AppConfig = Object.freeze({
+        backends: [
+          {
+            name: "Local",
+            baseApiUrl: window.location.origin,
+          },
+        ],
+      })
+    </script>
     <section class="backend">
-        <strong>Backend</strong>: <span id="backend">Available</span>
+        <strong>Backend:</strong>
+        <div id="backend-list" class="backend-list">
+        </div>
         <script>
-          el = document.getElementById("backend");
-          if (el) {
-            el.textContent = window.location.origin;
+          el = document.getElementById("backend-list");
+          for (backend of window.AppConfig.backends) {
+            const span = document.createElement("span");
+            span.id = `backend-${backend.name}`;
+            span.classList.add("backend-not-available");
+            span.textContent = backend.baseApiUrl;
+            el.appendChild(span);
           }
         </script>
+        <div id="selected-backend" data-name="" hidden></div>
     </section>
     {{block "content" .}}{{end}}
   </main>

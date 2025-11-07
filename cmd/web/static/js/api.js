@@ -1,4 +1,26 @@
 /**
+ * Send an request to API
+ * If there is an backend defined it prepends the backend URL
+ * If there is stored access_token it includes Authorization header
+ * 
+ * @param {string} apiEndpoint - Target API Endpoint URL
+ * @param {Object} payload - payload to be serialized as JSON
+ * @returns {Promise<object>} Promise resolving to the parsed API response
+ */
+async function sendToApi(method, apiEndpoint, payload) {
+
+  // get backend and build url
+  backend = getBackend();
+
+  if (backend) {
+    apiEndpoint = backend.baseApiUrl + apiEndpoint;
+  }
+  
+  // send request to backend
+  return sendToApiDirect(method, apiEndpoint, payload);
+}
+
+/**
  * Sends an authenticated POST request to the API
  * 
  * includes Authorization header with the stored access token
@@ -7,18 +29,14 @@
  * @param {Object} payload - payload to be serialized as JSON
  * @returns {Promise<object>} Promise resolving to the parsed API response
  */
-async function sendToApi(method, apiEndpoint, payload) {
-  const accessToken = sessionStorage.getItem("accessToken");
+async function sendToApiDirect(method, apiEndpoint, payload) {
+  const accessToken = getAccessToken();
 
-  if (window.AppConfig && window.AppConfig.baseApiUrl) {
-    apiEndpoint = window.AppConfig.baseApiUrl + apiEndpoint
-  }
-  
   console.log("Sending to:", apiEndpoint);
 
   const headers = {"Content-Type": "application/json"};
   if (accessToken) {
-    headers["Authorization"] = "Bearer " + accessToken
+    headers["Authorization"] = "Bearer " + accessToken;
   }
 
   try {
@@ -44,7 +62,7 @@ async function sendToApi(method, apiEndpoint, payload) {
     return data;
   } catch (err) {
     console.error("Error:", err);
-    throw err
+    throw err;
   }
 }
 
