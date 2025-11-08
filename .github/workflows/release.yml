@@ -96,8 +96,14 @@ jobs:
           - env-aws-dev
           - env-aws-stage
           - env-aws-prod
+          - env-azure-bootstrap
+          - env-azure-dev
+          - env-azure-stage
+          - env-azure-prod
           - env-local
           - tf-infra
+          - tf-route53
+          - tf-acme
           - release
         include:
           - name: cli
@@ -118,12 +124,30 @@ jobs:
           - name: env-aws-prod
             work-dir: environments/aws/prod
             tag-prefix: environments/aws/prod
+          - name: env-azure-bootstrap
+            work-dir: environments/bootstrap/azure
+            tag-prefix: environments/bootstrap/azure
+          - name: env-azure-dev
+            work-dir: environments/azure/dev
+            tag-prefix: environments/azure/dev
+          - name: env-azure-stage
+            work-dir: environments/azure/stage
+            tag-prefix: environments/azure/stage
+          - name: env-azure-prod
+            work-dir: environments/azure/prod
+            tag-prefix: environments/azure/prod
           - name: env-local
             work-dir: environments/local
             tag-prefix: environments/local
           - name: tf-infra
             work-dir: modules/aws/infra
             tag-prefix: modules/aws/infra
+          - name: tf-route53
+            work-dir: modules/aws/route53
+            tag-prefix: modules/aws/route53
+          - name: tf-acme
+            work-dir: modules/acme
+            tag-prefix: modules/acme
           - name: release
             tag-prefix: release
       max-parallel: 1
@@ -145,8 +169,14 @@ jobs:
           (matrix.name == 'env-aws-dev' && needs.filter.outputs.env-aws-dev == 'true') ||
           (matrix.name == 'env-aws-stage' && needs.filter.outputs.env-aws-stage == 'true') ||
           (matrix.name == 'env-aws-prod' && needs.filter.outputs.env-aws-prod == 'true') ||
+          (matrix.name == 'env-azure-bootstrap' && needs.filter.outputs.env-azure-bootstrap == 'true') ||
+          (matrix.name == 'env-azure-dev' && needs.filter.outputs.env-azure-dev == 'true') ||
+          (matrix.name == 'env-azure-stage' && needs.filter.outputs.env-azure-stage == 'true') ||
+          (matrix.name == 'env-azure-prod' && needs.filter.outputs.env-azure-prod == 'true') ||
           (matrix.name == 'env-local' && needs.filter.outputs.env-local == 'true') ||
           (matrix.name == 'tf-infra' && needs.filter.outputs.tf-infra == 'true') ||
+          (matrix.name == 'tf-route53' && needs.filter.outputs.tf-route53 == 'true') ||
+          (matrix.name == 'tf-acme' && needs.filter.outputs.tf-acme == 'true') ||
           (matrix.name == 'release' && needs.filter.outputs.release == 'true' && github.ref_name == 'master')
         uses: ./.github/actions/bump-version
         with:
