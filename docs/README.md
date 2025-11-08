@@ -32,6 +32,7 @@ Tasks:
       - to be able to push the image to ACR - before CI is set
     - az role assignment create --assignee {user-id} --role "Key Vault Secrets Officer" --scope /subscriptions/{subscription_id}
       - to be able to push secrets to vault
+    - az role assignment create --assignee {user-id} --role "App Configuration Data Owner" --scope /subscriptions/{subscription_id}
 
 Commands:
   - make ENRIRONMENT=bootstrap init

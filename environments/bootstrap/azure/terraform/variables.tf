@@ -16,6 +16,10 @@ resource "random_string" "storage_account_number" {
     special = false
 }
 
+// for OIDC setup
+variable "repo_name" {
+    default = "lezelelyba/aoc2024"
+}
 variable "envs" {
     default = {
         dev = {
@@ -31,4 +35,12 @@ variable "envs" {
             branch = "master"
         }
     }
+}
+locals {
+    github_subs = [
+        for e in var.envs :
+        "repo:${var.repo_name}:ref:refs/heads/${e.branch}"
+    ]
+    
+    github_sub_wildcard = "repo:${var.repo_name}:ref:refs/heads/*"
 }

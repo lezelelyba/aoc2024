@@ -10,6 +10,7 @@ inputs
 # do not include generated files
 backend.json
 acr.json
+config_store.json
 inventory.ini
 
 #do not include tls cert and keys

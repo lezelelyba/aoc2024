@@ -57,8 +57,13 @@ variable "email" {
 
 locals {
     acr = jsondecode(file("../../acr.json"))
+    config_store = jsondecode(file("../../config_store.json"))
 }
 
 locals {
     aci_app_env_map_secret_keys = nonsensitive(keys(var.aci_app_env_map_secret))
+}
+
+// gh action aci image refresh
+variable "gh_actions_application" {
 }

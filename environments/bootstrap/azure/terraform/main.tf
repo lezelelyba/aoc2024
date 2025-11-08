@@ -44,3 +44,27 @@ resource "azurerm_container_registry" "acr" {
     sku = "Basic"
     admin_enabled = "true"
 }
+
+resource "azuread_application" "gh_actions" {
+    display_name = "gh-actions"    
+}
+
+resource "azuread_service_principal" "gh_actions_principal" {
+    client_id = azuread_application.gh_actions.client_id
+}
+
+resource "azuread_application_federated_identity_credential" "gh_oidc" {
+    application_id = azuread_application.gh_actions.id
+    display_name = "gh-actions-federation"
+    issuer = "https://token.actions.githubusercontent.com"
+    subject = local.github_sub_wildcard
+    audiences = ["api://AzureADTokenExchange"]
+}
+
+resource "azurerm_app_configuration" "config_store" {
+    name = "aoc-config-store"
+    resource_group_name = azurerm_resource_group.bootstrap.name
+    location = azurerm_resource_group.bootstrap.location
+    sku = "free"
+    public_network_access = "Enabled"
+}

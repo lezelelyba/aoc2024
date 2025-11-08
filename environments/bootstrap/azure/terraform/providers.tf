@@ -4,6 +4,11 @@ terraform {
             source = "hashicorp/azurerm"
             version = "~> 4.0"
         }
+
+        azuread = {
+            source = "hashicorp/azuread"
+            version = "~> 3.0"
+        }
     }
     backend "local" {
         path = "/var/tmp/advent2024-azure-bootstrap.tfstate"
@@ -12,4 +17,6 @@ terraform {
 
 provider "azurerm" {
     features {}
+}
+provider "azuread" {
 }

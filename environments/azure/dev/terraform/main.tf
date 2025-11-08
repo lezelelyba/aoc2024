@@ -140,3 +140,22 @@ module route53registration {
     domain = var.app_dns_name
     dns_zone = var.dns_zone
 }
+
+// allow gh to modify the aci
+data "azuread_service_principal" "gh_actions" {
+    display_name = var.gh_actions_application
+}
+
+resource "azurerm_role_assignment" "aci_contributor" {
+    principal_id = data.azuread_service_principal.gh_actions.object_id
+    role_definition_name = "Contributor"
+    scope = azurerm_resource_group.group.id
+}
+
+// save information for gh action to pull
+
+resource "azurerm_app_configuration_key" "container_service_id" {
+    configuration_store_id = local.config_store.id
+    key = "/cd/${var.env}/aci_id"
+    value = azurerm_container_group.app.id
+}
