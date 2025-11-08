@@ -264,6 +264,15 @@ jobs:
             docker tag jsafar/advent2024.web:${NEXT_VER} jsafar/advent2024.web:latest
           fi
 
+      - name: Tag ACR images
+        run: |
+          docker tag jsafar/advent2024.web:${NEXT_VER} ${{ vars.ACR_LOGIN_SERVER }}/jsafar/advent2024.web:${NEXT_VER}
+          docker tag jsafar/advent2024.web:${NEXT_VER} ${{ vars.ACR_LOGIN_SERVER }}/jsafar/advent2024.web:${BRANCH_NAME}
+
+          if [ "${{ github.ref_name }}" = "master" ]; then
+            docker tag jsafar/advent2024.web:${NEXT_VER} ${{ vars.ACR_LOGIN_SERVER }}/jsafar/advent2024.web:latest
+          fi
+
       - name: Log into Docker Hub
         id: docker_login
         uses: docker/login-action@v2
@@ -290,8 +299,8 @@ jobs:
           
       - name: Push images to ACR
         run: |
-          docker push ${{ vars.ACR_LOGIN_SERVER }}/jsafar/advent2024.web:${BRANCH_NAME}
           docker push ${{ vars.ACR_LOGIN_SERVER }}/jsafar/advent2024.web:${NEXT_VER}
+          docker push ${{ vars.ACR_LOGIN_SERVER }}/jsafar/advent2024.web:${BRANCH_NAME}
           if [ "${{ github.ref_name }}" = "master" ]; then
             docker push ${{ vars.ACR_LOGIN_SERVER }}/jsafar/advent2024.web:latest
           fi
