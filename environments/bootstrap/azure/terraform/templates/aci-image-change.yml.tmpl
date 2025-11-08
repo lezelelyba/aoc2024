@@ -28,6 +28,7 @@ jobs:
           federated-token: true
 
       - name: Fetch ACI config
+        run: |
 %{ for env in envs ~}
           if [ "$${GITHUB_REF}" = "refs/heads/${env.branch}" ]; then
             ACI_ID_KEY="/cd/${env.prefix}/aci_id"
