@@ -32,21 +32,17 @@ resource "local_file" "acr_json" {
     })
 }
 
-output "azure_client_id" {
+output "gh_secret_azure_client_id" {
     value = azuread_application.gh_actions.client_id
 }
 
 data "azurerm_client_config" "current" {}
-output "azure_tenant_id" {
+output "gh_secret_azure_tenant_id" {
     value = data.azurerm_client_config.current.tenant_id
 }
-output "azure_gh_action_application_id" {
-    value = azuread_application.gh_actions.id
+output "gh_secret_azure_subscription_id" {
+    value = data.azurerm_client_config.current.subscription_id
 }
-output "azure_gh_action_principal" {
-    value = azuread_service_principal.gh_actions_principal.display_name
-}
-
 output "config_store_id" {
     value = azurerm_app_configuration.config_store.id
 }

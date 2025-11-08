@@ -25,7 +25,7 @@ jobs:
         with:
           client-id: $${{ secrets.AZURE_CLIENT_ID }}
           tenand-id: $${{ secrets.AZURE_TENANT_ID }}
-          federated-token: true
+          subscription-id: $${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Fetch ACI config
         run: |

@@ -18,10 +18,6 @@ resource "azurerm_storage_account" "bootstrap" {
     public_network_access_enabled = "true"
     default_to_oauth_authentication = "true"
 
-    network_rules {
-        default_action = "Allow"
-    } 
-
     identity { 
         type = "SystemAssigned"
     }
