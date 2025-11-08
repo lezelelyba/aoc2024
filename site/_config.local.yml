@@ -2,7 +2,7 @@ Backends:
   - Name: AWS
     BackendBaseUrl: https://dev.aoc2024.lezeleprojects.org
   - Name: Azure
-    BackendBaseUrl: https://aocdevc3j4cg.westeurope.azurecontainer.io
+    BackendBaseUrl: https://dev.azure.aoc2024.lezeleprojects.org
   - Name: Local
     BackendBaseUrl: http://localhost:8080
 
