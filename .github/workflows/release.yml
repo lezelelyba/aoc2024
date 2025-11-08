@@ -20,9 +20,16 @@ jobs:
       env-aws-dev: ${{ steps.filter.outputs.env-aws-dev }}
       env-aws-stage: ${{ steps.filter.outputs.env-aws-stage }}
       env-aws-prod: ${{ steps.filter.outputs.env-aws-prod }}
+      env-azure-bootstrap: ${{ steps.filter.outputs.env-azure-bootstrap }}
+      env-azure-dev: ${{ steps.filter.outputs.env-azure-dev }}
+      env-azure-stage: ${{ steps.filter.outputs.env-azure-stage }}
+      env-azure-prod: ${{ steps.filter.outputs.env-azure-prod }}
       env-local: ${{ steps.filter.outputs.env-local }}
       tf-infra: ${{ steps.filter.outputs.tf-infra }}
+      tf-route53: ${{ steps.filter.outputs.tf-route53 }}
+      tf-acme: ${{ steps.filter.outputs.tf-acme }}
       release: ${{ steps.filter.outputs.release }}
+      
     steps:
       - uses: actions/checkout@v4
       - name: Create Filters
@@ -52,10 +59,28 @@ jobs:
             env-aws-prod:
               - 'environments/aws/prod/**'
               - 'modules/aws/infra/**'
+            env-azure-bootstrap:
+              - 'environments/bootstrap/azure/**'
+            env-azure-dev:
+              - 'environments/azure/dev/**'
+              - 'modules/aws/route53/**'
+              - 'modules/acme/**'
+            env-azure-stage:
+              - 'environments/azure/stage/**'
+              - 'modules/aws/route53/**'
+              - 'modules/acme/**'
+            env-azure-prod:
+              - 'environments/azure/prod/**'
+              - 'modules/aws/route53/**'
+              - 'modules/acme/**'
             env-local:
               - 'environments/local/**'
             tf-infra:
               - 'modules/aws/infra/**'
+            tf-route53:
+              - 'modules/aws/route53/**'
+            tf-acme:
+              - 'modules/acme/**'
             release:
               - '*'
 
