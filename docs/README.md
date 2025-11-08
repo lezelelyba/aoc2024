@@ -26,6 +26,13 @@ Tasks:
     - Specify AWS Secrets for GH Actions
     - Create OAuth
     - Obtain client id and client secret for OAuth
+  - Azure
+    - Install Azure CLI
+    - az role assignment create --assignee {user-id} --role "Storage Blob Data Contributor" --scope /subscriptions/{subscription_id}
+      - to be able to push the image to ACR - before CI is set
+    - az role assignment create --assignee {user-id} --role "Key Vault Secrets Officer" --scope /subscriptions/{subscription_id}
+      - to be able to push secrets to vault
+    - az role assignment create --assignee {user-id} --role "App Configuration Data Owner" --scope /subscriptions/{subscription_id}
 
 Commands:
   - make ENRIRONMENT=bootstrap init

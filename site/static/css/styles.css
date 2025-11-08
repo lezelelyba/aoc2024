@@ -51,13 +51,8 @@ section.active {
 section.done {
   border-color: #008000
 }
-section.done.disabled {
-  border-color: #008000;
-  pointer-events: none;
-  opacity: 0.5;
-}
 
-section.donedisabled {
+section.done.disabled {
   border-color: #008000;
   pointer-events: none;
   opacity: 0.5;
@@ -88,12 +83,20 @@ a:hover {
   background-color: #0066cc;
 }
 
-/* Various */
+/* Backend and Auth*/
 
 .auth-status-logout {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.backend-list {
+  margin-left: 1em;
+}
+
+.backend-used {
+  text-decoration: underline;  
 }
 
 .authenticated, .backend-available {
@@ -105,6 +108,8 @@ a:hover {
   color: #f00;
   font-weight: bold;
 }
+
+/* Various */
 
 #submit-header {
   display: flex;

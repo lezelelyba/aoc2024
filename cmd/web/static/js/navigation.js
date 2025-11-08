@@ -134,59 +134,69 @@ const UIMachine = {
         document.getElementById("resubmitBtn").hidden = true;
         document.getElementById('result').textContent = "";
 
-        // check backend status
+        // set busy
         document.body.classList.add("busy");
-        sendToApi("GET", "/api/public/info")
-        // update backend information
-        .then(info => {
-          const configEl = document.getElementById("auth-enabled");
-          const backendEl= document.getElementById("backend");
-          if (info.authentication == "oauth") {
-            configEl.dataset.enabled = "true";
-            const authEls = document.getElementsByClassName("auth");
-            Array.from(authEls).forEach(el => {
-              el.hidden = false;
-            });
-          } else {
-            configEl.dataset.enabled = "false";
-          }
-          backendEl.classList.remove("backend-not-available");
-          backendEl.classList.add("backend-available");
-        })
-        .catch(err => {
-          const configEl = document.getElementById("auth-enabled");
-          configEl.dataset.enabled = "false";
-          
-          const backendEl= document.getElementById("backend");
-          backendEl.classList.add("backend-not-available");
-          backendEl.classList.remove("backend-available");
-        })
-        .then(() => {
-          // if backend is not available do not progress further
-          const backendEl= document.getElementById("backend");
-          if (backendEl.classList.contains("backend-not-available")) {
-            return
-          }
-          const configEl = document.getElementById("auth-enabled");
-          const authEnabled = configEl.dataset.enabled;
-         
-          // if authentication is required
-          if (authEnabled === "true") {
-            const accessToken = sessionStorage.getItem("accessToken");
 
-            // if we already have token => authenticate
-            if (accessToken) {
-              setTimeout(() => UIHandler.transition('AUTHENTICATE'), 0);
+        // check all backend status
+        const checks = getBackends()
+          .map(b => checkBackend(b)
+            .then(result => {
+
+              // backend is availabl if it returned info
+              const available = !result.error && Boolean(result.info)
+              updateBackendUI(result?.backend, available, false)
+
+              // if backend is available return Promise
+              if (available) {
+                return result;
+              } 
+
+              // reject promise if backend is unavailable
+              return Promise.reject(result)
+            })
+          );
+
+        // work with first available
+        Promise.any(checks)
+          .then(firstAvailable => {
+            // set backend information
+            setBackend(firstAvailable?.backend);
+            updateBackendUI(firstAvailable?.backend, available=true, used=true);
+
+            // set authentication
+            setAuth(firstAvailable?.info?.authentication);
+
+            // show auth elements if auth is required
+            if (authRequired()) {
+              const authEls = document.getElementsByClassName("auth");
+              Array.from(authEls).forEach(el => {
+                el.hidden = false;
+              });
             }
-          // if not skip auth
-          } else {
-              accessToken = sessionStorage.removeItem("accessToken");
-              setTimeout(() => UIHandler.transition('SKIPAUTH'), 0);
-          }
-        })
-        .finally(() => {
-          document.body.classList.remove("busy");
-        });
+          })
+          .catch(err => {
+            // if no backend is available, set auth to none
+            setAuth("none");
+          })
+          .then(() => {
+            // if backend is not available do not progress further
+            backend = getBackend();
+            if (backend === null) {
+              return;
+            }
+
+            // if auth is not required
+            if (!authRequired()) {
+                removeAccessToken();
+                setTimeout(() => UIHandler.transition('SKIPAUTH'), 0);
+            // if authentication is required and we already have token => authenticate
+            } else if (authRequired() && getAccessToken() != null) {
+              setTimeout(() => UIHandler.transition('AUTHENTICATE'), 0);
+            } 
+          })
+          .finally(() => {
+            document.body.classList.remove("busy");
+          });
       }
     },
     // starts authentication - currently only a transition state
@@ -197,8 +207,7 @@ const UIMachine = {
       },
       onEntry: function(prevState, thisState, payload) {
         // if we already have token => authenticate
-        const accessToken = sessionStorage.getItem("accessToken");
-        if (accessToken) {
+        if (getAccessToken() != null) {
           setTimeout(() => UIHandler.transition('AUTHOK'), 0);
         }
       }
@@ -366,7 +375,7 @@ const UIMachine = {
         // enable body
         document.body.classList.remove("busy");
 
-        // display body
+        // display result
         if (payload && payload.result) {
           const resultEl = document.getElementById('result');
           resultEl.textContent = payload.result;
@@ -382,8 +391,7 @@ const UIMachine = {
       },
       onExit: function(thisState, nextState, payload) {
         // local submit error (wrong file, no input)
-        // init would reset everything
-        // 
+        // reste only certain elements, init would reset everything
         if (nextState === "selected") {
 
           // hide seen button
@@ -518,4 +526,112 @@ async function handleSubmitClick(endpointTemplate) {
   } catch(error) {
     throw Error("backend error: " + error.message);
   }
+}
+
+// gets all avaialble backends
+function getBackends() {
+  let backends
+
+  if (window.AppConfig && window.AppConfig.backends) {
+    backends = window.AppConfig.backends;
+  } else {
+    backends = [];
+  }
+
+  return backends
+}
+
+// checks if backend is available
+async function checkBackend(b) {
+
+  if (!b) {
+    return { backend: b, error: "backend undefined"};
+  }
+
+  try {
+    const info = await sendToApiDirect("GET", b.baseApiUrl + "/api/public/info", null);
+    return { backend: b, info: info };
+  } catch(error) {
+    return { backend: b, error: error};
+  }
+}
+
+// sets selected backend
+function setBackend(backend) {
+  // find the data element  
+  el = document.getElementById("selected-backend");
+  if (el) {
+    el.dataset.name = backend.name;
+  }
+}
+
+// gets selected backend
+function getBackend() {
+
+  // find the data element
+  el = document.getElementById("selected-backend");
+  if (!el) {
+    return null;
+  }
+
+  // get backend name
+  backendName = el.dataset.name;
+
+  // find the backend
+  if (window.AppConfig && window.AppConfig.backends) {
+    return window.AppConfig.backends.find(b => b.name === backendName) || null;
+  }
+
+  // null if we do not have backends
+  return null;
+}
+
+function updateBackendUI(backend, available, used) {
+
+  if(!backend) {
+    return;
+  }
+
+  el = document.getElementById(`backend-${backend.name}`);
+
+  el.classList.toggle("backend-used", used);
+  el.classList.toggle("backend-available", (available || used));
+  el.classList.toggle("backend-not-available", !available && !used);
+}
+
+function setAuth(auth) {
+  const configEl = document.getElementById("auth-enabled");
+
+  if (!configEl) {
+    return
+  }
+
+  if (auth == "oauth") {
+    configEl.dataset.enabled = "true";
+    return
+  }
+
+  configEl.dataset.enabled = "false";
+
+  return
+}
+
+function authRequired() {
+  const configEl = document.getElementById("auth-enabled");
+
+  if (configEl && configEl.dataset.enabled == "true") {
+    return true
+  }
+ 
+  return false
+}
+
+function getAccessToken() {
+  const accessToken = sessionStorage.getItem("accessToken");
+
+  return accessToken
+}
+
+function removeAccessToken() {
+  sessionStorage.removeItem("accessToken");
 }

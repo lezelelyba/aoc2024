@@ -20,12 +20,25 @@
   {% include header.html %}
   <main>
   <script>
-      window.AppConfig = Object.freeze({
-          baseApiUrl: "{{ site.BackendBaseUrl }}"
-          })
+    window.AppConfig = Object.freeze({
+      backends: [
+      {% for backend in site.Backends %}
+        {
+          name: "{{ backend.Name }}",
+          baseApiUrl: "{{ backend.BackendBaseUrl }}",
+        },
+      {% endfor %}
+      ],
+    })
   </script>
   <section class="backend">
-      <strong>Backend</strong>: <span id="backend" class="backend-not-available">{{ site.BackendBaseUrl }}</span>
+    <strong>Backends:</strong>
+    <div id="backend-list" class="backend-list">
+    {% for backend in site.Backends %}
+       <span id="backend-{{backend.Name}}" class="backend-not-available">{{ backend.BackendBaseUrl }}</span><br>
+    {% endfor %}
+    </div>
+    <div id="selected-backend" data-name="" hidden></div>
   </section>
     {{ content }}
   </main>

@@ -9,6 +9,8 @@ inputs
 
 # do not include generated files
 backend.json
+acr.json
+config_store.json
 inventory.ini
 
 #do not include tls cert and keys
@@ -26,3 +28,4 @@ site/vendor
 site/.bundle
 site/.jekyll-cache
 site/_site
+site/aoc2024
