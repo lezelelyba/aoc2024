@@ -10,7 +10,11 @@
 async function sendToApi(method, apiEndpoint, payload) {
 
   // get backend and build url
-  backend = getBackend();
+
+  let backend = null;
+  if (typeof getBackend === "function") {
+    backend = getBackend();
+  }
 
   if (backend) {
     apiEndpoint = backend.baseApiUrl + apiEndpoint;
@@ -30,7 +34,12 @@ async function sendToApi(method, apiEndpoint, payload) {
  * @returns {Promise<object>} Promise resolving to the parsed API response
  */
 async function sendToApiDirect(method, apiEndpoint, payload) {
-  const accessToken = getAccessToken();
+
+  let accessToken = null;
+  
+  if (typeof getAccessToken === "function") {
+    accessToken = getAccessToken();
+  }
 
   console.log("Sending to:", apiEndpoint);
 

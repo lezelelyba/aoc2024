@@ -6,10 +6,24 @@
  * @param {string} authURL - Authorization URL
  */
 function startOAuth(authURL) {
-  const accessToken = sessionStorage.getItem("accessToken");
+  // do not try to authenticate if no backend is available
+  // call back exchanges code with backend
+  let backend = null;
+  
+  if (typeof getBackend === "function") {
+    backend = getBackend();
+  }
+
+  if (!backend) {
+    console.log("No backend available");
+    return;
+  }
 
   // authenticate only if token doesn't exist
-  if (accessToken === null) {
+  if (getAccessToken() === null) {
+
+    // set backend for call back
+    sessionStorage.setItem("baseApiUrl", backend.baseApiUrl);
     // remember current location
     sessionStorage.setItem("postAuthRedirect", window.location.pathname + window.location.search);
    
@@ -37,18 +51,20 @@ async function handleOAuthCallbackAPI(codeExchangeURL, provider) {
   const code = params.get("code");
   const state = params.get("state");
   const storedState = sessionStorage.getItem("oauth_state");
+  const baseApiUrl = sessionStorage.getItem("baseApiUrl");
 
   // if state doesn't match abort
   if (code && state === storedState) {
     try {
       // exchange code for token
-      const resp = await fetch(`${codeExchangeURL}`, { method: "POST", body: JSON.stringify({provider: provider, code: code}) });
+      const resp = await fetch(`${baseApiUrl}${codeExchangeURL}`, { method: "POST", body: JSON.stringify({provider: provider, code: code}) });
       const data = await resp.json();
 
       if (data.access_token) {
-          sessionStorage.setItem("accessToken", data.access_token);
+          setAccessToken(data.access_token);
       } else {
-          console.warn("No access token returned from server");
+          dataStr = JSON.stringify(data);
+          console.warn(`No access token returned from server: ${dataStr}`);
       }
     } catch (err) {
       console.error("Token exchange failed", err);
@@ -64,4 +80,86 @@ async function handleOAuthCallbackAPI(codeExchangeURL, provider) {
   sessionStorage.removeItem("postAuthRedirect");
 
   window.location.href = redirectTarget;
+}
+
+function authRequired() {
+  const configEl = document.getElementById("auth-enabled");
+
+  if (configEl && configEl.dataset.enabled == "true") {
+    return true
+  }
+ 
+  return false
+}
+
+function getAccessToken() {
+  const accessToken = sessionStorage.getItem("accessToken");
+
+  return accessToken
+}
+
+function setAccessToken(token) {
+  sessionStorage.setItem("accessToken", token);
+}
+
+function removeAccessToken() {
+  sessionStorage.removeItem("accessToken");
+}
+
+/*
+ * Parses JWT token and returns claims
+ * @param {string} token - JWT Token
+ * @returns {object} Claims
+ */
+function parseJwt(token) {
+  const payload = token.split('.')[1];
+  return JSON.parse(atob(payload));
+}
+
+
+/**
+ * Starts Authentication timer
+ * Transitions via TIMEOUTLOGOUT after timer expires
+ *  
+ * @param {number} exp - expiration time of authentication
+ * @param {string} elId - element where to write the remaining time
+ * @param {function} expFunc - expiration function
+ * @returns {object} Timer
+ */
+function startAuthTimer(exp, elId, expFunc) {
+  let timerId;
+
+  // create a function which is called periodically
+  function updateTimer() {
+    const now = Math.floor(Date.now() / 1000);
+    let remaining = exp - now;
+
+    // when expired
+    if (remaining <= 0) {
+      remaining = 0;
+      // if timer var exists => timer is running
+      if (timerId) {
+        // clear
+        clearInterval(timerId);
+        // call the expiration function
+        expFunc()
+      }
+    }
+
+    // display the remaining time in the element
+    const minutes = Math.floor(remaining / 60);
+    const seconds = remaining % 60;
+    const el = document.getElementById(elId);
+    if (el) {
+      el.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    }
+  }
+
+  // 1st run to display the remaining time immediately
+  updateTimer();
+  // start timer with 1s update interval
+  timerId = setInterval(updateTimer, 1000);
+
+  // return timer
+  return timerId;
 }

@@ -1,16 +1,17 @@
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Callback</title>
-  <script src="/static/js/auth.js"></script>
-</head>
-<body>
-  <script>
-    /**
-     * Client Side processing of the OAuth callback
-     *
-     * Sends oauth code to the backend code exchange endpoint 
-     */
-    window.addEventListener("DOMContentLoaded", handleOAuthCallbackAPI("{{.Provider.AppTokenEndpoint}}", "{{.Provider.Name}}"));
-  </script>
-</body>
+  <head>
+    <meta charset="UTF-8">
+    <title>Callback</title>
+    <script src="/static/js/auth.js"></script>
+  </head>
+  <body>
+    <script>
+      /**
+       * Client Side processing of the OAuth callback
+       *
+       * Sends oauth code to the backend code exchange endpoint 
+       */
+      window.addEventListener("DOMContentLoaded", handleOAuthCallbackAPI("{{.Provider.AppTokenEndpoint}}", "{{.Provider.Name}}"));
+    </script>
+  </body>
+</html>
