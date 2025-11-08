@@ -335,10 +335,18 @@ jobs:
             docker push ${{ vars.ACR_LOGIN_SERVER }}/jsafar/advent2024.web:latest
           fi
 
-  deploy-web:
+  deploy-aws-web:
     needs: build-web
     permissions:
       id-token: write
       contents: read
     uses: ./.github/workflows/ecs-image-change.yml
+    secrets: inherit
+
+  deploy-azure-web:
+    needs: build-web
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/aci-image-change.yml
     secrets: inherit
