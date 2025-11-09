@@ -97,8 +97,8 @@ jobs:
 
           # insecure - would need to pull the fqdn from amazon route53
           
-          STATUS_HTTP=$(curl --connect-timeout 3 -s -o /dev/null -w "%{http_code}" http://$ACI_FQDN/healthcheck)
-          STATUS_HTTPS=$(curl --connect-timeout 3 --insecure -s -o /dev/null -w "%{http_code}" https://$ACI_FQDN/healthcheck)
+          STATUS_HTTP=$(curl --connect-timeout 3 -s -o /dev/null -w "%{http_code}" http://$ACI_FQDN/healthcheck || echo "408" )
+          STATUS_HTTPS=$(curl --connect-timeout 3 --insecure -s -o /dev/null -w "%{http_code}" https://$ACI_FQDN/healthcheck || echo "408" )
 
           if [ "$STATUS_HTTP" -eq 200 ]; then
             echo "Smoke test passed: HTTP $STATUS_HTTP"
