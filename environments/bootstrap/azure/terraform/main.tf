@@ -45,7 +45,7 @@ resource "azuread_application" "gh_actions" {
     display_name = "gh-actions"    
 }
 
-resource "azuread_service_principal" "gh_actions_principal" {
+resource "azuread_service_principal" "gh_actions" {
     client_id = azuread_application.gh_actions.client_id
 }
 
@@ -55,6 +55,13 @@ resource "azuread_application_federated_identity_credential" "gh_oidc" {
     issuer = "https://token.actions.githubusercontent.com"
     subject = local.github_sub_wildcard
     audiences = ["api://AzureADTokenExchange"]
+}
+
+data "azurerm_subscription" "current" {}
+resource "azurerm_role_assignment" "gh_actions_role" {
+    scope = data.azurerm_subscription.current.id
+    role_definition_name = "Contributor"
+    principal_id = azuread_service_principal.gh_actions.object_id
 }
 
 resource "azurerm_app_configuration" "config_store" {
