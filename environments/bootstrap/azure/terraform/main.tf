@@ -50,10 +50,12 @@ resource "azuread_service_principal" "gh_actions" {
 }
 
 resource "azuread_application_federated_identity_credential" "gh_oidc" {
+    for_each = var.envs
+    
     application_id = azuread_application.gh_actions.id
-    display_name = "gh-actions-federation"
+    display_name = "gh-actions-federation-${each.value.branch}"
     issuer = "https://token.actions.githubusercontent.com"
-    subject = local.github_sub_wildcard
+    subject = "repo:${var.repo_name}:ref:refs/heads/${each.value.branch}"
     audiences = ["api://AzureADTokenExchange"]
 }
 
