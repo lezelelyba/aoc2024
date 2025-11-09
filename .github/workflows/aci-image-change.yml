@@ -29,6 +29,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Fetch ACI config
+        id: get-deployment
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/dev" ]; then
             ACI_ID_KEY="/cd/dev/aci_id"
@@ -40,6 +41,8 @@ jobs:
             ACI_ID_KEY="/cd/stage/aci_id"
           fi
 
+          echo "Using key $ACI_ID_KEY"
+
           if ! az appconfig kv show \
             --name "aoc-config-store" \
             --key $ACI_ID_KEY > aci_id.json 2>/dev/null; then
@@ -49,6 +52,8 @@ jobs:
           fi
 
           ACI_ID=$(jq -r '.value' aci_id.json)
+
+          echo "Using id $ACI_ID"
 
           if ! az container show --ids $ACI_ID > aci.json 2>/dev/null; then
             echo "Unable to get container info"
@@ -68,8 +73,10 @@ jobs:
           echo "aci_fqdn=$ACI_FQDN" >> $GITHUB_OUTPUT
 
       - name: Force new ACI config
-        if: steps.get-deployment.output.deployed == 'true'
+        if: steps.get-deployment.outputs.deployed == 'true'
         run: |
+          echo "Restarting $ACI_NAME in rg $ACI_RG"
+
           az container restart \
             --name $ACI_NAME \
             --resource-group $ACI_RG
