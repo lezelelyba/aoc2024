@@ -119,8 +119,8 @@ jobs:
 
           # TODO: remove the insecure flag after we get friendly DNS name
           
-          STATUS_HTTP=$(curl -s -o /dev/null -w "%%{http_code}" http://$LB_DNS/healthcheck)
-          STATUS_HTTPS=$(curl --insecure -s -o /dev/null -w "%%{http_code}" https://$LB_DNS/healthcheck)
+          STATUS_HTTP=$(curl --connect-timeout 3 -s -o /dev/null -w "%%{http_code}" http://$LB_DNS/healthcheck)
+          STATUS_HTTPS=$(curl --connect-timeout 3 --insecure -s -o /dev/null -w "%%{http_code}" https://$LB_DNS/healthcheck)
 
           if [ "$STATUS_HTTP" -eq 200 ]; then
             echo "Smoke test passed: HTTP $STATUS_HTTP"
