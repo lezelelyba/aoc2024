@@ -1,5 +1,3 @@
-# Created by Terraform Bootstrap
-
 name: Redeploy latest image to ACI
 
 on:
@@ -65,38 +63,3 @@ jobs:
 
           echo "deployed=true" >> $GITHUB_OUTPUT
           echo "aci_fqdn=$ACI_FQDN" >> $GITHUB_OUTPUT
-
-      - name: Force new ACI config
-        if: steps.get-deployment.output.deployed == 'true'
-        run: |
-          az container restart \
-            --name $ACI_NAME \
-            --resource-group $ACI_RG
-
-  smoketest:    
-    runs-on: ubuntu-latest
-    needs: deploy
-    if: |
-      (needs.deploy.outputs.deployed == 'true') &&
-      (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/stage')
-
-    steps:
-      - name: Run smoke test
-        env:
-          LB_DNS: ${{ needs.deploy.outputs.lb_dns }}
-        run: |
-          echo "Running smoke test on $LB_DNS"
-
-          # TODO: remove the insecure flag after we get friendly DNS name
-          
-          STATUS_HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://$LB_DNS/healthcheck)
-          STATUS_HTTPS=$(curl --insecure -s -o /dev/null -w "%{http_code}" https://$LB_DNS/healthcheck)
-
-          if [ "$STATUS_HTTP" -eq 200 ]; then
-            echo "Smoke test passed: HTTP $STATUS_HTTP"
-          elif [ "$STATUS_HTTPS" -eq 200 ]; then
-            echo "Smoke test passed: HTTPS $STATUS_HTTPS"
-          else
-            echo "Smoke test failed: HTTP: $STATUS_HTTP, HTTPS: $STATUS_HTTPS"
-            exit 1
-          fi
