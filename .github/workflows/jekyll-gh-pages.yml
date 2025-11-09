@@ -23,7 +23,27 @@ concurrency:
 
 jobs:
   # Build job
+  filter:
+    runs-on: ubuntu-latest
+    outputs:
+      cli: ${{ steps.filter.outputs.ghpages }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Filters
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # checks difference compared to branch we push into
+          # otherwise it would use master
+          base: ${{ github.ref }}
+          filters : |
+            ghpages:
+              - 'site/**'
+
   build:
+    needs: filter
+    if: | 
+      needs.filter.outputs.ghpages == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
