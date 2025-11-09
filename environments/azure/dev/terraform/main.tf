@@ -15,6 +15,14 @@ resource "azurerm_resource_group" "group" {
     }
 }
 
+resource "azurerm_log_analytics_workspace" "main" {
+    name = "aoc-${var.env}-analytics-workspace"
+    location = azurerm_resource_group.group.location
+    resource_group_name = azurerm_resource_group.group.name
+    sku = "PerGB2018"
+    retention_in_days = 30
+}
+
 resource "azurerm_key_vault" "kv" {
     name = "aoc-${var.env}-kv"
     location = var.region
@@ -79,6 +87,13 @@ resource "azurerm_container_group" "app" {
 
     identity {
         type = "SystemAssigned"        
+    }
+
+    diagnostics {
+        log_analytics {
+            workspace_id = azurerm_log_analytics_workspace.main.workspace_id
+            workspace_key = azurerm_log_analytics_workspace.main.primary_shared_key
+        }
     }
 
     container {
