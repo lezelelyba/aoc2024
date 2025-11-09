@@ -18,7 +18,7 @@ jobs:
 
     outputs:
       deployed: $${{ steps.get-deployment.outputs.deployed }}
-      lb_dns: $${{ steps.get-lb.outputs.lb_dns }}
+      aci_fqdn: $${{ steps.get-deployment.outputs.aci_fqdn }}
 
     steps:
       - name: Azure Login via OIDC
@@ -87,14 +87,14 @@ jobs:
     steps:
       - name: Run smoke test
         env:
-          LB_DNS: $${{ needs.deploy.outputs.lb_dns }}
+          ACI_FQDN: $${{ needs.deploy.outputs.aci_fqdn }}
         run: |
-          echo "Running smoke test on $LB_DNS"
+          echo "Running smoke test on $ACI_FQDN"
 
-          # TODO: remove the insecure flag after we get friendly DNS name
+          # insecure - would need to pull the fqdn from amazon route53
           
-          STATUS_HTTP=$(curl -s -o /dev/null -w "%%{http_code}" http://$LB_DNS/healthcheck)
-          STATUS_HTTPS=$(curl --insecure -s -o /dev/null -w "%%{http_code}" https://$LB_DNS/healthcheck)
+          STATUS_HTTP=$(curl -s -o /dev/null -w "%%{http_code}" http://$ACI_FQDN/healthcheck)
+          STATUS_HTTPS=$(curl --insecure -s -o /dev/null -w "%%{http_code}" https://$ACI_FQDN/healthcheck)
 
           if [ "$STATUS_HTTP" -eq 200 ]; then
             echo "Smoke test passed: HTTP $STATUS_HTTP"
