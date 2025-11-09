@@ -4,6 +4,7 @@ name: Redeploy latest image to ACI
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 jobs:
   deploy:
