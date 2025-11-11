@@ -4,7 +4,9 @@ package solver
 import (
 	"errors"
 	"io"
-	"sort"
+	"slices"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -79,7 +81,7 @@ func Register(name string, constructor func() PuzzleSolver) {
 
 	// sort the keys
 	keys = append(keys, name)
-	sort.Strings(keys)
+	slices.SortFunc(keys, cmpDays)
 }
 
 // Lists registered keys
@@ -106,4 +108,20 @@ func New(name string) (PuzzleSolver, bool) {
 	}
 
 	return solver.Constructor(), true
+}
+
+func cmpDays(this, other string) int {
+	tStr := strings.TrimPrefix(this, "d")
+	oStr := strings.TrimPrefix(other, "d")
+
+	t, _ := strconv.Atoi(tStr)
+	o, _ := strconv.Atoi(oStr)
+
+	if t == o {
+		return 0
+	} else if t > o {
+		return 1
+	}
+
+	return -1
 }

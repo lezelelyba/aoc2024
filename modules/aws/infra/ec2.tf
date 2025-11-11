@@ -1,3 +1,4 @@
+// used image
 data "aws_ami" "amazon_linux" {
     most_recent = true
     owners = ["amazon"]
@@ -9,13 +10,15 @@ data "aws_ami" "amazon_linux" {
     }
 }
 
+// define new key pair to use for login to bastion and private host
 resource "aws_key_pair" "pub" {
-    count = var.bastion ? 1 : 0
+    count = local.keys_required ? 1 : 0
 
-    key_name = "${var.env}-bastion-login"
+    key_name = "${var.env}-aoc-ec2-login"
     public_key = file(var.sshpubkeypath)
 }
 
+// spin up bastion
 resource "aws_instance" "bastion" {
     count = var.bastion ? 1 : 0
 
@@ -34,6 +37,7 @@ resource "aws_instance" "bastion" {
     }
 }
 
+// spin up private host
 resource "aws_instance" "private_host" {
     count = var.private_host ? 1 : 0
 

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  {% if page.title %}
+  <title>{{ page.title }}</title>
+  {% else %}
+  <title>AoC 2024 Solver</title>
+  {% endif %}
+  <link rel="stylesheet" href="{{ site.BaseUrl }}/static/css/styles.css">
+  <link rel="icon" href="{{ site.BaseUrl }}/static/images/favicon.png">
+  <script src="/aoc2024/static/js/api.js"></script>
+  <script src="/aoc2024/static/js/backend.js"></script>
+  {% if page.head_include %}
+    {% include {{ page.head_include }} %}
+  {% elsif page.head_include_raw %}
+    {{ page.head_include_raw }}
+  {% else %}
+  {% endif %}
+</head>
+<body>
+  {% include header.html %}
+  <main>
+  <script>
+    window.AppConfig = Object.freeze({
+      backends: [
+      {% for backend in site.Backends %}
+        {
+          name: "{{ backend.Name }}",
+          baseApiUrl: "{{ backend.BackendBaseUrl }}",
+        },
+      {% endfor %}
+      ],
+    })
+  </script>
+  <section class="backend">
+    <strong>Backends:</strong>
+    <div id="backend-list" class="backend-list">
+    {% for backend in site.Backends %}
+       <span id="backend-{{backend.Name}}" class="backend-not-available">{{ backend.BackendBaseUrl }}</span><br>
+    {% endfor %}
+    </div>
+    <div id="selected-backend" data-name="" hidden></div>
+  </section>
+    {{ content }}
+  </main>
+</body>
+</html>

@@ -1,0 +1,106 @@
+# Created by Terraform Bootstrap
+
+name: Redeploy latest image to ACI
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    if: ${included_branches} 
+
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      deployed: $${{ steps.get-deployment.outputs.deployed }}
+      aci_fqdn: $${{ steps.get-deployment.outputs.aci_fqdn }}
+
+    steps:
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: $${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: $${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: $${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Fetch ACI config
+        id: get-deployment
+        run: |
+%{ for env in envs ~}
+          if [ "$${GITHUB_REF}" = "refs/heads/${env.branch}" ]; then
+            ACI_ID_KEY="/cd/${env.prefix}/aci_id"
+          fi
+%{ endfor ~}
+
+          echo "Using key $ACI_ID_KEY"
+
+          if ! az appconfig kv show \
+            --name "${config_store_name}" \
+            --key $ACI_ID_KEY > aci_id.json 2>/dev/null; then
+            echo "Unable to get container id"
+            echo "deployed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          ACI_ID=$(jq -r '.value' aci_id.json)
+
+          echo "Using id $ACI_ID"
+
+          if ! az container show --ids $ACI_ID > aci.json 2>/dev/null; then
+            echo "Unable to get container info"
+            echo "deployed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          ACI_NAME=$(jq -r '.name' aci.json)
+          ACI_RG=$(jq -r '.resourceGroup' aci.json)
+          ACI_FQDN=$(jq -r '.ipAddress.fqdn' aci.json)
+            
+          echo "ACI_NAME=$ACI_NAME" >> $GITHUB_ENV
+          echo "ACI_RG=$ACI_RG" >> $GITHUB_ENV
+          echo "ACI_FQDN=$ACI_FQDN" >> $GITHUB_ENV
+
+          echo "deployed=true" >> $GITHUB_OUTPUT
+          echo "aci_fqdn=$ACI_FQDN" >> $GITHUB_OUTPUT
+
+      - name: Force new ACI config
+        if: steps.get-deployment.outputs.deployed == 'true'
+        run: |
+          echo "Restarting $ACI_NAME in rg $ACI_RG"
+
+          az container restart \
+            --name $ACI_NAME \
+            --resource-group $ACI_RG
+
+  smoketest:    
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: |
+      (needs.deploy.outputs.deployed == 'true') &&
+      (${included_branches})
+
+    steps:
+      - name: Run smoke test
+        env:
+          ACI_FQDN: $${{ needs.deploy.outputs.aci_fqdn }}
+        run: |
+          echo "Running smoke test on $ACI_FQDN"
+
+          # insecure - would need to pull the fqdn from amazon route53
+          
+          STATUS_HTTP=$(curl --connect-timeout 3 -s -o /dev/null -w "%%{http_code}" http://$ACI_FQDN/healthcheck || echo "408" )
+          STATUS_HTTPS=$(curl --connect-timeout 3 --insecure -s -o /dev/null -w "%%{http_code}" https://$ACI_FQDN/healthcheck || echo "408" )
+
+          if [ "$STATUS_HTTP" -eq 200 ]; then
+            echo "Smoke test passed: HTTP $STATUS_HTTP"
+          elif [ "$STATUS_HTTPS" -eq 200 ]; then
+            echo "Smoke test passed: HTTPS $STATUS_HTTPS"
+          else
+            echo "Smoke test failed: HTTP: $STATUS_HTTP, HTTPS: $STATUS_HTTPS"
+            exit 1
+          fi

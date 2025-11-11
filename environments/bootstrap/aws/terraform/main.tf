@@ -1,3 +1,4 @@
+// S3 bucket for Terraform states
 resource "aws_s3_bucket" "tf_state_bucket" {
     provider = aws.prov1
     bucket = "${var.tf_state_bucket}-${random_string.bucket_number.result}"
@@ -9,6 +10,30 @@ resource "aws_s3_bucket" "tf_state_bucket" {
     }
 }
 
+// S3 bucket setting
+
+resource "aws_s3_bucket_ownership_controls" "tf_state_ctrl" {
+    bucket = aws_s3_bucket.tf_state_bucket.id
+    rule {
+        object_ownership = "BucketOwnerPreferred"
+    }
+}
+
+resource "aws_s3_bucket_acl" "tf_state_acl" {
+    depends_on = [aws_s3_bucket_ownership_controls.tf_state_ctrl]
+
+    bucket = aws_s3_bucket.tf_state_bucket.id
+    acl = "private"
+}
+
+resource "aws_s3_bucket_versioning" "tf_state_versioning" {
+    bucket = aws_s3_bucket.tf_state_bucket.id
+    versioning_configuration {
+      status = "Enabled" 
+    }
+}
+
+// Dynamo DB for Terraform state locks
 resource "aws_dynamodb_table" "tf_lock_db" {
     provider = aws.prov1
     name = "${var.tf_lock_db}"
@@ -26,6 +51,7 @@ resource "aws_dynamodb_table" "tf_lock_db" {
     }
 }
 
+// OIDC
 resource "aws_iam_openid_connect_provider" "gh_oidc_provider" {
     url = "https://token.actions.githubusercontent.com"
 
@@ -38,12 +64,15 @@ resource "aws_iam_openid_connect_provider" "gh_oidc_provider" {
     }
 }
 
+// list of branches for OIDC subs field
 locals {
     github_subs = [
         for e in var.envs :
         "repo:${var.repo_name}:ref:refs/heads/${e.branch}"
     ]
 }
+
+// IAM role for GitHub actions
 resource "aws_iam_role" "gh_actions_role" {
     provider = aws.prov1
     name = "gh-actions-role"
@@ -72,6 +101,7 @@ resource "aws_iam_role" "gh_actions_role" {
     }
 }
 
+// IAM policy for GitHub
 resource "aws_iam_policy" "gh_actions_policy" {
     name = "gh-actions-policy" 
 
@@ -94,38 +124,18 @@ resource "aws_iam_policy" "gh_actions_policy" {
     })
 }
 
+// IAM role<>policy
 resource "aws_iam_role_policy_attachment" "gh_actions_policy_attach" {
     role = aws_iam_role.gh_actions_role.name
     policy_arn = aws_iam_policy.gh_actions_policy.arn
 }
 
+// IAM user
 resource "aws_iam_user" "gh_actions_user" {
     provider = aws.prov1
     name = "gh-actions-user"
 
     tags = {
         managed-by = var.mngd
-    }
-}
-
-
-resource "aws_s3_bucket_ownership_controls" "tf_state_ctrl" {
-    bucket = aws_s3_bucket.tf_state_bucket.id
-    rule {
-        object_ownership = "BucketOwnerPreferred"
-    }
-}
-
-resource "aws_s3_bucket_acl" "tf_state_acl" {
-    depends_on = [aws_s3_bucket_ownership_controls.tf_state_ctrl]
-
-    bucket = aws_s3_bucket.tf_state_bucket.id
-    acl = "private"
-}
-
-resource "aws_s3_bucket_versioning" "tf_state_versioning" {
-    bucket = aws_s3_bucket.tf_state_bucket.id
-    versioning_configuration {
-      status = "Enabled" 
     }
 }

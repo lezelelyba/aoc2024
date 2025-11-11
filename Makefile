@@ -1,13 +1,9 @@
 MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 CLOUDPROVIDER ?= aws
 ENVIRONMENT ?= prod
-TF_INITPARAMS ?= 
-TF_APPLYPARAMS ?= 
-TF_DESTROYPARAMS ?= 
-TF_SSHPUBKEYPATH ?= ~/.ssh/aws.pem
-TF_SSHPRIVKEYPATH ?= ~/.ssh/aws.priv.pem
+TF_PARAMS ?= 
 
-.PHONY: all localci localcd localdestroy localclean bootstrap init apply destroy output test 
+.PHONY: all localci localcd localdestroy localclean init apply destroy output test 
 
 all: init apply
 
@@ -52,13 +48,28 @@ TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
 
 ifeq ($(ENVIRONMENT), prod)
 TF_DIR ?= $(MAKEFILE_DIR)environments/aws/prod/terraform
-TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
 else ifeq ($(ENVIRONMENT), stage)
 TF_DIR ?= $(MAKEFILE_DIR)environments/aws/stage/terraform
-TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
 else ifeq ($(ENVIRONMENT), dev)
 TF_DIR ?= $(MAKEFILE_DIR)environments/aws/dev/terraform
-TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/aws/backend.json
+else ifeq ($(ENVIRONMENT), bootstrap)
+TF_DIR ?= $(TF_BOOTSTRAPDIR)
+else
+$(error Unknown ENVIRONMENT: $(ENVIRONMENT))
+endif
+
+else ifeq ($(CLOUDPROVIDER), azure)
+TF_BOOTSTRAPDIR ?= environments/bootstrap/azure/terraform
+TF_BACKEND_CONFIG ?= $(MAKEFILE_DIR)environments/azure/backend.json
+
+ifeq ($(ENVIRONMENT), prod)
+TF_DIR ?= $(MAKEFILE_DIR)environments/azure/prod/terraform
+else ifeq ($(ENVIRONMENT), stage)
+TF_DIR ?= $(MAKEFILE_DIR)environments/azure/stage/terraform
+else ifeq ($(ENVIRONMENT), dev)
+TF_DIR ?= $(MAKEFILE_DIR)environments/azure/dev/terraform
+else ifeq ($(ENVIRONMENT), bootstrap)
+TF_DIR ?= $(TF_BOOTSTRAPDIR)
 else
 $(error Unknown ENVIRONMENT: $(ENVIRONMENT))
 endif
@@ -66,24 +77,25 @@ endif
 else
 $(error Unknown CLOUDPROVIDER: $(CLOUDPROVIDER))
 endif
-
-bootstrapinit:
-	(cd $(TF_BOOTSTRAPDIR); terraform init ${TF_INITPARAMS})
-
-bootstrapapply:
-	(cd $(TF_BOOTSTRAPDIR); terraform apply ${TF_APPLYPARAMS})
-
-bootstrap: bootstrapinit bootstrapapply
-
-bootstrapdestroy:
-	(cd $(TF_BOOTSTRAPDIR); terraform destroy ${TF_DESTROY_PARAMS})
 	
 init:
-	(cd ${TF_DIR}; terraform init -backend-config=${TF_BACKEND_CONFIG} ${TF_INITPARAMS})
+ifeq ($(ENVIRONMENT), bootstrap)
+	(cd ${TF_DIR}; terraform init ${TF_PARAMS})
+else
+	(cd ${TF_DIR}; terraform init -backend-config=${TF_BACKEND_CONFIG} ${TF_PARAMS})
+endif
 apply:
-	(cd $(TF_DIR); terraform apply -var="sshpubkeypath=${TF_SSHPUBKEYPATH}" -var="sshprivkeypath=${TF_SSHPRIVKEYPATH}" ${TF_APPLYPARAMS})
+ifeq ($(ENVIRONMENT), bootstrap)
+	(cd $(TF_DIR); terraform apply ${TF_PARAMS})
+else
+	(cd $(TF_DIR); terraform apply ${TF_PARAMS})
+endif
 destroy:
-	(cd $(TF_DIR); terraform destroy -var="sshpubkeypath=${TF_SSHPUBKEYPATH}" -var="sshprivkeypath=${TF_SSHPRIVKEYPATH}" ${TF_DESTROYPARAMS})
+ifeq ($(ENVIRONMENT), bootstrap)
+	(cd $(TF_DIR); terraform destroy ${TF_PARAMS})
+else
+	(cd $(TF_DIR); terraform destroy ${TF_PARAMS})
+endif
 output:
 	(cd $(TF_DIR); terraform output)
 

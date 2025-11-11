@@ -193,6 +193,28 @@ func AuthenticationMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
+// Handles CORS OPTION request and CORS headers
+func CORSMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
+
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // Injects configuration to Handler chain
 func WithConfig(cfg *config.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -204,7 +226,6 @@ func WithConfig(cfg *config.Config) func(http.Handler) http.Handler {
 }
 
 // Gets Configuration from context
-// TODO: provide default configuration if missing? Similar to logger?
 func GetConfig(r *http.Request) (*config.Config, bool) {
 	cfg, ok := r.Context().Value(ContextConfig).(*config.Config)
 	if cfg == nil {

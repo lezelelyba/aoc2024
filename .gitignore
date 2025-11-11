@@ -7,6 +7,12 @@ inputs
 # do not include .terraform state folder
 .terraform
 
+# do not include generated files
+backend.json
+acr.json
+config_store.json
+inventory.ini
+
 #do not include tls cert and keys
 tls
 
@@ -16,3 +22,10 @@ tls
 
 #do not include vscode setup
 .vscode/
+
+#ignore Bundler and Jekyll files
+site/vendor
+site/.bundle
+site/.jekyll-cache
+site/_site
+site/aoc2024

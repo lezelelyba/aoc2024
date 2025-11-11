@@ -5,6 +5,8 @@
   <title>{{block "title" .}}AoC 2024 Solver{{end}}</title>
   <link rel="stylesheet" href="/static/css/styles.css">
   <link rel="icon" href="/static/images/favicon.png">
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/backend.js"></script>
   {{block "head" .}}{{end}}
 </head>
 <body>
@@ -26,6 +28,32 @@
   </header>
 
   <main>
+    <script>
+      window.AppConfig = Object.freeze({
+        backends: [
+          {
+            name: "Local",
+            baseApiUrl: window.location.origin,
+          },
+        ],
+      })
+    </script>
+    <section class="backend">
+        <strong>Backend:</strong>
+        <div id="backend-list" class="backend-list">
+        </div>
+        <script>
+          el = document.getElementById("backend-list");
+          for (backend of window.AppConfig.backends) {
+            const span = document.createElement("span");
+            span.id = `backend-${backend.name}`;
+            span.classList.add("backend-not-available");
+            span.textContent = backend.baseApiUrl;
+            el.appendChild(span);
+          }
+        </script>
+        <div id="selected-backend" data-name="" hidden></div>
+    </section>
     {{block "content" .}}{{end}}
   </main>
 

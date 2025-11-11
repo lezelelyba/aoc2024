@@ -1,15 +1,9 @@
-output "bucket_name" {
-  value = aws_s3_bucket.tf_state_bucket.bucket 
-}
-
-output "dynamodb_table_name" {
-  value = aws_dynamodb_table.tf_lock_db.name
-}
-
+// path to environment modules
 locals {
   repo_root = "${path.module}/../../../.."
 }
 
+// creates file with backend information for environments to use
 resource "local_file" "backend_info_json" {
     filename = "${local.repo_root}/environments/aws/backend.json"
     content = jsonencode({
@@ -19,14 +13,9 @@ resource "local_file" "backend_info_json" {
     })
 }
 
-output "gh_oidc_provider_arn" {
-  value = aws_iam_openid_connect_provider.gh_oidc_provider.arn
-}
+// OIDC
 
-output "gh_actions_role_arn" {
-  value = aws_iam_role.gh_actions_role.arn
-}
-
+// creates gh action for the ECS redeploy
 resource "local_file" "gh_actions_ecs_change" {
     filename = "${local.repo_root}/.github/workflows/ecs-image-change.yml"
     content = templatefile("${path.module}/templates/ecs-image-change.yml.tmpl", {
