@@ -8,6 +8,7 @@ import (
 	"advent2024/web/weberrors"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"reflect"
