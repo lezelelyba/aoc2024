@@ -149,6 +149,7 @@ jobs:
             work-dir: modules/acme
             tag-prefix: modules/acme
           - name: release
+            work-dir: .
             tag-prefix: release
       max-parallel: 1
     outputs:
@@ -181,7 +182,8 @@ jobs:
         uses: ./.github/actions/bump-version
         with:
           branch-name: ${{github.ref_name}}
-          work-dir: ${{ matrix.work-dir || '' }}
+          # using "."/current dir for missing values
+          work-dir: ${{ matrix.work-dir || '.' }}
           tag-prefix: ${{ matrix.tag-prefix }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
