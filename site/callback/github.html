@@ -1,0 +1,21 @@
+---
+permalink: /callback/github
+---
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Callback</title>
+  <script src="{{ site.BaseUrl }}/static/js/auth.js"></script>
+</head>
+<body>
+  <script>
+    /**
+     * Client Side processing of the OAuth callback
+     *
+     * Sends oauth code to the backend code exchange endpoint 
+     */
+    window.addEventListener("DOMContentLoaded", handleOAuthCallbackAPI("{{- site.BackendBaseUrl -}}/api/public/access_token", "github"));
+  </script>
+</body>
+</html>

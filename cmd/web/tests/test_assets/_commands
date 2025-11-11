@@ -1,0 +1,14 @@
+openssl req -x509 \
+  -addext basicConstraints=critical,CA:FALSE \
+  -newkey rsa:2048 -nodes \
+  -keyout key.pem \
+  -subj "/C=US/ST=CA/L=San Francisco/O=AoC2024/OU=dev/CN=localhost" \
+  -days 365 \
+  -out cert.pem
+
+openssl req -x509 \
+  -key key.pem \
+  -subj "/C=US/ST=CA/L=San Francisco/O=AoC2024/OU=dev/CN=localhost" \
+  -days 365 \
+  -out cert.CA.pem
+

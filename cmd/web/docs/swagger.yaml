@@ -1,10 +1,24 @@
 basePath: /api
 definitions:
+  CodeExchangeRequest:
+    properties:
+      code:
+        type: string
+      provider:
+        type: string
+    type: object
   Error:
     properties:
       errorcode:
         type: integer
       errormessage:
+        type: string
+    type: object
+  InfoResponse:
+    properties:
+      authentication:
+        type: string
+      version:
         type: string
     type: object
   RegistryItem:
@@ -26,6 +40,11 @@ definitions:
       output:
         type: string
     type: object
+  TokenResponse:
+    properties:
+      access_token:
+        type: string
+    type: object
 externalDocs:
   description: OpenAPI
   url: https://swagger.io/resources/open-api/
@@ -39,6 +58,55 @@ info:
   title: Advent of Code 2024 Solver API
   version: "2.0"
 paths:
+  /public/auth_token:
+    post:
+      description: Exchanges OAuth code for a JWT token
+      parameters:
+      - description: Provider and code to be exchanged
+        in: body
+        name: code
+        required: true
+        schema:
+          $ref: '#/definitions/CodeExchangeRequest'
+      responses:
+        "200":
+          description: JWT Token
+          schema:
+            $ref: '#/definitions/TokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Error'
+        "429":
+          description: Request was Rate limited
+          schema:
+            $ref: '#/definitions/Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Error'
+      summary: Exchanged OAuth code for a JWT token
+      tags:
+      - Public
+  /public/info:
+    get:
+      description: Provides information about the backend
+      responses:
+        "200":
+          description: Backend Info
+          schema:
+            $ref: '#/definitions/InfoResponse'
+        "429":
+          description: Request was Rate limited
+          schema:
+            $ref: '#/definitions/Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Error'
+      summary: Information about the backend
+      tags:
+      - Public
   /solvers:
     get:
       description: Lists days which the solver can solve
@@ -72,11 +140,16 @@ paths:
         - read
       summary: Solve List
       tags:
-      - solverList
+      - Private
   /solvers/{day}/{part}:
     post:
       description: Provides solution for the day and part based on input
       parameters:
+      - description: Bearer format, prefix with Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Day, format d[0-9]*
         example: d1
         in: path
@@ -95,11 +168,6 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/Request'
-      - description: Bearer format, prefix with Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
       responses:
         "200":
           description: Result
@@ -132,9 +200,9 @@ paths:
       security:
       - 'OAuth2AccessCode ':
         - read
-      summary: Solver
+      summary: Solves the problem
       tags:
-      - solver
+      - Private
 securityDefinitions:
   OAuth2AccessCode:
     authorizationUrl: https://github.com/login/oauth/authorize
@@ -142,6 +210,6 @@ securityDefinitions:
     flow: accessCode
     scopes:
       read: Grants read access
-    tokenUrl: http://localhost:8080/oauth/github/token
+    tokenUrl: /api/public/access_token
     type: oauth2
 swagger: "2.0"

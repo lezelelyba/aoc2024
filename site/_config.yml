@@ -1,0 +1,14 @@
+Backends:
+  - Name: AWS
+    BackendBaseUrl: https://dev.aoc2024.lezeleprojects.org
+  - Name: Azure
+    BackendBaseUrl: https://dev.azure.aoc2024.lezeleprojects.org
+  
+
+BaseUrl: "/aoc2024"
+
+OAuthProviders:
+  - Name: github
+    BaseAuthURL: https://github.com/login/oauth/authorize
+    ClientId: Ov23liDJwyMZc8s0j4CA
+    Scope: read:user

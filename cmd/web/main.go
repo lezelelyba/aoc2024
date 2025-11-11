@@ -10,6 +10,7 @@ import (
 
 	_ "advent2024/pkg/d1"
 	_ "advent2024/pkg/d10"
+	_ "advent2024/pkg/d11"
 	_ "advent2024/pkg/d2"
 	_ "advent2024/pkg/d3"
 	_ "advent2024/pkg/d4"
@@ -47,7 +48,7 @@ var Version string = "dev"
 
 // @securitydefinitions.oauth2.accessCode	OAuth2AccessCode
 // @authorizationURL						https://github.com/login/oauth/authorize
-// @tokenURL								http://localhost:8080/oauth/github/token
+// @tokenURL								/api/public/access_token
 // @scope.read								Grants read access
 // @description							GitHub OAuth
 func main() {
@@ -103,26 +104,32 @@ func main() {
 	// create http muxes
 	webMux := http.NewServeMux()
 	apiMux := http.NewServeMux()
+	apiUnsecuredMux := http.NewServeMux()
 	globalMux := http.NewServeMux()
 
 	// web pages
-	webMux.Handle("GET /", middleware.WithTemplate(indexTemplate)(http.HandlerFunc(webhandlers.ServerIndex)))
+	if !cfg.APIOnly {
+		webMux.Handle("GET /", middleware.WithTemplate(indexTemplate)(http.HandlerFunc(webhandlers.ServerIndex)))
+	}
 	webMux.Handle("GET /docs", middleware.WithTemplate(docsTemplate)(http.HandlerFunc(webhandlers.ServerDocs)))
-	webMux.HandleFunc("GET /list", webhandlers.SolverListing)
+	if !cfg.APIOnly {
+		webMux.HandleFunc("GET /list", webhandlers.SolverListing)
+	}
 	webMux.HandleFunc("GET /healthcheck", webhandlers.HealthCheck)
 
 	// oauth
-	if cfg.OAuth {
+	if cfg.OAuth && !cfg.APIOnly {
 		webMux.Handle("GET /callback/{provider}", middleware.WithTemplate(callbackTemplate)(http.HandlerFunc(webhandlers.OAuthCallback)))
-		webMux.HandleFunc("POST /oauth/{provider}/token", webhandlers.OAuthHandler)
 	}
 
 	// swagger docs
 	webMux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)
 
 	// static files
-	fs := http.FileServer(http.Dir("static"))
-	webMux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	if !cfg.APIOnly {
+		fs := http.FileServer(http.Dir("static"))
+		webMux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	}
 
 	// godoc
 	godocs := http.FileServer(http.Dir("godocs"))
@@ -132,15 +139,32 @@ func main() {
 	apiMux.HandleFunc("GET /solvers", api.SolverListing)
 	apiMux.HandleFunc("POST /solvers/{day}/{part}", api.Solve)
 
-	// add api rate limiter
-	apiHandler := middleware.RateLimitMiddleware(cfg.APIRate, cfg.APIBurst)(apiMux)
+	// public api
+	apiUnsecuredMux.HandleFunc("GET /info", api.Info)
 
-	// add authentication if enabled
+	// enable token exchange if oauth is enabled
 	if cfg.OAuth {
-		apiHandler = middleware.AuthenticationMiddleware()(apiHandler)
+		apiUnsecuredMux.HandleFunc("POST /access_token", api.OAuthCodeExchange)
 	}
 
+	// add authentication if enabled
+	var apiHandler http.Handler
+	if cfg.OAuth {
+		apiHandler = middleware.AuthenticationMiddleware()(apiMux)
+	} else {
+		apiHandler = apiMux
+	}
+
+	// Rate limit
+	apiUnsecuredHandler := middleware.RateLimitMiddleware(cfg.APIRate, cfg.APIBurst)(apiUnsecuredMux)
+	apiHandler = middleware.RateLimitMiddleware(cfg.APIRate, cfg.APIBurst)(apiHandler)
+
+	// CORS
+	apiHandler = middleware.CORSMiddleware()(apiHandler)
+	apiUnsecuredHandler = middleware.CORSMiddleware()(apiUnsecuredHandler)
+
 	// combine muxes
+	globalMux.Handle("/api/public/", http.StripPrefix("/api/public", apiUnsecuredHandler))
 	globalMux.Handle("/api/", http.StripPrefix("/api", apiHandler))
 	globalMux.Handle("/", webMux)
 
@@ -161,3 +185,5 @@ func main() {
 		log.Fatal(http.ListenAndServeTLS(addr, cfg.CertFile, cfg.KeyFile, finalMux))
 	}
 }
+
+// bump

@@ -21,6 +21,81 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/public/auth_token": {
+            "post": {
+                "description": "Exchanges OAuth code for a JWT token",
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Exchanged OAuth code for a JWT token",
+                "parameters": [
+                    {
+                        "description": "Provider and code to be exchanged",
+                        "name": "code",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/CodeExchangeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "JWT Token",
+                        "schema": {
+                            "$ref": "#/definitions/TokenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    },
+                    "429": {
+                        "description": "Request was Rate limited",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/public/info": {
+            "get": {
+                "description": "Provides information about the backend",
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Information about the backend",
+                "responses": {
+                    "200": {
+                        "description": "Backend Info",
+                        "schema": {
+                            "$ref": "#/definitions/InfoResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Request was Rate limited",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
         "/solvers": {
             "get": {
                 "security": [
@@ -32,7 +107,7 @@ const docTemplate = `{
                 ],
                 "description": "Lists days which the solver can solve",
                 "tags": [
-                    "solverList"
+                    "Private"
                 ],
                 "summary": "Solve List",
                 "parameters": [
@@ -86,10 +161,17 @@ const docTemplate = `{
                 ],
                 "description": "Provides solution for the day and part based on input",
                 "tags": [
-                    "solver"
+                    "Private"
                 ],
-                "summary": "Solver",
+                "summary": "Solves the problem",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer format, prefix with Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "example": "d1",
@@ -114,13 +196,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/Request"
                         }
-                    },
-                    {
-                        "type": "string",
-                        "description": "Bearer format, prefix with Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
                     }
                 ],
                 "responses": {
@@ -171,6 +246,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "CodeExchangeRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                }
+            }
+        },
         "Error": {
             "type": "object",
             "properties": {
@@ -178,6 +264,17 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "errormessage": {
+                    "type": "string"
+                }
+            }
+        },
+        "InfoResponse": {
+            "type": "object",
+            "properties": {
+                "authentication": {
+                    "type": "string"
+                },
+                "version": {
                     "type": "string"
                 }
             }
@@ -210,6 +307,14 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "TokenResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                }
+            }
         }
     },
     "securityDefinitions": {
@@ -218,7 +323,7 @@ const docTemplate = `{
             "type": "oauth2",
             "flow": "accessCode",
             "authorizationUrl": "https://github.com/login/oauth/authorize",
-            "tokenUrl": "http://localhost:8080/oauth/github/token",
+            "tokenUrl": "/api/public/access_token",
             "scopes": {
                 "read": "Grants read access"
             }

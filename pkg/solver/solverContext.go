@@ -4,7 +4,7 @@ package solver
 import (
 	"context"
 	"io"
-	"sort"
+	"slices"
 	"sync"
 )
 
@@ -65,7 +65,7 @@ func RegisterWithCtx(name string, constructor func() PuzzleSolverWithCtx) {
 
 	// sort the keys
 	keysCtx = append(keysCtx, name)
-	sort.Strings(keysCtx)
+	slices.SortFunc(keysCtx, cmpDays)
 }
 
 // Lists registered keys of solvers with context support
