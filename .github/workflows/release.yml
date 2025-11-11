@@ -183,7 +183,7 @@ jobs:
         with:
           branch-name: ${{github.ref_name}}
           # using "."/current dir for missing values
-          work-dir: ${{ matrix.work-dir || "." }}
+          work-dir: ${{ matrix.work-dir || '.' }}
           tag-prefix: ${{ matrix.tag-prefix }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
