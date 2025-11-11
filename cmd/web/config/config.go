@@ -1,6 +1,12 @@
 package config
 
 import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"flag"
 	"fmt"
@@ -14,6 +20,7 @@ import (
 type Config struct {
 	Version          string
 	Port             int
+	APIOnly          bool
 	EnableTLS        bool
 	CertFile         string
 	KeyFile          string
@@ -51,6 +58,7 @@ type GithubProvider struct {
 func NewConfig() Config {
 	return Config{
 		Port:             8080,
+		APIOnly:          false,
 		EnableTLS:        false,
 		OAuth:            false,
 		APIRate:          3,
@@ -69,7 +77,8 @@ func (p GithubProvider) Name() string {
 // Returns code<>token exchange URL where client can exchange code for JWT token
 func (p GithubProvider) AppTokenEndpoint() string {
 
-	return fmt.Sprintf("/oauth/%s/token", p.ProviderName)
+	// return fmt.Sprintf("/oauth/%s/token", p.ProviderName)
+	return fmt.Sprintf("/api/public/access_token")
 }
 
 // Returns callback URL where Github will redirect the user
@@ -107,27 +116,26 @@ func LoadConfig() (Config, []error) {
 
 	// all params are parsed as strings to be able to utilize the ENV variables as defaults
 
-	port := flag.String("port", envOrDefault("PORT", strconv.Itoa(config.Port)), "TCP port on which the app runs, default 8080")
-	// port := flag.Int("port", config.Port, "TCP port on which the app runs")
+	port := flag.String("port", envOrDefault("PORT", strconv.Itoa(config.Port)), "TCP port on which the app runs")
+
+	apiOnly := flag.String("api-only", envOrDefault("API_ONLY", fmt.Sprintf("%t", config.APIOnly)), "Disable web presentation")
 
 	enableHttps := flag.String("https", envOrDefault("ENABLE_HTTPS", fmt.Sprintf("%t", config.EnableTLS)), "Enables HTTPS, requires cert and key to be specified")
-	// enableHttps := flag.Bool("https", false, "Enables HTTPS, requires cert and key to be specified")
 	cert := flag.String("cert", envOrDefault("TLS_CERT_FILE", ""), "cert file")
 	key := flag.String("key", envOrDefault("TLS_KEY_FILE", ""), "key file")
 
-	apiRate := flag.String("apirate", envOrDefault("API_RATE", strconv.Itoa(config.APIRate)), "API rate limit per second, default 3")
-	// apiRate := flag.Int("apirate", config.APIRate, "API rate limit per second")
-	apiBurst := flag.String("apiburst", envOrDefault("API_BURST", strconv.Itoa(config.APIBurst)), "API rate burst size, default 3")
-	// apiBurst := flag.Int("apiburst", config.APIBurst, "API rate burst size")
+	apiRate := flag.String("apirate", envOrDefault("API_RATE", strconv.Itoa(config.APIRate)), "API rate limit per second")
+	apiBurst := flag.String("apiburst", envOrDefault("API_BURST", strconv.Itoa(config.APIBurst)), "API rate burst size")
+
 	defVal := int(config.SolverTimeout.Seconds())
 	solverTimeout := flag.String("solver-timeout", envOrDefault("API_SOLVER_TIMEOUT", strconv.Itoa(defVal)), "Solver timeout in seconds")
-	// solverTimeout := flag.Int("solver-timeout", int(config.SolverTimeout.Seconds()), "Solver timeout in seconds")
 
-	oAuth := flag.String("oauth", envOrDefault("ENABLE_OAUTH", fmt.Sprintf("%t", config.OAuth)), "Enables OAuth API authentication, requireds jwt secret and then requireds per provider callback url, token exhcnage url, client id and secret to be specified")
+	oAuth := flag.String("oauth", envOrDefault("ENABLE_OAUTH", fmt.Sprintf("%t", config.OAuth)), "Enables OAuth API authentication, requires jwt secret and per provider information")
+
 	jwtSecret := flag.String("jwt-secret", envOrDefault("JWT_SECRET", ""), "JWT Secret")
 	defVal = int(config.JWTTokenValidity.Seconds())
 	jwtTokenValidity := flag.String("jwt-token-validity", envOrDefault("JWT_TOKEN_VALIDITY", strconv.Itoa(defVal)), "JWT Token Validity in seconds")
-	// jwtTokenValidity := flag.String("jwt-token-validity", int(config.JWTTokenValidity.Seconds())), "JWT Token Validity in seconds")
+
 	oAuthGithubCallbackURL := flag.String("oauth-github-callback-url", envOrDefault("OAUTH_GITHUB_CALLBACK_URL", ""), "Github OAuth callback")
 	oAuthGithubUserAuthURL := flag.String("oauth-github-user-auth-url", envOrDefault("OAUTH_GITHUB_USER_AUTH_URL", ""), "Github OAuth User auth URL")
 	oAuthGithubTokenURL := flag.String("oauth-github-token-url", envOrDefault("OAUTH_GITHUB_TOKEN_URL", ""), "Github OAuth Token exchange URL")
@@ -137,11 +145,10 @@ func LoadConfig() (Config, []error) {
 	flag.Parse()
 
 	// parse int helper
-	parseInt := func(name, value string, dest *int, fallback int) {
+	parseInt := func(name, value string, dest *int) {
 		v, err := strconv.Atoi(value)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("unable to parse %s, using default %d", name, fallback))
-			*dest = fallback
+			errs = append(errs, fmt.Errorf("unable to parse %s: %v", name, value))
 			return
 		}
 
@@ -149,17 +156,22 @@ func LoadConfig() (Config, []error) {
 	}
 
 	// parse int values
-	parseInt("port", *port, &config.Port, config.Port)
-	parseInt("apiRate", *apiRate, &config.APIRate, config.APIRate)
-	parseInt("apiBurst", *apiBurst, &config.APIBurst, config.APIBurst)
+	parseInt("port", *port, &config.Port)
+	parseInt("apiRate", *apiRate, &config.APIRate)
+	parseInt("apiBurst", *apiBurst, &config.APIBurst)
 
 	// parse durations
 	var durationInt int
-	parseInt("jwtTokenValidity", *jwtTokenValidity, &durationInt, int(config.JWTTokenValidity.Seconds()))
+	parseInt("jwtTokenValidity", *jwtTokenValidity, &durationInt)
 	config.JWTTokenValidity = time.Duration(time.Duration(durationInt) * time.Second)
 
-	parseInt("solverTimeout", *solverTimeout, &durationInt, int(config.SolverTimeout.Seconds()))
+	parseInt("solverTimeout", *solverTimeout, &durationInt)
 	config.SolverTimeout = time.Duration(time.Duration(durationInt) * time.Second)
+
+	// parse API Only
+	if *apiOnly == "true" {
+		config.APIOnly = true
+	}
 
 	// parse https
 	if *enableHttps == "true" {
@@ -231,7 +243,27 @@ func (cfg *Config) ValidateConfig() (bool, []error) {
 			}
 		}
 
-		// TODO: Validate the key and cert are valid and that they belong together
+		key, err := parseKey(cfg.KeyFile)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("private key not valid: %v", err))
+		}
+
+		certs, err := parseCerts(cfg.CertFile)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("unable to parse certs: %w", err))
+		}
+
+		// get endpoint cert
+		cert, err := getEndpointCert(certs)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("unable to get endpoint cert: %w", err))
+		}
+
+		// check if key matches the cert
+		if !certKeyMatch(key, cert) {
+			errs = append(errs, fmt.Errorf("key doesn't belong to certificate"))
+			tlsErrors++
+		}
 
 		if tlsErrors > 0 {
 			valid = false
@@ -245,17 +277,37 @@ func (cfg *Config) ValidateConfig() (bool, []error) {
 
 		for _, provider := range cfg.OAuthProviders {
 			// check if the values are not empty
-			checks := []struct {
+			var checks []struct {
 				str  string
 				name string
-			}{
-				{cfg.JWTSecret, "JWT secret"},
-				{provider.AuthURL(), "user authentication URL"},
-				{provider.TokenURL(), "token exchange URL"},
-				{provider.ClientID(), "client id"},
-				{provider.ClientSecret(), "client secret"},
-				{provider.AppCallbackURL(), "callback URL"},
 			}
+
+			// serving web presentation as well
+			if !cfg.APIOnly {
+				checks = []struct {
+					str  string
+					name string
+				}{
+					{cfg.JWTSecret, "JWT secret"},
+					{provider.AuthURL(), "user authentication URL"},
+					{provider.TokenURL(), "token exchange URL"},
+					{provider.ClientID(), "client id"},
+					{provider.ClientSecret(), "client secret"},
+					{provider.AppCallbackURL(), "callback URL"},
+				}
+			} else {
+				// serving only API
+				checks = []struct {
+					str  string
+					name string
+				}{
+					{cfg.JWTSecret, "JWT secret"},
+					{provider.TokenURL(), "token exchange URL"},
+					{provider.ClientID(), "client id"},
+					{provider.ClientSecret(), "client secret"},
+				}
+			}
+			// check if the values are not empty
 
 			for _, c := range checks {
 				if c.str == "" {
@@ -265,13 +317,24 @@ func (cfg *Config) ValidateConfig() (bool, []error) {
 			}
 
 			// check if values are valid URLs
-			checks = []struct {
-				str  string
-				name string
-			}{
-				{provider.AuthURL(), "user authentication URL"},
-				{provider.TokenURL(), "token exchange URL"},
-				{provider.AppCallbackURL(), "callback URL"},
+			// serving web presentation as well
+			if !cfg.APIOnly {
+				checks = []struct {
+					str  string
+					name string
+				}{
+					{provider.AuthURL(), "user authentication URL"},
+					{provider.TokenURL(), "token exchange URL"},
+					{provider.AppCallbackURL(), "callback URL"},
+				}
+			} else {
+				// serving only API
+				checks = []struct {
+					str  string
+					name string
+				}{
+					{provider.TokenURL(), "token exchange URL"},
+				}
 			}
 
 			for _, c := range checks {
@@ -306,6 +369,97 @@ func isValidURL(s string) bool {
 		return false
 	}
 	return true
+}
+
+func parseCerts(certFilename string) ([]*x509.Certificate, error) {
+
+	pemData, err := os.ReadFile(certFilename)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var certs []*x509.Certificate
+
+	for {
+		var block *pem.Block
+		block, pemData = pem.Decode(pemData)
+
+		if block == nil {
+			break
+		}
+
+		if block.Type != "CERTIFICATE" {
+			continue
+		}
+
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+
+		certs = append(certs, cert)
+
+	}
+
+	return certs, nil
+}
+
+func getEndpointCert(certs []*x509.Certificate) (*x509.Certificate, error) {
+	for _, cert := range certs {
+		if !cert.IsCA {
+			return cert, nil
+		}
+	}
+
+	return nil, fmt.Errorf("unable to find endpoint cert")
+}
+
+func parseKey(keyFilename string) (crypto.PrivateKey, error) {
+	data, err := os.ReadFile(keyFilename)
+
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(data)
+
+	if block == nil {
+		return nil, fmt.Errorf("invalid key in file %s", keyFilename)
+	}
+
+	if k, err := x509.ParsePKCS1PrivateKey(block.Bytes); err == nil {
+		return k, nil
+	}
+	if k, err := x509.ParsePKCS8PrivateKey(block.Bytes); err == nil {
+		return k, nil
+	}
+	if k, err := x509.ParseECPrivateKey(block.Bytes); err == nil {
+		return k, nil
+	}
+
+	return nil, fmt.Errorf("unsupported key")
+}
+
+func certKeyMatch(key crypto.PrivateKey, cert *x509.Certificate) bool {
+
+	if cert == nil {
+		return false
+	}
+
+	switch k := key.(type) {
+	case *rsa.PrivateKey:
+		publicKey, ok := cert.PublicKey.(*rsa.PublicKey)
+		return ok && k.PublicKey.Equal(publicKey)
+	case *ecdsa.PrivateKey:
+		publicKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
+		return ok && k.PublicKey.Equal(publicKey)
+	case *ed25519.PrivateKey:
+		publicKey, ok := cert.PublicKey.(ed25519.PublicKey)
+		return ok && k.Public().(ed25519.PublicKey).Equal(publicKey)
+	default:
+		return false
+	}
 }
 
 func StripHost(raw string) (string, error) {

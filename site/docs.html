@@ -1,0 +1,93 @@
+---
+layout: default
+---
+
+<script>
+  fetch("{{ site.BaseUrl }}/static/mermaid/UI.mermaid")
+    .then(r => r.text())
+    .then(t => document.getElementById("mermaidUI").innerHTML = t);
+  fetch("{{ site.BaseUrl }}/static/mermaid/OAuth.mermaid")
+    .then(r => r.text())
+    .then(t => document.getElementById("mermaidOAuth").innerHTML = t);
+</script>
+
+<section id="swagger">
+      <h2>
+        <a id="swagger-a" href="/swagger" target="_blank">API Definition (hosted on backend)</a>
+      </h2>
+</section>
+
+<section id="godocs">
+  <h2>
+    <a id="godocs-a" href="/godocs" target="_blank">Go Documentation (hosted on backend)</a>
+  </h2>
+</section>
+
+<section>
+    <h2>Diagram of UI flow on the index Page</h2>
+    <pre id="mermaidUI" class="mermaid">
+    </pre>
+</section>
+
+<section>
+    <h2>Diagram of OAuth Flow</h2>
+    <pre id="mermaidOAuth" class="mermaid">
+    </pre>
+</section>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true });
+</script>
+
+<script>
+  // set busy
+  document.body.classList.add("busy");
+
+  // check all backend status
+  const checks = getBackends()
+    .map(b => checkBackend(b)
+      .then(result => {
+
+        // backend is available if it returned info
+        const available = !result.error && Boolean(result.info);
+        updateBackendUI(result?.backend, available, false);
+
+        // if backend is available return Promise
+        if (available) {
+          return result;
+        } 
+
+        // reject promise if backend is unavailable
+        return Promise.reject(result);
+      })
+    );
+
+  // work with first available
+  Promise.any(checks)
+    .then(firstAvailable => {
+      // set backend information
+      setBackend(firstAvailable?.backend);
+      updateBackendUI(firstAvailable?.backend, available=true, used=true);
+    })
+    .then(() => {
+      const baseApiUrl = getBackend().baseApiUrl;
+      const swaggerA = document.getElementById("swagger-a");
+      const swaggerHref = swaggerA.getAttribute("href");
+      swaggerA.href = baseApiUrl + swaggerHref;
+
+      const godocsA= document.getElementById("godocs-a");
+      const godocsHref = godocsA.getAttribute("href");
+      godocsA.href = baseApiUrl + godocsHref;
+    })
+    .catch(err => {
+      const swaggerEl = document.getElementById("swagger");
+      swaggerEl.classList.add("disabled");
+
+      const godocsEl= document.getElementById("godocs");
+      godocsEl.classList.add("disabled");
+    })
+    .finally(() => {
+      document.body.classList.remove("busy");
+    });
+</script>

@@ -9,13 +9,18 @@
   <script src="/static/js/navigation.js" defer></script>
   <script src="/static/js/auth.js"></script>
   <script src="/static/js/helpers.js"></script>
-  <script src="/static/js/callSolver.js"></script>
+  <script src="/static/js/api.js"></script>
 {{ end }}
 
 {{ define "authentication"}}
 {{- if .Config.OAuth -}}
+<div id="auth-enabled" data-enabled="true" hidden></div>
+{{- else -}}
+<div id="auth-enabled" data-enabled="false" hidden></div>
+{{- end -}}
+
+{{- if .Config.OAuth -}}
 <section class="auth active">
-  <div id="auth-enabled" data-enabled="true" hidden></div>
 
   <div class="auth-status-logout">
     <div>
@@ -43,8 +48,6 @@
     {{- end }}
   </script>
 </section>
-{{- else -}}
-<div id="auth-enabled" data-enabled="false" hidden></div>
 {{- end -}}
 {{end}}
 
@@ -61,24 +64,6 @@
     </div>
   </div>
   <div id="table-container">
-    <table>
-        <thead>
-        <tr>
-          <th>Name</th>
-          <th>Parts 1</th>
-          <th>Parts 2</th>
-        </tr>
-        </thead>
-        <tbody>
-            {{- range $item := .RegistryItems }}
-            <tr>
-                <td class="row-key">{{$item.Name}}</td>
-                <td><a href="#" data-day="{{$item.Name}}" data-part="1">Part 1</a></td>
-                <td><a href="#" data-day="{{$item.Name}}" data-part="2">Part 2</a></td>
-            </tr>
-            {{- end }}
-        </tbody>
-    </table>
   </div>
 </section>
 {{end}}

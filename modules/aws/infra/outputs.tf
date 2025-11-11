@@ -32,8 +32,9 @@ output "ecs_service_name" {
   value = aws_ecs_service.app.name
 }
 
+// save information about ECS for gh action to pull
 resource "aws_ssm_parameter" "cd_config" {
-  name  = var.ssm_path
+  name  = local.ssm_path
   type  = "String"
   value = jsonencode({
     cluster = aws_ecs_cluster.ecs_cluster.name

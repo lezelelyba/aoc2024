@@ -1,26 +1,24 @@
 variable "region" {
+    description = "AWS region"
     default = "eu-central-1"
 }
 variable "env" {
+    description = "deployed environment"
     default = "stage"
 }
-variable "ssm_path" {
-    default = "/cd/stage/config"
-}
-variable "dns_zone" {
-    default = "lezeleprojects.org."
+variable "docker_image" {
+    description = "Image for the ECS deployment"
+    default = "jsafar/advent2024.web:stage"
 }
 variable "alb_dns_name" {
-    default = "stage.aoc2024.lezeleprojects.org"
+    description = "FQDN where the app will be deployed"
 }
-
-variable "docker_image" {
-    default = "jsafar/advent2024.web:stage"
+variable "dns_zone" {
+    description = "DNS zone for the FQDN"
 }
 variable "sshpubkeypath" {
     default = "~/.ssh/id_rsa.pub"
 }
-
 variable "sshprivkeypath" {
     default = "~/.ssh/id_rsa"
 }

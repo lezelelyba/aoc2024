@@ -2,11 +2,13 @@
 package tests
 
 import (
+	"advent2024/web/api"
 	"advent2024/web/config"
 	"advent2024/web/middleware"
 	"advent2024/web/webhandlers"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"text/template"
 	"time"
@@ -111,30 +113,54 @@ func TestOAuthHandler(t *testing.T) {
 
 	// setup the router
 	mux := http.NewServeMux()
-	mux.Handle("POST /oauth/{provider}/token",
+	mux.Handle("POST /api/public/access_token",
 		middleware.Chain(
-			http.HandlerFunc(webhandlers.OAuthHandler),
+			http.HandlerFunc(api.OAuthCodeExchange),
 			middleware.WithConfig(&cfg)))
 
 	// cases
 
 	cases := []struct {
 		name string
-		url  string
+		body string
 		want int
 	}{
-		{"unknown provider", "/oauth/unknownProvider/token", http.StatusBadRequest},
-		{"missing code", "/oauth/github/token", http.StatusBadRequest},
-		{"github breaks", "/oauth/github/token?code=breakGithub", http.StatusInternalServerError},
-		{"invalid code", "/oauth/github/token?code=invalidCode", http.StatusBadRequest},
-		{"valid code", "/oauth/github/token?code=validCode", http.StatusOK},
-		{"'wrong' code<>exchange URL", "/oauth/github/token?code=simulateWrongURL", http.StatusInternalServerError},
+		{
+			"unknown provider",
+			`{ "provider": "unknown",	"code": "validCode" }`,
+			http.StatusBadRequest,
+		},
+		{
+			"missing code",
+			`{ "provider": "github",	"code": "" }`,
+			http.StatusBadRequest,
+		},
+		{
+			"valid code",
+			`{ "provider": "github",	"code": "validCode" }`,
+			http.StatusOK,
+		},
+		{
+			"invalid code",
+			`{ "provider": "github",	"code": "invalidCode" }`,
+			http.StatusBadRequest,
+		},
+		{
+			"simulated connection disconnect",
+			`{ "provider": "github",	"code": "breakConnection" }`,
+			http.StatusInternalServerError,
+		},
+		{
+			"config error - wrong code exchange URL",
+			`{ "provider": "github",	"code": "simulateWrongURL" }`,
+			http.StatusInternalServerError,
+		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			// create request
-			req := httptest.NewRequest("POST", c.url, nil)
+			req := httptest.NewRequest("POST", "/api/public/access_token", strings.NewReader(c.body))
 			w := httptest.NewRecorder()
 
 			// call the router
