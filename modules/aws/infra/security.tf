@@ -1,13 +1,15 @@
+// inbound rules for alb
 locals {
-  lb_ingress_rules = [
+  // append http if it's enable 
+  lb_ingress_rules_http = var.alb_http ? [
     {
       protocol    = "tcp"
       from_port   = tonumber(var.alb_http_port)
       to_port     = tonumber(var.alb_http_port)
       cidr_blocks = ["0.0.0.0/0"]
     }
-  ]
-  # append HTTPS rule if HTTPS is enabled
+  ] : []
+  // append HTTPS rule if HTTPS is enabled
   lb_ingress_rules_https = var.alb_https ? [
     {
       protocol    = "tcp"
@@ -17,8 +19,10 @@ locals {
     }
   ] : []
   
-  combined_rules = concat(local.lb_ingress_rules, local.lb_ingress_rules_https)
+  combined_rules = concat(local.lb_ingress_rules_http, local.lb_ingress_rules_https)
 }
+
+// alb rules
 resource "aws_security_group" "lb" {
     vpc_id = aws_vpc.vpc.id
     name = "${var.env}-aoc2024-lb-sg"
@@ -47,6 +51,7 @@ resource "aws_security_group" "lb" {
     }
 }
 
+// container security group
 resource "aws_security_group" "ecs" {
     vpc_id = aws_vpc.vpc.id
     name = "${var.env}-aoc2024-ecs-sg"
@@ -70,6 +75,8 @@ resource "aws_security_group" "ecs" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 }
+
+// bastion security group
 resource "aws_security_group" "bastion" {
     vpc_id = aws_vpc.vpc.id
     name = "${var.env}-aoc2024-bastion-sg"
@@ -93,6 +100,8 @@ resource "aws_security_group" "bastion" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 }
+
+// private host security group
 resource "aws_security_group" "testhost" {
     vpc_id = aws_vpc.vpc.id
     name = "${var.env}-aoc2024-testhost-sg"

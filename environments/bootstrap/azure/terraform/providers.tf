@@ -10,6 +10,8 @@ terraform {
             version = "~> 3.0"
         }
     }
+    // local backend for bootstrap
+    // TODO: migration to azure?
     backend "local" {
         path = "/var/tmp/advent2024-azure-bootstrap.tfstate"
     }
@@ -18,5 +20,6 @@ terraform {
 provider "azurerm" {
     features {}
 }
+
 provider "azuread" {
 }
