@@ -1,7 +1,9 @@
+// allow all available zones to be used
 data "aws_availability_zones" "available" {
     state = "available"
 }
 
+// create vpc
 resource "aws_vpc" "vpc" {
     cidr_block = var.vpc_cidr
 
@@ -14,12 +16,14 @@ resource "aws_vpc" "vpc" {
     }
 }
 
+// create 2 public subnets
 resource "aws_subnet" "public" {
     count = 2
 
     vpc_id = aws_vpc.vpc.id
-    cidr_block = cidrsubnet(var.vpc_cidr, 4, count.index)
     availability_zone = data.aws_availability_zones.available.names[count.index]
+    // +4 subnet mask, 0000
+    cidr_block = cidrsubnet(var.vpc_cidr, 4, count.index)
     map_public_ip_on_launch = true
 
     tags = {
@@ -28,12 +32,14 @@ resource "aws_subnet" "public" {
     }
 }
 
+// create 2 private subnets
 resource "aws_subnet" "private" {
     count = 2
 
     vpc_id = aws_vpc.vpc.id
-    cidr_block = cidrsubnet(var.vpc_cidr, 4, count.index + 8)
     availability_zone = data.aws_availability_zones.available.names[count.index]
+    // +4 subnet mask, 1000
+    cidr_block = cidrsubnet(var.vpc_cidr, 4, count.index + 8)
     map_public_ip_on_launch = false 
 
     tags = {
@@ -42,6 +48,7 @@ resource "aws_subnet" "private" {
     }
 }
 
+// create internet gateway for vpc
 resource "aws_internet_gateway" "igw" {
     vpc_id = aws_vpc.vpc.id
 
@@ -51,6 +58,7 @@ resource "aws_internet_gateway" "igw" {
     }
 }
 
+// create elastic ip for nat gateways
 resource "aws_eip" "nat_eip" {
     count = 2
 
@@ -62,6 +70,7 @@ resource "aws_eip" "nat_eip" {
     }
 }
 
+// create nat gateways, 2 => 1 per private subnet
 resource "aws_nat_gateway" "nat" {
     count = 2
 
@@ -76,6 +85,7 @@ resource "aws_nat_gateway" "nat" {
     depends_on = [aws_internet_gateway.igw]
 }
 
+// route table for private subnet
 resource "aws_route_table" "private" {
     count = 2
     vpc_id = aws_vpc.vpc.id 
@@ -86,6 +96,7 @@ resource "aws_route_table" "private" {
     }
 }
 
+// 0.0.0.0 next-hop nat-gw
 resource "aws_route" "private_gw" {
     count = 2
 
@@ -94,6 +105,7 @@ resource "aws_route" "private_gw" {
     nat_gateway_id = aws_nat_gateway.nat[count.index].id
 }
 
+// route table for public subnet
 resource "aws_route_table" "public" {
     count = 2
 
@@ -105,6 +117,7 @@ resource "aws_route_table" "public" {
     }
 }
 
+// 0.0.0.0 next-hop internet-gw
 resource "aws_route" "public_gw" {
     count = 2
 
@@ -113,6 +126,7 @@ resource "aws_route" "public_gw" {
     gateway_id = aws_internet_gateway.igw.id
 }
 
+// associate route table with private subnets
 resource "aws_route_table_association" "private" {
     count = 2
 
@@ -120,6 +134,7 @@ resource "aws_route_table_association" "private" {
     route_table_id = aws_route_table.private[count.index].id
 }
 
+// associate route table with public subnets
 resource "aws_route_table_association" "public" {
     count = 2
 

@@ -1,3 +1,4 @@
+// create lb in public subnet
 resource "aws_alb" "main" {
 
     internal = false
@@ -11,6 +12,7 @@ resource "aws_alb" "main" {
     }
 }
 
+// target group - ecs container group
 resource "aws_alb_target_group" "app" {
     vpc_id = aws_vpc.vpc.id
     port = var.app_tcp_port
@@ -29,8 +31,9 @@ resource "aws_alb_target_group" "app" {
     }
 }
 
+// enable http if we do not redirect
 resource "aws_alb_listener" "frontend_http" {
-  count = var.alb_http ? 1 : 0
+  count = var.alb_http && !local.redirect ? 1 : 0
   load_balancer_arn = aws_alb.main.arn
   port = var.alb_http_port
   protocol = "HTTP"
@@ -41,8 +44,9 @@ resource "aws_alb_listener" "frontend_http" {
   }
 }
 
+// redirect if both http and https are enabled
 resource "aws_alb_listener" "frontend_http_redirect" {
-  count = var.alb_https && !var.alb_http ? 1 : 0
+  count = local.redirect ? 1 : 0
   load_balancer_arn = aws_alb.main.arn
   port = var.alb_http_port
   protocol = "HTTP"
@@ -56,6 +60,8 @@ resource "aws_alb_listener" "frontend_http_redirect" {
     }
   }
 }
+
+// enable https 
 resource "aws_lb_listener" "frontend_https" {
     count = var.alb_https ? 1 : 0
 
@@ -76,7 +82,8 @@ resource "aws_lb_listener" "frontend_https" {
     }
 }
 
-// dns name registration
+// DNS name registration
+// get zone
 data "aws_route53_zone" "primary" {
     name = var.dns_zone
 }
@@ -93,7 +100,7 @@ resource "aws_route53_record" "app_alias" {
     }
 }
 
-// https for front end
+// create certificate if https is required
 resource "aws_acm_certificate" "alb_cert" {
     count = var.alb_https ? 1 : 0
     
@@ -105,6 +112,7 @@ resource "aws_acm_certificate" "alb_cert" {
     }
 }
 
+// modify zone records with certificate validation entry
 resource "aws_route53_record" "cert_validation" {
     for_each = var.alb_https ? {
         for dvo in aws_acm_certificate.alb_cert[0].domain_validation_options : dvo.domain_name => {
@@ -121,6 +129,7 @@ resource "aws_route53_record" "cert_validation" {
     records = [each.value.value]
 }
 
+// validate the cert by checking the modified DNS records
 resource "aws_acm_certificate_validation" "cert" {
     count = var.alb_https ? 1 : 0
 

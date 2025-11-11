@@ -1,0 +1,22 @@
+aci_app_env_map = {
+    ENABLE_OAUTH = "true"
+    OAUTH_GITHUB_USER_AUTH_URL = "https://github.com/login/oauth/authorize"
+    OAUTH_GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
+    OAUTH_GITHUB_CLIENT_ID = "client_id"
+    OAUTH_GITHUB_CALLBACK_URL = "https://aoc.example.com/callback/github"
+    PORT = 443
+    ENABLE_HTTPS = "true"
+}
+
+aci_app_env_map_secret = {
+    JWT_SECRET = "jwt_secret"
+    OAUTH_GITHUB_CLIENT_SECRET = "client_secret"
+}
+
+tenant_id = "tenant_id"
+
+app_dns_name = "aoc.example.com"
+dns_provider = "route53"
+email = "somebody@example.com"
+
+dns_zone = "example.com."

@@ -1,11 +1,4 @@
-module acme {
-    source = "../../../../modules/acme"
-    dns_provider = var.dns_provider
-    email = var.email
-    domain = var.app_dns_name
-}
-
-
+// resource group for the environment
 resource "azurerm_resource_group" "group" {
     name = "aoc-${var.env}-rg"
     location = var.region
@@ -15,6 +8,7 @@ resource "azurerm_resource_group" "group" {
     }
 }
 
+// log workspace for the environment
 resource "azurerm_log_analytics_workspace" "main" {
     name = "aoc-${var.env}-analytics-workspace"
     location = azurerm_resource_group.group.location
@@ -23,6 +17,7 @@ resource "azurerm_log_analytics_workspace" "main" {
     retention_in_days = 30
 }
 
+// key vault for the environment
 resource "azurerm_key_vault" "kv" {
     name = "aoc-${var.env}-kv"
     location = var.region
@@ -33,6 +28,8 @@ resource "azurerm_key_vault" "kv" {
     rbac_authorization_enabled = true
 }
 
+// create secrets for the secret ENV paramenters
+// key cannot contain underscores => replace with dashes
 resource "azurerm_key_vault_secret" "container_env_secret" {
     for_each = {for k in local.aci_app_env_map_secret_keys: replace(k, "_", "-") => var.aci_app_env_map_secret[k] }
 
@@ -42,7 +39,7 @@ resource "azurerm_key_vault_secret" "container_env_secret" {
 }
 
 // import cert
-// can't use cert as azure cert in key vault is always pfx
+// can't use azurerm_key_vault_certifate, as it has to be in pfx format, and image supports only sepeate cert and key
 resource "azurerm_key_vault_secret" "cert" {
     count = !local.use_acme ? 1 : 0
     name = "imported-cert"
@@ -57,22 +54,33 @@ resource "azurerm_key_vault_secret" "key" {
     value = base64encode(local.key)
 }
 
-// create cert via acme
+// get a new certificate for the FQDN 
+module acme {
+    count = local.use_acme ? 1 : 0
+    source = "../../../../modules/acme"
+    providers = {
+        acme = acme
+    }
+    subject = var.app_dns_name
+    dns_provider = var.dns_provider
+    email = var.email
+}
 resource "azurerm_key_vault_secret" "certacme" {
     count = local.use_acme ? 1 : 0
     name = "imported-cert-acme"
     key_vault_id = azurerm_key_vault.kv.id
-    value = base64encode(module.acme.certificate)
+    value = base64encode(module.acme[0].certificate)
 }
 
 resource "azurerm_key_vault_secret" "keyacme" {
     count = local.use_acme ? 1 : 0
     name = "imported-key-acme"
     key_vault_id = azurerm_key_vault.kv.id
-    value = base64encode(module.acme.private_key)
+    value = base64encode(module.acme[0].private_key)
 }
 
 
+// create ACI service
 resource "azurerm_container_group" "app" {
     name = "aoc-${var.env}-solver"
     location = var.region
@@ -110,7 +118,7 @@ resource "azurerm_container_group" "app" {
         // env variables
         environment_variables = merge (
             var.aci_app_env_map,
-            // if https is enabled, pass the corresponding env variables
+            // if https is enabled, pass key and cert
             local.enable_https == "true" ? {
                 "ENABLE_HTTPS" = "true",
                 "TLS_CERT_FILE" = "/files/cert.pem",
@@ -121,7 +129,7 @@ resource "azurerm_container_group" "app" {
         // secure env variables
         secure_environment_variables = { for k in local.aci_app_env_map_secret_keys: k => azurerm_key_vault_secret.container_env_secret[replace(k, "_", "-")].value }
 
-        // create volume only if cert and key has to be passed to container
+        // create volume for cert and key if https is to be enabled
         dynamic "volume" {
             for_each = local.enable_https == "true" ? ["1"] : []
             content {
@@ -149,28 +157,27 @@ resource "azurerm_container_group" "app" {
         environment = var.env
     }
 }
+
+// register CNAME with Route53
 module route53registration {
     source = "../../../../modules/aws/route53"
+    providers = {
+        aws = aws
+    }
     alias = azurerm_container_group.app.fqdn
     domain = var.app_dns_name
     dns_zone = var.dns_zone
 }
 
-// allow gh to modify the aci
+// allow gh to modify the ACI
+// get gh-action app Principal
 data "azuread_service_principal" "gh_actions" {
-    display_name = var.gh_actions_application
+    display_name = var.gh_actions_application_name
 }
 
+// assing role to gh-action app principal to be able to modify the ACI deployment
 resource "azurerm_role_assignment" "aci_contributor" {
     principal_id = data.azuread_service_principal.gh_actions.object_id
     role_definition_name = "Contributor"
-    scope = azurerm_resource_group.group.id
-}
-
-// save information for gh action to pull
-
-resource "azurerm_app_configuration_key" "container_service_id" {
-    configuration_store_id = local.config_store.id
-    key = "/cd/${var.env}/aci_id"
-    value = azurerm_container_group.app.id
+    scope = azurerm_container_group.app.id
 }
