@@ -7,6 +7,7 @@ use (
 	./pkg/d1
 	./pkg/d10
 	./pkg/d11
+	./pkg/d12
 	./pkg/d2
 	./pkg/d3
 	./pkg/d4
