@@ -1,4 +1,4 @@
-package d0
+package d12
 
 import (
 	"advent2024/pkg/solver"
@@ -10,8 +10,20 @@ import (
 )
 
 var (
-	inputTest  = ``
-	inputEntry = ``
+	inputTest = `AAAA
+BBCD
+BBCC
+EEEC`
+	inputEntry = `RRRRIICCFF
+RRRRIICCCF
+VVRRRCCFFF
+VVRCCCJFFF
+VVVVCJJCFE
+VVIVCCJJEE
+VVIIICJJEE
+MIIIIIJJEE
+MIIISIJEEE
+MMMISSJEEE`
 )
 
 func TestValid(t *testing.T) {
@@ -20,10 +32,10 @@ func TestValid(t *testing.T) {
 		part        int
 		want        string
 	}{
-		{"test input part 1", inputTest, 1, "0"},
-		{"entry input part 1", inputEntry, 1, "0"},
-		{"test input part 2", inputTest, 2, "0"},
-		{"entry input part 2", inputEntry, 2, "0"},
+		{"test input part 1", inputTest, 1, "140"},
+		{"entry input part 1", inputEntry, 1, "1930"},
+		{"test input part 2", inputTest, 2, "80"},
+		{"entry input part 2", inputEntry, 2, "1206"},
 	}
 
 	for _, c := range cases {
@@ -54,15 +66,15 @@ func TestUnknownPart(t *testing.T) {
 }
 
 func TestInvalidInput(t *testing.T) {
-	inputComplex := `invalidComplex`
+	unequalRows := `AA
+BBB`
 
 	cases := []struct {
 		name  string
 		input string
 	}{
 		{"empty input", ``},
-		{"invalid input", "inputInvalid"},
-		{"complex input", inputComplex},
+		{"uneqal rows", unequalRows},
 	}
 
 	want := solver.ErrInvalidInput
@@ -85,10 +97,10 @@ func TestValidWithCtx(t *testing.T) {
 		part        int
 		want        string
 	}{
-		{"test input part 1", inputTest, 1, "0"},
-		{"entry input part 1", inputEntry, 1, "0"},
-		{"test input part 2", inputTest, 2, "0"},
-		{"entry input part 2", inputEntry, 2, "0"},
+		{"test input part 1", inputTest, 1, "140"},
+		{"entry input part 1", inputEntry, 1, "1930"},
+		{"test input part 2", inputTest, 2, "80"},
+		{"entry input part 2", inputEntry, 2, "1206"},
 	}
 
 	for _, c := range cases {
